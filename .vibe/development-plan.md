@@ -186,6 +186,64 @@ Build an MCP server that exposes Claude Code skills (following the Agent Skills 
 - Maximum skill size: 5000 tokens for main SKILL.md (recommendation from spec)
 - Dynamic command injection security controlled by configuration
 
+### Implementation Strategy
+
+**Monorepo Template:** Using ~/projects/templates/typescript-monorepo as foundation
+- Pre-configured: ESLint, Prettier, Husky (pre-commit hooks), Turbo, Vitest, TypeScript
+- Includes: .husky/, .github/, tsconfig hierarchy, turbo.json, lint-staged
+- Packages: Will create @agentskills/core, @agentskills/cli, @agentskills/mcp-server
+
+**Implementation Order:**
+1. Core package first (SkillParser → SkillValidator → SkillRegistry → etc)
+2. MCP server depends on core SkillRegistry
+3. CLI depends on core validation/discovery
+4. Tests after each component (unit → integration → e2e)
+
+**MVP Constraints:**
+- No file watching - load skills on startup only
+- Local directories only - git repos in future
+- Integration tests priority (real MCP protocol)
+
+**Task Management:**
+- 21 implementation tasks created in agent-skills-1.4 (Code phase)
+- Dependencies mapped (monorepo setup → core → mcp-server/cli → tests)
+- Ready to proceed to implementation
+
+### Planning Phase Research Summary
+
+**Completed Research:**
+
+1. **Claude Code Skills Management Patterns** (from Agent Skills ecosystem):
+   - Progressive disclosure: metadata (100 tokens) → full skill (<5000 tokens) → resources (on-demand)
+   - Standard locations: `.claude/skills/`, `~/.claude/skills/`, custom directories
+   - skills-ref CLI tool: validate, read-properties, to-prompt (XML generation)
+   - No package manager - git repos and manual distribution
+   - Skill structure: SKILL.md + optional scripts/, references/, assets/
+   
+2. **Recommended CLI Commands** (inspired by skills-ref + enhancements):
+   - `agentskills create <name>` - Create new skill from template
+   - `agentskills validate [path]` - Validate skill format
+   - `agentskills list [--json]` - List discovered skills
+   - `agentskills info <skill-name>` - Show detailed skill info
+   - `agentskills to-prompt [paths...]` - Generate XML prompt (compatibility with Claude)
+   - `agentskills config init/list/set` - Configuration management
+   - Phase 2: `install/update/search` for remote skills
+
+3. **Integration Testing Strategy** (from agentic-knowledge):
+   - Minimal mocking philosophy - test real MCP protocol interactions
+   - E2E tests with stdio transport (real subprocess)
+   - Temporary file systems for isolation
+   - Single-threaded execution to avoid resource conflicts
+   - Test at multiple levels: E2E (protocol), integration (server), unit (core)
+   - Vitest with separate configs: base + e2e
+   - Test utilities: createTestProject(), createMCPClient(), cleanup patterns
+
+4. **Key Design Decisions**:
+   - **Config file format**: Similar to agentic-knowledge, support skill sources (local/git)
+   - **No file watching in MVP**: Load skills on startup only (simplifies v1.0)
+   - **Core registry first**: In-memory skill index, foundational for CLI and MCP server
+   - **Integration tests priority**: Test real MCP protocol, not mocked interfaces
+
 ### Architecture Phase Summary
 
 **Completed**: Architecture phase finished with comprehensive C4 documentation (880 lines).
