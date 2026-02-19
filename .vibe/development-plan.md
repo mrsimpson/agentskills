@@ -84,6 +84,31 @@ Build an MCP server that exposes Claude Code skills (following the Agent Skills 
 - **Resources**: Still used for accessing file contents (scripts, references, assets) on-demand
 - **Result**: Better UX - agents discover and invoke skills in one interaction
 
+### No Server-Side Execution (Security by Design)
+**Critical Decision**: MCP server does NOT execute any commands or scripts
+- **Why**: Security, simplicity, and separation of concerns
+- **Approach**: Server only parses and returns skill instructions/content
+- **Agent Responsibility**: Agent decides what to execute based on skill instructions
+- **Benefits**: 
+  - No security risks from untrusted skills
+  - No need for sandboxing or allow/deny lists
+  - Simpler server implementation
+  - Follows agentic-knowledge pattern
+- **Trade-off**: Dynamic context injection (!`command`) returns raw commands, not executed results
+
+### Monorepo Architecture (CLI + MCP Server)
+**Key Decision**: Use monorepo structure with separate packages (following agentic-knowledge pattern)
+- **Packages**:
+  - `cli`: Command-line tool for skill management (create, validate, list, etc.)
+  - `mcp-server`: MCP server exposing skills to agents
+  - `core` (optional): Shared types, parsers, utilities
+- **Why**: 
+  - Clean separation of concerns
+  - CLI can be used independently for skill development
+  - MCP server focuses on MCP protocol integration
+  - Shared code reduces duplication
+- **Build System**: pnpm workspaces + Turbo for efficient builds
+
 ### Core Value Propositions
 1. **Cross-Platform Portability**: Skills work across any MCP-compatible agent (Claude Desktop, Cline, Continue, etc.)
 2. **Leverage Existing Ecosystem**: 20+ tools already support Agent Skills format
@@ -117,9 +142,10 @@ Build an MCP server that exposes Claude Code skills (following the Agent Skills 
    - Process substitutions before returning skill content
    
 5. **Dynamic Context Injection** (Claude Code feature):
-   - Parse and execute `` !`command` `` syntax
-   - Run shell commands and inject output into skill content
-   - Security: configurable allow/deny list for commands
+   - Parse `` !`command` `` syntax in skill content
+   - Return commands to agent for execution (NOT executed by server)
+   - Agent decides whether to execute and inject results
+   - Server just returns raw instructions with placeholders
    
 6. **Skill Discovery**:
    - Load from standard locations: .claude/skills/, ~/.claude/skills/
@@ -144,7 +170,7 @@ Build an MCP server that exposes Claude Code skills (following the Agent Skills 
 - Model selection (`model` field) - client responsibility
 - Remote skill repositories (GitHub, npm packages)
 - Skill marketplace/registry
-- Execution sandboxing for dynamically injected commands
+- Command execution by server (intentionally out of scope - agent handles this)
 - Skill composition (skills calling other skills)
 - Web UI for skill management
 - Skill analytics/telemetry
@@ -159,6 +185,26 @@ Build an MCP server that exposes Claude Code skills (following the Agent Skills 
 - Skills validated at load time, not runtime
 - Maximum skill size: 5000 tokens for main SKILL.md (recommendation from spec)
 - Dynamic command injection security controlled by configuration
+
+### Architecture Phase Summary
+
+**Completed**: Architecture phase finished with comprehensive C4 documentation (880 lines).
+
+**Key Architectural Outcomes**:
+1. **Monorepo Structure**: 3 packages (@agentskills/core, @agentskills/cli, @agentskills/mcp-server)
+2. **No Execution Security Model**: Server only returns instructions, never executes code
+3. **Tool-First API**: invoke_skill tool with enum parameter for auto-discovery
+4. **In-Memory Registry**: Fast skill access with hot reload using chokidar
+5. **Tech Stack**: TypeScript + pnpm workspaces + Turbo + MCP SDK + js-yaml
+
+**Architecture Document Includes**:
+- C4 Level 1 (Context): System overview, users, external systems, boundaries
+- C4 Level 2 (Container): 3-package structure, dependencies, deployment
+- C4 Level 3 (Component): Detailed components for each package with interfaces
+- Architecture Decision Records (ADRs): 5 key decisions documented
+- Technology Choices: Comprehensive stack with rationale
+- Quality Attributes: Performance (<100ms), security (no execution), reliability
+- Enhancement Roadmap: Phases 2-4 for future features
 
 ## Notes
 
