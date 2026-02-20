@@ -35,9 +35,7 @@ export class MCPServer {
   /**
    * Creates a new MCPServer instance
    * 
-   * The server is immediately ready after construction. The stdio transport
-   * lifecycle is synchronous - the process spawns, the server runs, and the
-   * process exits. The SDK's connect() handles everything automatically.
+   * Note: Call start() to begin accepting MCP protocol messages.
    * 
    * @param registry - Pre-initialized SkillRegistry instance
    */
@@ -63,13 +61,17 @@ export class MCPServer {
 
     // Create stdio transport
     this.transport = new StdioServerTransport();
+  }
 
-    // Connect immediately - server is ready when constructor completes
-    // The SDK handles the connection lifecycle automatically
-    this.mcpServer.connect(this.transport).catch((error) => {
-      // Log error but don't throw - the process will exit on stdio close
-      console.error("Failed to connect MCP server:", error);
-    });
+  /**
+   * Start the MCP server and begin accepting protocol messages
+   * 
+   * This connects the server to the stdio transport. The method returns
+   * immediately after connection is established. The server will continue
+   * running until stdin is closed.
+   */
+  async start(): Promise<void> {
+    await this.mcpServer.connect(this.transport);
   }
 
   /**

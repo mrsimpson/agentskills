@@ -31,6 +31,7 @@ async function main() {
 
     // Create and start server
     const server = new MCPServer(registry);
+    await server.start();
 
     // Server is now running via stdio
     // Keep process alive until stdin closes
@@ -38,7 +39,8 @@ async function main() {
       process.exit(0);
     });
   } catch (error) {
-    console.error("Failed to start MCP server:", error);
+    // Only write to stderr if we haven't started stdio communication
+    process.stderr.write(`Failed to start MCP server: ${error}\n`);
     process.exit(1);
   }
 }
