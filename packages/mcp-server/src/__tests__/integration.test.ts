@@ -300,40 +300,31 @@ This is another skill body with instructions for the second skill.
     console.log("Tool successfully exposed via MCP protocol with skill enum");
     console.log("Tool execution successfully returned skill body");
 
-    // Step 9: Test resources/list
+    // Step 9: Test resources/templates/list
     sendMessage({
       jsonrpc: "2.0",
       id: 4,
-      method: "resources/list",
+      method: "resources/templates/list",
     });
 
-    // Step 10: Wait for resources/list response
-    const resourcesResponse = (await waitForResponse()) as any;
-    expect(resourcesResponse.id).toBe(4);
-    expect(resourcesResponse.result).toBeDefined();
-    expect(resourcesResponse.result.resources).toBeDefined();
-    expect(Array.isArray(resourcesResponse.result.resources)).toBe(true);
+    // Step 10: Wait for resources/templates/list response
+    const templatesResponse = (await waitForResponse()) as any;
+    expect(templatesResponse.id).toBe(4);
+    expect(templatesResponse.result).toBeDefined();
+    expect(templatesResponse.result.resourceTemplates).toBeDefined();
+    expect(Array.isArray(templatesResponse.result.resourceTemplates)).toBe(true);
 
-    // Verify skills are exposed as resources
-    const resources = resourcesResponse.result.resources;
-    expect(resources.length).toBe(2);
+    // Verify single template covers all skills
+    const templates = templatesResponse.result.resourceTemplates;
+    expect(templates.length).toBe(1);
     
-    const exampleResource = resources.find(
-      (r: any) => r.uri === "skill://example-skill"
-    );
-    const anotherResource = resources.find(
-      (r: any) => r.uri === "skill://another-skill"
-    );
-    
-    expect(exampleResource).toBeDefined();
-    expect(exampleResource.name).toBe("example-skill");
-    expect(exampleResource.description).toBe("An example skill for integration testing");
-    expect(exampleResource.mimeType).toBe("text/markdown");
-    
-    expect(anotherResource).toBeDefined();
-    expect(anotherResource.name).toBe("another-skill");
-    expect(anotherResource.description).toBe("Another skill for integration testing");
-    expect(anotherResource.mimeType).toBe("text/markdown");
+    const template = templates[0];
+    expect(template).toBeDefined();
+    expect(template.uriTemplate).toBe("skill://{skillName}");
+    expect(template.name).toBe("Agent Skill");
+    expect(template.description).toContain("use_skill tool");
+    expect(template.description).toContain("skill_name parameter");
+    expect(template.mimeType).toBe("text/markdown");
 
     // Step 11: Test resources/read
     sendMessage({
@@ -360,7 +351,8 @@ This is another skill body with instructions for the second skill.
     expect(resourceContent.text).toContain("Example Skill");
     expect(resourceContent.text).toContain("This is an example skill body with instructions for the first skill");
 
-    console.log("Resources successfully exposed via MCP protocol");
+    console.log("Resource template successfully exposed via MCP protocol");
+    console.log("Single template covers all skills via skill://{skillName} pattern");
     console.log("Resource reading successfully returned SKILL.md content");
 
     // Cleanup: Close subprocess

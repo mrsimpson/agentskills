@@ -68,117 +68,110 @@ This is test skill 2 instructions for resource reading.
     }
   });
 
-  describe("Resource Registration", () => {
-    it("should register resources from SkillRegistry", async () => {
+  describe("Resource Template Registration", () => {
+    it("should register resource template from SkillRegistry", async () => {
       // Arrange
       const server = new MCPServer(registry);
 
       // Act
-      const resources = server.getResources();
+      const templates = server.getResourceTemplates();
 
       // Assert
-      expect(resources).toBeDefined();
-      expect(Array.isArray(resources)).toBe(true);
+      expect(templates).toBeDefined();
+      expect(Array.isArray(templates)).toBe(true);
     });
 
-    it("should create a resource for each skill", async () => {
+    it("should have single resource template for all skills", async () => {
       // Arrange
       const server = new MCPServer(registry);
 
       // Act
-      const resources = server.getResources();
+      const templates = server.getResourceTemplates();
 
       // Assert
-      expect(resources.length).toBe(2);
+      expect(templates.length).toBe(1);
     });
 
-    it("should have correct URI format for resources", async () => {
+    it("should have correct URI template format", async () => {
       // Arrange
       const server = new MCPServer(registry);
 
       // Act
-      const resources = server.getResources() as any[];
+      const templates = server.getResourceTemplates() as any[];
 
       // Assert
-      const resource1 = resources.find((r: any) => r.uri === "skill://test-skill-1");
-      const resource2 = resources.find((r: any) => r.uri === "skill://test-skill-2");
-      
-      expect(resource1).toBeDefined();
-      expect(resource2).toBeDefined();
+      const template = templates[0];
+      expect(template.uriTemplate).toBe("skill://{skillName}");
     });
 
-    it("should have name and description for each resource", async () => {
+    it("should have name and description referencing tool", async () => {
       // Arrange
       const server = new MCPServer(registry);
 
       // Act
-      const resources = server.getResources() as any[];
+      const templates = server.getResourceTemplates() as any[];
 
       // Assert
-      const resource1 = resources.find((r: any) => r.uri === "skill://test-skill-1");
-      
-      expect(resource1.name).toBe("test-skill-1");
-      expect(resource1.description).toBe("A test skill for resource tests");
+      const template = templates[0];
+      expect(template.name).toBe("Agent Skill");
+      expect(template.description).toContain("use_skill tool");
+      expect(template.description).toContain("skill_name parameter");
+    });
+
+    it("should have mimeType", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act
+      const templates = server.getResourceTemplates() as any[];
+
+      // Assert
+      const template = templates[0];
+      expect(template.mimeType).toBe("text/markdown");
     });
   });
 
-  describe("List Resources", () => {
-    it("should list all skills as resources", async () => {
+  describe("List Resource Templates", () => {
+    it("should return single template regardless of skill count", async () => {
       // Arrange
       const server = new MCPServer(registry);
 
       // Act
-      const resources = server.getResources() as any[];
+      const templates = server.getResourceTemplates() as any[];
 
       // Assert
-      expect(resources.length).toBe(2);
-      expect(resources[0]).toHaveProperty("uri");
-      expect(resources[0]).toHaveProperty("name");
-      expect(resources[0]).toHaveProperty("description");
+      expect(templates.length).toBe(1);
+      expect(templates[0]).toHaveProperty("uriTemplate");
+      expect(templates[0]).toHaveProperty("name");
+      expect(templates[0]).toHaveProperty("description");
     });
 
-    it("should have correct metadata for each resource", async () => {
+    it("should have correct metadata for template", async () => {
       // Arrange
       const server = new MCPServer(registry);
 
       // Act
-      const resources = server.getResources() as any[];
+      const templates = server.getResourceTemplates() as any[];
 
       // Assert
-      resources.forEach((resource: any) => {
-        expect(resource.uri).toMatch(/^skill:\/\/.+$/);
-        expect(typeof resource.name).toBe("string");
-        expect(typeof resource.description).toBe("string");
-        expect(resource.mimeType).toBe("text/markdown");
-      });
+      const template = templates[0];
+      expect(template.uriTemplate).toBe("skill://{skillName}");
+      expect(template.name).toBe("Agent Skill");
+      expect(typeof template.description).toBe("string");
+      expect(template.mimeType).toBe("text/markdown");
     });
 
-    it("should work with multiple skills", async () => {
-      // Arrange
-      const server = new MCPServer(registry);
-
-      // Act
-      const resources = server.getResources() as any[];
-
-      // Assert
-      expect(resources.length).toBe(2);
-      
-      const skillNames = resources.map((r: any) => r.name);
-      expect(skillNames).toContain("test-skill-1");
-      expect(skillNames).toContain("test-skill-2");
-    });
-
-    it("should handle empty skill list", async () => {
+    it("should exist even with empty skill list", async () => {
       // Arrange
       const emptyRegistry = new SkillRegistry();
       const server = new MCPServer(emptyRegistry);
 
       // Act
-      const resources = server.getResources();
+      const templates = server.getResourceTemplates();
 
       // Assert
-      expect(Array.isArray(resources)).toBe(true);
-      expect(resources.length).toBe(0);
+      expect(Array.isArray(templates)).toBe(true);
+      expect(templates.length).toBe(1); // Template exists regardless
     });
   });
 
