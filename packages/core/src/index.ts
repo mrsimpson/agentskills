@@ -14,9 +14,18 @@ export type {
   ValidationWarningCode,
   LoadResult,
   RegistryState,
+  InstallResult,
+  InstallSuccess,
+  InstallFailure,
+  InstallAllResult,
+  InstallError,
+  InstallErrorCode,
+  SkillManifest,
+  SkillLockFile,
+  SkillLockEntry,
 } from "./types";
 
 export { parseSkill, parseSkillContent } from "./parser";
 export { validateSkill } from "./validator";
 export { SkillRegistry } from "./registry";
-
+export { SkillInstaller } from "./installer";
