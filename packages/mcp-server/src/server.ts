@@ -100,16 +100,8 @@ export class MCPServer {
           required: ["skill_name"],
         } as any, // Temporary workaround for SDK types
       },
-      async () => {
-        // Stub implementation - full tool execution in next phase
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: "Stub implementation",
-            },
-          ],
-        };
+      async (args: Record<string, unknown>) => {
+        return this.handleUseSkillTool(args);
       }
     );
   }
@@ -122,6 +114,67 @@ export class MCPServer {
   private getSkillNames(): string[] {
     const metadata = this.registry.getAllMetadata();
     return metadata.map((m) => m.name);
+  }
+
+  /**
+   * Handle use_skill tool execution
+   * 
+   * Retrieves skill instructions and metadata for the requested skill.
+   * Returns skill data as JSON in MCP text content format.
+   * 
+   * @param args - Tool arguments with skill_name and optional arguments
+   * @returns MCP tool result with skill data
+   */
+  private async handleUseSkillTool(
+    args: Record<string, unknown>
+  ): Promise<{ content: Array<{ type: "text"; text: string }> }> {
+    const skillName = args.skill_name as string;
+
+    // Get skill from registry
+    const skill = this.registry.getSkill(skillName);
+
+    if (!skill) {
+      throw new Error(`Skill not found: ${skillName}`);
+    }
+
+    // Build skill data response
+    const skillData = {
+      name: skill.metadata.name,
+      description: skill.metadata.description,
+      body: skill.body,
+      // Include optional metadata if present
+      ...(skill.metadata.license && { license: skill.metadata.license }),
+      ...(skill.metadata.compatibility && {
+        compatibility: skill.metadata.compatibility,
+      }),
+      ...(skill.metadata.allowedTools && {
+        allowedTools: skill.metadata.allowedTools,
+      }),
+      // Include Claude Code extensions if present
+      ...(skill.metadata.disableModelInvocation !== undefined && {
+        disableModelInvocation: skill.metadata.disableModelInvocation,
+      }),
+      ...(skill.metadata.userInvocable !== undefined && {
+        userInvocable: skill.metadata.userInvocable,
+      }),
+      ...(skill.metadata.argumentHint && {
+        argumentHint: skill.metadata.argumentHint,
+      }),
+      ...(skill.metadata.context && { context: skill.metadata.context }),
+      ...(skill.metadata.agent && { agent: skill.metadata.agent }),
+      ...(skill.metadata.model && { model: skill.metadata.model }),
+      ...(skill.metadata.hooks && { hooks: skill.metadata.hooks }),
+    };
+
+    // Return as MCP text content
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(skillData, null, 2),
+        },
+      ],
+    };
   }
 
   /**
@@ -170,26 +223,25 @@ export class MCPServer {
   /**
    * Call a tool
    * 
-   * Stub implementation - will be fully implemented in task 1.4.11
+   * Handles tool execution for use_skill tool.
    * 
    * @param toolName - Name of the tool to call
    * @param args - Arguments object for the tool
    * @returns Tool execution result
    */
-  async callTool(toolName: string, args: Record<string, unknown>): Promise<unknown> {
-    // Stub: return error for non-existent skills
+  async callTool(
+    toolName: string,
+    args: Record<string, unknown>
+  ): Promise<unknown> {
     try {
-      const skill = this.registry.getSkill(toolName);
-      if (!skill) {
-        return {
-          isError: true,
-          error: `Skill not found: ${toolName}`,
-        };
+      if (toolName === "use_skill") {
+        return await this.handleUseSkillTool(args);
       }
-      
-      // Stub: return success
+
+      // Return error for unknown tools
       return {
-        content: "Stub implementation - full tool execution in task 1.4.11",
+        isError: true,
+        error: `Unknown tool: ${toolName}`,
       };
     } catch (error) {
       return {
