@@ -151,3 +151,20 @@ export interface RegistryState {
   sources: string[];
   lastLoaded?: Date;
 }
+
+/**
+ * Configuration settings
+ */
+export interface ConfigSettings {
+  maxSkillSize?: number;
+  logLevel?: "error" | "warn" | "info" | "debug";
+}
+
+/**
+ * Complete configuration object
+ */
+export interface Config {
+  version: string;
+  sources: SkillSource[];
+  settings: ConfigSettings;
+}
