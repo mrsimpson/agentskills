@@ -6,7 +6,7 @@
  */
 
 // Export the core MCPServer class
-export { MCPServer, type MCPServerOptions } from "./server.js";
+export { MCPServer } from "./server.js";
 
 /**
  * Main MCP server class for Agent Skills

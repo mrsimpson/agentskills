@@ -7,79 +7,42 @@
  * 
  * Architecture:
  * - Uses McpServer from @modelcontextprotocol/sdk for MCP protocol handling
- * - Integrates with SkillRegistry from @agentskills/core for skill management
+ * - Accepts SkillRegistry via dependency injection (separation of concerns)
  * - Announces capabilities: tools and resources
  * - Routes requests to appropriate handlers
- * - Provides lifecycle management (start/stop)
+ * - Server is immediately ready after construction (no explicit lifecycle)
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { SkillRegistry } from "@agentskills/core";
-import { existsSync, statSync } from "fs";
-
-/**
- * Options for initializing MCPServer
- */
-export interface MCPServerOptions {
-  /**
-   * Pre-initialized SkillRegistry instance
-   */
-  registry?: SkillRegistry;
-  
-  /**
-   * Path to skills directory (will create registry internally)
-   */
-  skillsDir?: string;
-}
 
 /**
  * MCPServer - Main server class for Agent Skills MCP integration
  * 
  * Features:
- * - Accepts SkillRegistry or skillsDir in constructor
+ * - Accepts SkillRegistry via dependency injection
  * - Announces tools and resources capabilities
- * - Provides start() and stop() lifecycle methods
+ * - Server is "live" immediately upon construction
  * - Routes tools/list, tools/call, resources/list, resources/read requests
  * - Error handling without crashes
  */
 export class MCPServer {
   private mcpServer: McpServer;
   private registry: SkillRegistry;
-  private transport?: StdioServerTransport;
-  private isStarted: boolean = false;
+  private transport: StdioServerTransport;
 
   /**
    * Creates a new MCPServer instance
    * 
-   * @param options - Configuration options
-   * @throws Error if neither registry nor skillsDir is provided
-   * @throws Error if skillsDir doesn't exist
+   * The server is immediately ready after construction. The stdio transport
+   * lifecycle is synchronous - the process spawns, the server runs, and the
+   * process exits. The SDK's connect() handles everything automatically.
+   * 
+   * @param registry - Pre-initialized SkillRegistry instance
    */
-  constructor(options: MCPServerOptions) {
-    // Validate options
-    if (!options.registry && !options.skillsDir) {
-      throw new Error("Either registry or skillsDir must be provided");
-    }
-
-    // Initialize or use provided registry
-    if (options.registry) {
-      this.registry = options.registry;
-    } else {
-      // Validate skills directory exists
-      if (!existsSync(options.skillsDir!)) {
-        throw new Error(`Skills directory does not exist: ${options.skillsDir}`);
-      }
-      
-      // Verify it's a directory
-      const stat = statSync(options.skillsDir!);
-      if (!stat.isDirectory()) {
-        throw new Error(`Skills directory is not a directory: ${options.skillsDir}`);
-      }
-
-      // Create new registry (will be loaded on start)
-      this.registry = new SkillRegistry();
-    }
+  constructor(registry: SkillRegistry) {
+    this.registry = registry;
 
     // Initialize MCP server with capabilities
     this.mcpServer = new McpServer(
@@ -94,6 +57,16 @@ export class MCPServer {
         },
       }
     );
+
+    // Create stdio transport
+    this.transport = new StdioServerTransport();
+
+    // Connect immediately - server is ready when constructor completes
+    // The SDK handles the connection lifecycle automatically
+    this.mcpServer.connect(this.transport).catch((error) => {
+      // Log error but don't throw - the process will exit on stdio close
+      console.error("Failed to connect MCP server:", error);
+    });
 
     // Register handlers (stubs for now - full implementation in tasks 1.4.11 and 1.4.12)
     this.registerHandlers();
@@ -204,54 +177,6 @@ export class MCPServer {
         isError: true,
         error: error instanceof Error ? error.message : "Unknown error",
       };
-    }
-  }
-
-  /**
-   * Start the MCP server
-   * 
-   * Initializes transport and begins listening for MCP protocol messages
-   */
-  async start(): Promise<void> {
-    if (this.isStarted) {
-      return; // Already started, nothing to do
-    }
-
-    try {
-      // Create stdio transport
-      this.transport = new StdioServerTransport();
-      
-      // Connect MCP server to transport
-      await this.mcpServer.connect(this.transport);
-      
-      this.isStarted = true;
-    } catch (error) {
-      throw new Error(
-        `Failed to start MCP server: ${error instanceof Error ? error.message : "Unknown error"}`
-      );
-    }
-  }
-
-  /**
-   * Stop the MCP server
-   * 
-   * Closes the transport and cleans up resources
-   * Safe to call multiple times
-   */
-  async stop(): Promise<void> {
-    if (!this.isStarted) {
-      return; // Not started, nothing to do
-    }
-
-    try {
-      // Close the MCP server connection
-      await this.mcpServer.close();
-      
-      this.transport = undefined;
-      this.isStarted = false;
-    } catch (error) {
-      // Log error but don't throw - stop should be idempotent
-      console.error("Error stopping MCP server:", error);
     }
   }
 }
