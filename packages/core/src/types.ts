@@ -123,3 +123,31 @@ export interface ValidationResult {
   errors: ValidationError[];
   warnings: ValidationWarning[];
 }
+
+/**
+ * Source configuration for loading skills
+ */
+export interface SkillSource {
+  type: "local_directory";
+  path: string;
+  priority?: number;
+}
+
+/**
+ * Result of loading skills into registry
+ */
+export interface LoadResult {
+  loaded: number;
+  failed: number;
+  warnings: string[];
+  errors: string[];
+}
+
+/**
+ * Current state of the registry
+ */
+export interface RegistryState {
+  skillCount: number;
+  sources: string[];
+  lastLoaded?: Date;
+}
