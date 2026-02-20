@@ -9,7 +9,8 @@ import { tmpdir } from "os";
  * ResourceHandler Tests - Skills as MCP Resources (TDD)
  * 
  * Tests for exposing skills as MCP resources so clients can:
- * - List available skills as resources
+ * - List available skills as concrete resources (resources/list)
+ * - List resource templates with skill name enum (resources/templates/list)
  * - Read skill definitions via resource URIs (skill://<name>)
  * - Browse skill documentation
  */
@@ -66,6 +67,97 @@ This is test skill 2 instructions for resource reading.
     } catch (error) {
       // Ignore cleanup errors
     }
+  });
+
+  describe("List Resources (Concrete Resources)", () => {
+    it("should return array of resources from registry", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act
+      const resources = server.getResources();
+
+      // Assert
+      expect(resources).toBeDefined();
+      expect(Array.isArray(resources)).toBe(true);
+    });
+
+    it("should return resource for each skill", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act
+      const resources = server.getResources() as any[];
+
+      // Assert
+      expect(resources.length).toBe(2);
+    });
+
+    it("should have correct structure for each resource", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act
+      const resources = server.getResources() as any[];
+
+      // Assert
+      const resource = resources[0];
+      expect(resource).toHaveProperty('uri');
+      expect(resource).toHaveProperty('name');
+      expect(resource).toHaveProperty('description');
+      expect(resource).toHaveProperty('mimeType');
+    });
+
+    it("should have correct URI format", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act
+      const resources = server.getResources() as any[];
+
+      // Assert
+      resources.forEach(resource => {
+        expect(resource.uri).toMatch(/^skill:\/\//);
+        expect(resource.uri).toBe(`skill://${resource.name}`);
+      });
+    });
+
+    it("should have correct metadata for each skill", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act
+      const resources = server.getResources() as any[];
+
+      // Assert
+      const skill1 = resources.find(r => r.name === 'test-skill-1');
+      const skill2 = resources.find(r => r.name === 'test-skill-2');
+
+      expect(skill1).toBeDefined();
+      expect(skill1.uri).toBe('skill://test-skill-1');
+      expect(skill1.name).toBe('test-skill-1');
+      expect(skill1.description).toBe('A test skill for resource tests');
+      expect(skill1.mimeType).toBe('text/markdown');
+
+      expect(skill2).toBeDefined();
+      expect(skill2.uri).toBe('skill://test-skill-2');
+      expect(skill2.name).toBe('test-skill-2');
+      expect(skill2.description).toBe('Another test skill for resources');
+      expect(skill2.mimeType).toBe('text/markdown');
+    });
+
+    it("should return empty array with no skills", async () => {
+      // Arrange
+      const emptyRegistry = new SkillRegistry();
+      const server = new MCPServer(emptyRegistry);
+
+      // Act
+      const resources = server.getResources() as any[];
+
+      // Assert
+      expect(Array.isArray(resources)).toBe(true);
+      expect(resources.length).toBe(0);
+    });
   });
 
   describe("Resource Template Registration", () => {
