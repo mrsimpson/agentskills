@@ -140,18 +140,18 @@ This is a test skill.
       // Tool execution should return proper result
     });
 
-    it("should route resources/list requests", async () => {
+    it("should route resources/templates/list requests", async () => {
       // Arrange
       const registry = new SkillRegistry();
       await registry.loadSkills(skillsDir);
       const server = new MCPServer(registry);
 
       // Act
-      const resources = server.getResources();
+      const templates = server.getResourceTemplates();
 
       // Assert
-      expect(resources).toBeDefined();
-      expect(Array.isArray(resources)).toBe(true);
+      expect(templates).toBeDefined();
+      expect(Array.isArray(templates)).toBe(true);
     });
 
     it("should route resources/read requests", async () => {

@@ -18,7 +18,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { SkillRegistry } from "@agentskills/core";
 import { z } from "zod";
 import {
-  ListResourcesRequestSchema,
+  ListResourceTemplatesRequestSchema,
   ReadResourceRequestSchema
 } from "@modelcontextprotocol/sdk/types.js";
 
@@ -119,11 +119,11 @@ export class MCPServer {
       resources: {}
     });
 
-    // Register resources/list handler via the underlying server
+    // Register resources/templates/list handler via the underlying server
     (this.mcpServer as any).server.setRequestHandler(
-      ListResourcesRequestSchema,
+      ListResourceTemplatesRequestSchema,
       async () => ({
-        resources: this.getResourcesList()
+        resourceTemplates: this.getResourceTemplatesList()
       })
     );
 
@@ -282,26 +282,27 @@ ${skillList}`;
   }
 
   /**
-   * Get list of available resources (internal helper for MCP protocol)
+   * Get list of resource templates (internal helper for MCP protocol)
    *
-   * Returns skills as MCP resources with proper URI format.
+   * Returns a single template that covers all skills using the {skillName} pattern.
+   * Clients construct URIs dynamically using skill names from the tool's enum.
    *
-   * @returns Array of resource definitions for MCP protocol
+   * @returns Array with single resource template for MCP protocol
    */
-  private getResourcesList(): Array<{
-    uri: string;
+  private getResourceTemplatesList(): Array<{
+    uriTemplate: string;
     name: string;
     description: string;
     mimeType: string;
   }> {
-    const skills = this.registry.getAllMetadata();
-
-    return skills.map((skill) => ({
-      uri: `skill://${skill.name}`,
-      name: skill.name,
-      description: skill.description,
-      mimeType: "text/markdown"
-    }));
+    return [
+      {
+        uriTemplate: "skill://{skillName}",
+        name: "Agent Skill",
+        description: "Access skill instructions and metadata. Use skill names from the use_skill tool's skill_name parameter.",
+        mimeType: "text/markdown"
+      }
+    ];
   }
 
   /**
@@ -341,15 +342,15 @@ ${skillList}`;
   }
 
   /**
-   * Get list of available resources
+   * Get list of resource templates
    *
-   * Returns skills as MCP resources. This method is for testing and
-   * external callers. The MCP protocol uses getResourcesList internally.
+   * Returns resource templates for skills. This method is for testing and
+   * external callers. The MCP protocol uses getResourceTemplatesList internally.
    *
-   * @returns Array of resource definitions
+   * @returns Array of resource template definitions
    */
-  getResources(): unknown[] {
-    return this.getResourcesList();
+  getResourceTemplates(): unknown[] {
+    return this.getResourceTemplatesList();
   }
 
   /**
