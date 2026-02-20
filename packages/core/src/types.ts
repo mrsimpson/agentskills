@@ -125,15 +125,6 @@ export interface ValidationResult {
 }
 
 /**
- * Source configuration for loading skills
- */
-export interface SkillSource {
-  type: "local_directory";
-  path: string;
-  priority?: number;
-}
-
-/**
  * Result of loading skills into registry
  */
 export interface LoadResult {
@@ -153,18 +144,89 @@ export interface RegistryState {
 }
 
 /**
- * Configuration settings
+ * Error codes for installation failures
  */
-export interface ConfigSettings {
-  maxSkillSize?: number;
-  logLevel?: "error" | "warn" | "info" | "debug";
+export type InstallErrorCode =
+  | "INVALID_SPEC"
+  | "INSTALL_FAILED"
+  | "NETWORK_ERROR"
+  | "MISSING_SKILL_MD"
+  | "INVALID_SKILL_FORMAT"
+  | "PERMISSION_ERROR";
+
+/**
+ * Error information for installation failures
+ */
+export interface InstallError {
+  code: InstallErrorCode;
+  message: string;
 }
 
 /**
- * Complete configuration object
+ * Skill manifest extracted from installed package
  */
-export interface Config {
+export interface SkillManifest {
+  name: string;
+  description: string;
+  license?: string;
+  compatibility?: string;
+  packageName?: string;
+  version?: string;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Successful installation result
+ */
+export interface InstallSuccess {
+  success: true;
+  name: string;
+  spec: string;
+  resolvedVersion: string;
+  integrity: string;
+  installPath: string;
+  manifest?: SkillManifest;
+}
+
+/**
+ * Failed installation result
+ */
+export interface InstallFailure {
+  success: false;
+  name?: string;
+  spec?: string;
+  error?: InstallError;
+}
+
+/**
+ * Result of installing a single skill (discriminated union)
+ */
+export type InstallResult = InstallSuccess | InstallFailure;
+
+/**
+ * Result of installing multiple skills
+ */
+export interface InstallAllResult {
+  success: boolean;
+  installed: Set<string>;
+  failed: Set<string>;
+  results: Record<string, InstallResult>;
+}
+
+/**
+ * Lock file entry for a single skill
+ */
+export interface SkillLockEntry {
+  spec: string;
+  resolvedVersion: string;
+  integrity: string;
+}
+
+/**
+ * Lock file structure for reproducible installations
+ */
+export interface SkillLockFile {
   version: string;
-  sources: SkillSource[];
-  settings: ConfigSettings;
+  generated: string;
+  skills: Record<string, SkillLockEntry>;
 }

@@ -63,6 +63,46 @@ Build an MCP server that exposes Claude Code skills (following the Agent Skills 
 
 ## Key Decisions
 
+### Package.json + Pacote for Skill Management (MAJOR REVISION)
+**Decision Date**: 2026-02-20
+**Status**: Replacing path-based config with declarative package management
+
+**The Problem**: Initial design used `.agentskills/config.yaml` to configure **paths** to scan for skills. This was wrong - we should declare **skills as dependencies** (like package.json), not paths.
+
+**The Solution**: Use `package.json` with `agentskills` field + npm's Pacote library
+```json
+{
+  "agentskills": {
+    "api-integration": "github:anthropic/api-integration#v1.0.0",
+    "database-query": "git+https://github.com/org/db-skill.git",
+    "local-skill": "file:./skills/custom"
+  },
+  "agentskillsConfig": {
+    "autoDiscover": [".claude/skills"]
+  }
+}
+```
+
+**Benefits**:
+- Reuse npm's battle-tested infrastructure (Pacote)
+- Familiar format for developers (package.json)
+- Native multi-source support (git, local, future npm registry)
+- Version locking with `.agentskills/skills-lock.json`
+- No reimplementing package management
+
+**Implementation**:
+- Skills installed to `.agentskills/skills/` (like node_modules)
+- `agentskills install` downloads all declared skills via Pacote
+- `autoDiscover` for backwards compatibility with `.claude/skills`
+- Priority: installed skills > auto-discovered (prevent double-loading)
+
+**Changes Required**:
+- Delete current ConfigManager (path-based)
+- New SkillInstaller using Pacote
+- New ConfigManager reading package.json
+- Registry loads from `.agentskills/skills/` + auto-discover paths
+- Update all tests
+
 ### Adopt Agent Skills Open Standard
 - Agent Skills (agentskills.io) is an open format developed by Anthropic and adopted by 20+ tools
 - Provides standardized SKILL.md format with YAML frontmatter + Markdown body

@@ -92,54 +92,132 @@ See [Architecture Document](./architecture.md) for high-level system context and
 
 ### Rationale
 
-Inspired by **agentic-knowledge's `.knowledge/config.yaml`** pattern for consistency and familiarity.
+**MAJOR REVISION (2026-02-20)**: Configuration redesigned to use `package.json` with declarative skill dependencies (like npm packages), not path scanning.
 
 **Key Decisions**:
-1. Support both JSON and YAML formats
-2. Prefer directory-based config (`.agentskills/`) over root files for organization
-3. Enable multiple skill sources with priority-based conflict resolution
-4. Design for future extensibility (remote sources, caching)
-5. Provide init/download workflow similar to docsets
+1. Use `package.json` with `agentskills` field (familiar to developers)
+2. Skills are **declared dependencies**, not paths to scan
+3. Use npm's Pacote library for downloading (battle-tested, supports git/local/registry)
+4. Skills installed to `.agentskills/skills/` (like node_modules)
+5. Generate lock file for reproducibility (`.agentskills/skills-lock.json`)
+6. Support auto-discovery for backwards compatibility (`.claude/skills`)
 
-### File Discovery
+### Package.json Format
 
-**Search Order** (first match wins):
-1. `.agentskills/config.yaml` (recommended)
-2. `.agentskills/config.json`
-3. `.agentskills.yaml` (root alternative)
-4. `.agentskills.json` (root alternative)
-5. Default configuration (if none found)
+**Skills Declaration** (like dependencies):
+```json
+{
+  "agentskills": {
+    "api-integration": "github:anthropic/api-integration#v1.0.0",
+    "database-query": "git+https://github.com/org/db-skill.git#main",
+    "local-custom": "file:./skills/my-skill",
+    "future-registry": "@agentskills/common@^1.0.0"
+  },
+  "agentskillsConfig": {
+    "skillsDirectory": ".agentskills/skills",
+    "autoDiscover": [".claude/skills"],
+    "maxSkillSize": 5000,
+    "logLevel": "info"
+  }
+}
+```
 
-**Rationale**: Keep project root clean while allowing simpler alternatives
+**Source Types** (via Pacote):
+- **Git repos**: `github:user/repo#tag`, `git+https://...`
+- **Local paths**: `file:./path/to/skill`
+- **npm registry** (future): `@scope/skill@^1.0.0`
+- **Tarballs**: `https://example.com/skill.tgz`
 
-### Schema Overview
+### Installation Workflow
 
-For detailed schema, see [Architecture Document](./architecture.md).
+**Commands**:
+```bash
+# Install all declared skills (like npm install)
+agentskills install
 
-**Core Concepts**:
-- **Version field**: Enable future schema migrations
-- **Sources array**: Ordered list with priority (first wins in conflicts)
-- **Source types**: Local directories (MVP), git repos (future), npm packages (future)
-- **Enable/disable**: Control sources without removing configuration
-- **Settings**: Global behavior controls (validation mode, token limits, security)
+# Add a new skill (updates package.json + installs)
+agentskills add github:anthropic/api-skill
 
-**Source Priority**: Sources load in order; first occurrence of skill name wins
+# Update skills
+agentskills update [skill-name]
 
-### Init/Download Workflow (Future)
+# Remove skill
+agentskills remove <skill-name>
+```
 
-**Pattern**: Add source to config → Initialize/download → Enable in config
+**Directory Structure**:
+```
+.agentskills/
+  skills/                    # Installed skills (like node_modules)
+    api-integration/
+      SKILL.md
+      scripts/
+    database-query/
+      SKILL.md
+  skills-lock.json          # Lock file (versions, integrity)
+  cache/                    # Pacote cache
+```
 
-Similar to agentic-knowledge docsets: configure first, download separately, explicit enable step.
+### Discovery Strategy
 
-**Cache Management**: Store remote sources in `.agentskills/cache/`, auto-add to `.gitignore`
+**Load Order** (prevents double-loading):
+1. **Installed skills**: Read from `.agentskills/skills/` (declared in package.json)
+2. **Auto-discovered**: Scan paths from `autoDiscover` config (e.g., `.claude/skills`)
+3. **Priority**: Installed wins over auto-discovered if same name
 
-### Default Behavior
+**Default Behavior** (no package.json):
+- Auto-discover from `.claude/skills/`, `~/.claude/skills/`
+- No installed skills
+- Zero-config startup works
 
-**Zero-Config Startup**: When no config file exists, defaults to:
-- `.claude/skills` (project)
-- `~/.claude/skills` (global)
-- Strict validation mode
-- Standard security settings
+**With package.json**:
+- Install declared skills to `.agentskills/skills/`
+- Also scan auto-discover paths
+- Installed skills take precedence
+
+### Lock File
+
+**Purpose**: Reproducible skill installations (like package-lock.json)
+
+**Schema**:
+```json
+{
+  "version": "1.0",
+  "skills": {
+    "api-integration": {
+      "resolved": "github:anthropic/api-integration#v1.0.0",
+      "integrity": "sha512-...",
+      "source": "git",
+      "commitHash": "abc123..."
+    },
+    "database-query": {
+      "resolved": "file:./skills/db-query",
+      "source": "local"
+    }
+  }
+}
+```
+
+### Migration from Old Approach
+
+**Old** (path-based config):
+```yaml
+# .agentskills/config.yaml
+sources:
+  - type: local_directory
+    path: .claude/skills
+```
+
+**New** (declarative skills):
+```json
+{
+  "agentskillsConfig": {
+    "autoDiscover": [".claude/skills"]
+  }
+}
+```
+
+**Migration**: Old path configs become auto-discover paths. Explicit skills get declared in `agentskills` field.
 
 ## SkillRegistry Design
 
