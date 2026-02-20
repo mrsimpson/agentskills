@@ -65,8 +65,8 @@ describe('CLI Framework', () => {
       expect(configCommand).toBeDefined();
     });
 
-    it('should have exactly 4 commands registered', () => {
-      expect(program.commands).toHaveLength(4);
+    it('should have exactly 5 commands registered', () => {
+      expect(program.commands).toHaveLength(5);
     });
   });
 
