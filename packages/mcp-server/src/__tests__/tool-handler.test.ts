@@ -155,4 +155,51 @@ This is test skill 2 instructions.
       expect(useSkillTool.inputSchema.required).toContain("skill_name");
     });
   });
+
+  describe("Dynamic Skill Enumeration", () => {
+    it("should include enum with all skills from registry", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act
+      const tools = server.getTools();
+      const useSkillTool = tools.find((tool: any) => tool.name === "use_skill") as any;
+
+      // Assert
+      expect(useSkillTool.inputSchema.properties.skill_name.enum).toBeDefined();
+      expect(Array.isArray(useSkillTool.inputSchema.properties.skill_name.enum)).toBe(true);
+      expect(useSkillTool.inputSchema.properties.skill_name.enum).toContain("test-skill-1");
+      expect(useSkillTool.inputSchema.properties.skill_name.enum).toContain("test-skill-2");
+      expect(useSkillTool.inputSchema.properties.skill_name.enum.length).toBe(2);
+    });
+
+    it("should update enum when new skills are loaded", async () => {
+      // Arrange
+      const newSkillDir = join(skillsDir, "test-skill-3");
+      await fs.mkdir(newSkillDir, { recursive: true });
+      await fs.writeFile(
+        join(newSkillDir, "SKILL.md"),
+        `---
+name: test-skill-3
+description: Third test skill
+---
+# Test Skill 3
+
+This is test skill 3 instructions.
+`
+      );
+
+      // Reload registry
+      await registry.loadSkills(skillsDir);
+      const server = new MCPServer(registry);
+
+      // Act
+      const tools = server.getTools();
+      const useSkillTool = tools.find((tool: any) => tool.name === "use_skill") as any;
+
+      // Assert
+      expect(useSkillTool.inputSchema.properties.skill_name.enum).toContain("test-skill-3");
+      expect(useSkillTool.inputSchema.properties.skill_name.enum.length).toBe(3);
+    });
+  });
 });
