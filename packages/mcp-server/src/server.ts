@@ -17,6 +17,10 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { SkillRegistry } from "@agentskills/core";
 import { z } from "zod";
+import {
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema
+} from "@modelcontextprotocol/sdk/types.js";
 
 /**
  * MCPServer - Main server class for Agent Skills MCP integration
@@ -79,7 +83,7 @@ export class MCPServer {
    * Register MCP request handlers
    *
    * Registers the use_skill tool for retrieving skill instructions.
-   * Resource handlers will be implemented in task 1.4.12.
+   * Registers resource handlers for exposing skills as MCP resources.
    */
   private registerHandlers(): void {
     // Get skill names for enum
@@ -107,6 +111,22 @@ export class MCPServer {
       },
       async (args: Record<string, unknown>) => {
         return this.handleUseSkillTool(args);
+      }
+    );
+
+    // Register resources/list handler via the underlying server
+    (this.mcpServer as any).server.setRequestHandler(
+      ListResourcesRequestSchema,
+      async () => ({
+        resources: this.getResourcesList()
+      })
+    );
+
+    // Register resources/read handler via the underlying server
+    (this.mcpServer as any).server.setRequestHandler(
+      ReadResourceRequestSchema,
+      async (request: any) => {
+        return this.handleReadResource(request.params.uri);
       }
     );
   }
@@ -285,33 +305,88 @@ ${skillList}`;
   }
 
   /**
+   * Get list of available resources (internal helper for MCP protocol)
+   *
+   * Returns skills as MCP resources with proper URI format.
+   *
+   * @returns Array of resource definitions for MCP protocol
+   */
+  private getResourcesList(): Array<{
+    uri: string;
+    name: string;
+    description: string;
+    mimeType: string;
+  }> {
+    const skills = this.registry.getAllMetadata();
+
+    return skills.map((skill) => ({
+      uri: `skill://${skill.name}`,
+      name: skill.name,
+      description: skill.description,
+      mimeType: "text/markdown"
+    }));
+  }
+
+  /**
+   * Handle resource read request (internal helper for MCP protocol)
+   *
+   * Parses skill:// URIs and returns SKILL.md content.
+   *
+   * @param uri - Resource URI (skill://<name>)
+   * @returns MCP resource content response
+   */
+  private async handleReadResource(
+    uri: string
+  ): Promise<{ contents: Array<{ uri: string; mimeType: string; text: string }> }> {
+    // Parse URI: skill://<name> or skill://<name>/SKILL.md
+    const match = uri.match(/^skill:\/\/([^\/]+)/);
+    if (!match) {
+      throw new Error(`Invalid skill URI: ${uri}`);
+    }
+
+    const skillName = match[1];
+    const skill = this.registry.getSkill(skillName);
+
+    if (!skill) {
+      throw new Error(`Skill not found: ${skillName}`);
+    }
+
+    // Return full SKILL.md content
+    return {
+      contents: [
+        {
+          uri: uri,
+          mimeType: "text/markdown",
+          text: skill.body
+        }
+      ]
+    };
+  }
+
+  /**
    * Get list of available resources
    *
-   * Stub implementation - will be fully implemented in task 1.4.12
+   * Returns skills as MCP resources. This method is for testing and
+   * external callers. The MCP protocol uses getResourcesList internally.
    *
    * @returns Array of resource definitions
    */
   getResources(): unknown[] {
-    // Stub: return empty array
-    // Full implementation in task 1.4.12 will return skill resources
-    return [];
+    return this.getResourcesList();
   }
 
   /**
    * Read a resource
    *
-   * Stub implementation - will be fully implemented in task 1.4.12
+   * Reads a skill resource by URI. This method is for testing and
+   * external callers. The MCP protocol uses handleReadResource internally.
    *
    * @param uri - Resource URI
    * @returns Resource content
    */
   async readResource(uri: string): Promise<unknown> {
-    // Stub: return success
     try {
-      return {
-        uri,
-        content: "Stub implementation - full resource reading in task 1.4.12"
-      };
+      return await this.handleReadResource(uri);
     } catch (error) {
       return {
         isError: true,
