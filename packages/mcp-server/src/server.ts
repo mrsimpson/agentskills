@@ -90,6 +90,7 @@ export class MCPServer {
             skill_name: {
               type: "string",
               description: "Name of the skill to retrieve",
+              enum: this.getSkillNames(),
             },
             arguments: {
               type: "object",
@@ -114,6 +115,16 @@ export class MCPServer {
   }
 
   /**
+   * Get all skill names from the registry
+   * 
+   * @returns Array of skill names
+   */
+  private getSkillNames(): string[] {
+    const metadata = this.registry.getAllMetadata();
+    return metadata.map((m) => m.name);
+  }
+
+  /**
    * Get server capabilities
    * 
    * @returns Server capabilities object
@@ -128,7 +139,7 @@ export class MCPServer {
   /**
    * Get list of available tools
    * 
-   * Returns the use_skill tool definition.
+   * Returns the use_skill tool definition with dynamic skill enumeration.
    * 
    * @returns Array of tool definitions
    */
@@ -143,6 +154,7 @@ export class MCPServer {
             skill_name: {
               type: "string",
               description: "Name of the skill to retrieve",
+              enum: this.getSkillNames(),
             },
             arguments: {
               type: "object",
