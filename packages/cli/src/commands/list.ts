@@ -1,4 +1,4 @@
-import { PackageConfigManager } from '@agentskills/core';
+import { PackageConfigManager } from '@codemcp/agentskills-core';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import chalk from 'chalk';

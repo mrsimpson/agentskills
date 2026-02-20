@@ -7,6 +7,16 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@codemcp/agentskills-cli':
+        specifier: workspace:*
+        version: link:packages/cli
+      '@codemcp/agentskills-core':
+        specifier: workspace:*
+        version: link:packages/core
+      '@codemcp/agentskills-mcp-server':
+        specifier: workspace:*
+        version: link:packages/mcp-server
     devDependencies:
       '@braintree/sanitize-url':
         specifier: 7.1.1
@@ -92,7 +102,7 @@ importers:
 
   packages/cli:
     dependencies:
-      '@agentskills/core':
+      '@codemcp/agentskills-core':
         specifier: workspace:*
         version: link:../core
       chalk:
@@ -153,7 +163,7 @@ importers:
 
   packages/mcp-server:
     dependencies:
-      '@agentskills/core':
+      '@codemcp/agentskills-core':
         specifier: workspace:*
         version: link:../core
       '@modelcontextprotocol/sdk':

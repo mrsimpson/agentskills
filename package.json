@@ -1,6 +1,6 @@
 {
-  "name": "agentskills-mcp",
-  "version": "0.1.0",
+  "name": "@codemcp/agentskills",
+  "version": "0.0.1",
   "description": "MCP server that exposes Claude Code Agent Skills to any MCP-compatible agent",
   "authors": [
     "Luke Baker <luke.baker@live.com>",
@@ -8,20 +8,25 @@
   ],
   "license": "MIT",
   "keywords": [
-    "NPM",
-    "package",
-    "monorepo",
+    "mcp",
+    "model-context-protocol",
+    "agentskills",
+    "agent-skills",
+    "claude-code",
+    "ai",
+    "assistant",
+    "skills",
     "typescript"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/mrsimpson/agentskills-mcp"
+    "url": "https://github.com/mrsimpson/agentskills"
   },
   "publishConfig": {
     "access": "public"
   },
   "engines": {
-    "node": ">=22",
+    "node": ">=18.0.0",
     "pnpm": ">=9.0.0"
   },
   "main": "dist/index.js",
@@ -29,21 +34,18 @@
   "type": "module",
   "scripts": {
     "build": "turbo run build",
-    "build:clean": "turbo run clean:build",
+    "clean": "turbo run clean:build",
     "dev": "turbo run dev",
-    "docs:dev": "vitepress dev docs",
-    "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs",
-    "lint-format": "turbo run --parallel lint format ",
-    "lint-format:fix": "turbo run --parallel lint:fix format:fix",
-    "lint": "eslint",
-    "lint:fix": "eslint --fix",
-    "format": "prettier --check .",
-    "format:fix": "prettier --write .",
+    "prepublishOnly": "npm run build",
     "test": "turbo run --parallel test",
-    "test:watch": "turbo run --parallel test",
-    "typecheck": "turbo run --parallel typecheck",
-    "prepare": "husky"
+    "test:watch": "turbo run --parallel test:watch",
+    "lint:all": "turbo run --parallel lint",
+    "lint:fix:all": "turbo run --parallel lint:fix",
+    "format:check:all": "turbo run --parallel format",
+    "format:all": "turbo run --parallel format:fix",
+    "typecheck:all": "turbo run --parallel typecheck",
+    "prepare": "husky",
+    "clean:build": "turbo run clean:build"
   },
   "devDependencies": {
     "@braintree/sanitize-url": "7.1.1",
@@ -74,5 +76,20 @@
     "vitepress-plugin-mermaid": "2.0.17",
     "vitest": "^3.0.3"
   },
-  "packageManager": "pnpm@9.14.2"
+  "packageManager": "pnpm@9.14.2",
+  "bin": {
+    "agentskills": "packages/cli/dist/index.js"
+  },
+  "files": [
+    "packages/*/dist/**/*",
+    "packages/*/package.json",
+    "README.md",
+    "LICENSE",
+    "package.json"
+  ],
+  "dependencies": {
+    "@codemcp/agentskills-cli": "workspace:*",
+    "@codemcp/agentskills-core": "workspace:*",
+    "@codemcp/agentskills-mcp-server": "workspace:*"
+  }
 }

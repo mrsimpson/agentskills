@@ -10,7 +10,7 @@
  * Skills are loaded from .agentskills/skills within the project directory.
  */
 
-import { SkillRegistry, PackageConfigManager } from "@agentskills/core";
+import { SkillRegistry, PackageConfigManager } from "@codemcp/agentskills-core";
 import { MCPServer } from "./server.js";
 import * as path from "node:path";
 import * as fs from "node:fs";

@@ -2,7 +2,7 @@
  * Validate command implementation
  * 
  * This command validates Agent Skills definitions either individually or in bulk.
- * It uses @agentskills/core's SkillParser and SkillValidator to check skills
+ * It uses @codemcp/agentskills-core's SkillParser and SkillValidator to check skills
  * for correctness and compliance with the Agent Skills standard.
  * 
  * Usage:
@@ -13,8 +13,8 @@
  *   --fix       Auto-fix issues if possible (not yet implemented)
  */
 
-import { parseSkill, validateSkill } from '@agentskills/core';
-import type { ValidationError, ValidationWarning } from '@agentskills/core';
+import { parseSkill, validateSkill } from '@codemcp/agentskills-core';
+import type { ValidationError, ValidationWarning } from '@codemcp/agentskills-core';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import chalk from 'chalk';

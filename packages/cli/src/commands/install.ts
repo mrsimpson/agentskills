@@ -7,8 +7,8 @@
 
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import { PackageConfigManager, SkillInstaller } from '@agentskills/core';
-import type { InstallResult } from '@agentskills/core';
+import { PackageConfigManager, SkillInstaller } from '@codemcp/agentskills-core';
+import type { InstallResult } from '@codemcp/agentskills-core';
 import ora from 'ora';
 import chalk from 'chalk';
 

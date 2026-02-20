@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { MCPServer } from "../server.js";
-import { SkillRegistry } from "@agentskills/core";
+import { SkillRegistry } from "@codemcp/agentskills-core";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";

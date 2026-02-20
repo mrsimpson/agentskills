@@ -15,7 +15,7 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { SkillRegistry } from "@agentskills/core";
+import { SkillRegistry } from "@codemcp/agentskills-core";
 import { z } from "zod";
 import {
   ListResourcesRequestSchema,
