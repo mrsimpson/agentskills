@@ -263,4 +263,58 @@ This is test skill 3 instructions.
       expect(Array.isArray(content)).toBe(true);
     });
   });
+
+  describe("Error Handling", () => {
+    it("should handle non-existent skill", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act
+      const result = await server.callTool("use_skill", {
+        skill_name: "non-existent-skill",
+      });
+
+      // Assert
+      expect(result).toBeDefined();
+      expect((result as any).isError).toBe(true);
+      expect((result as any).error).toContain("Skill not found");
+    });
+
+    it("should handle missing skill_name parameter", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act
+      const result = await server.callTool("use_skill", {});
+
+      // Assert
+      expect(result).toBeDefined();
+      expect((result as any).isError).toBe(true);
+    });
+
+    it("should handle invalid tool name", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act
+      const result = await server.callTool("invalid_tool", {
+        skill_name: "test-skill-1",
+      });
+
+      // Assert
+      expect(result).toBeDefined();
+      expect((result as any).isError).toBe(true);
+      expect((result as any).error).toContain("Unknown tool");
+    });
+
+    it("should not crash on errors", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act & Assert - should not throw
+      await expect(
+        server.callTool("use_skill", { skill_name: "non-existent" })
+      ).resolves.toBeDefined();
+    });
+  });
 });
