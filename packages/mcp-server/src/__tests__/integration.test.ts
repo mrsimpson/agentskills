@@ -286,12 +286,16 @@ This is another skill body with instructions for the second skill.
     expect(toolCallResponse.result.content.length).toBeGreaterThan(0);
     expect(toolCallResponse.result.content[0].type).toBe("text");
     
-    // Parse the skill response and verify it contains the skill body
-    const skillResponse = JSON.parse(toolCallResponse.result.content[0].text);
-    expect(skillResponse.name).toBe("example-skill");
-    expect(skillResponse.description).toBe("An example skill for integration testing");
-    expect(skillResponse.body).toContain("Example Skill");
-    expect(skillResponse.body).toContain("This is an example skill body with instructions for the first skill");
+    // Parse the skill response - should only contain instructions
+    const data = JSON.parse(toolCallResponse.result.content[0].text);
+    expect(data).toHaveProperty("instructions");
+    expect(data.instructions).toContain("Example Skill");
+    expect(data.instructions).toContain("This is an example skill body with instructions for the first skill");
+    
+    // Should NOT contain metadata
+    expect(data).not.toHaveProperty("name");
+    expect(data).not.toHaveProperty("description");
+    expect(data).not.toHaveProperty("body");
 
     console.log("Tool successfully exposed via MCP protocol with skill enum");
     console.log("Tool execution successfully returned skill body");

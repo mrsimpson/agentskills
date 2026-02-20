@@ -233,7 +233,7 @@ This is test skill 3 instructions.
   });
 
   describe("Tool Execution", () => {
-    it("should return skill content and metadata", async () => {
+    it("should return only skill instructions", async () => {
       // Arrange
       const server = new MCPServer(registry);
 
@@ -254,14 +254,18 @@ This is test skill 3 instructions.
       expect(textContent).toBeDefined();
       expect(textContent.text).toBeDefined();
       
-      // Parse the skill data from the text content
-      const skillData = JSON.parse(textContent.text);
-      expect(skillData.name).toBe("test-skill-1");
-      expect(skillData.description).toBe("A test skill for unit tests");
-      expect(skillData.body).toContain("This is test skill 1 instructions");
+      // Parse the response - should only have instructions field
+      const data = JSON.parse(textContent.text);
+      expect(data).toHaveProperty("instructions");
+      expect(data.instructions).toContain("This is test skill 1 instructions");
+      
+      // Should NOT have metadata fields
+      expect(data).not.toHaveProperty("name");
+      expect(data).not.toHaveProperty("description");
+      expect(data).not.toHaveProperty("body");
     });
 
-    it("should return skill with metadata fields", async () => {
+    it("should return instructions without metadata", async () => {
       // Arrange
       const server = new MCPServer(registry);
 
@@ -271,12 +275,16 @@ This is test skill 3 instructions.
       // Assert
       const content = (result as any).content;
       const textContent = content.find((c: any) => c.type === "text");
-      const skillData = JSON.parse(textContent.text);
+      const data = JSON.parse(textContent.text);
       
-      expect(skillData).toHaveProperty("name");
-      expect(skillData).toHaveProperty("description");
-      expect(skillData).toHaveProperty("body");
-      expect(skillData.name).toBe("test-skill-2");
+      // Should ONLY have instructions field
+      expect(data).toHaveProperty("instructions");
+      expect(data.instructions).toContain("This is test skill 2 instructions");
+      
+      // Should NOT have any metadata
+      expect(data).not.toHaveProperty("name");
+      expect(data).not.toHaveProperty("description");
+      expect(data).not.toHaveProperty("body");
     });
 
     it("should handle skill with no arguments", async () => {
