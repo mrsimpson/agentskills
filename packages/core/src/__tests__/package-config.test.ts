@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { PackageConfigManager } from "../package-config";
+import { PackageConfigManager } from "../package-config.js";
 
 interface PackageConfig {
   skills: Record<string, string>;

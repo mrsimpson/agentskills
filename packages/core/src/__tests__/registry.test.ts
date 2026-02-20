@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { SkillRegistry } from "../registry";
-import type { LoadResult, RegistryState, Skill, SkillMetadata } from "../types";
+import { SkillRegistry } from "../registry.js";
+import type { LoadResult, RegistryState, Skill, SkillMetadata } from "../types.js";
 
 /**
  * Test suite for simplified SkillRegistry (TDD RED phase)

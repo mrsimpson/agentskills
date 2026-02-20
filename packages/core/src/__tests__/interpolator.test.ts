@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { StringInterpolator } from "../interpolator";
+import { StringInterpolator } from "../interpolator.js";
 
 describe("StringInterpolator", () => {
   describe("$ARGUMENTS placeholder", () => {

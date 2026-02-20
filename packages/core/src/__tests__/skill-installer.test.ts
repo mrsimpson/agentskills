@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { SkillInstaller } from "../installer";
-import type { InstallResult, SkillLockFile } from "../types";
+import { SkillInstaller } from "../installer.js";
+import type { InstallResult, SkillLockFile } from "../types.js";
 import * as pacote from "pacote";
 
 vi.mock("pacote", () => ({
@@ -240,7 +240,7 @@ describe("SkillInstaller", () => {
 
       const installedResults: Record<string, InstallResult> = {};
       for (const [name, result] of Object.entries(installResult.results)) {
-        if (result.success) installedResults[name] = result;
+        if ((result as InstallResult).success) installedResults[name] = result as InstallResult;
       }
 
       await installer.generateLockFile(installedResults);

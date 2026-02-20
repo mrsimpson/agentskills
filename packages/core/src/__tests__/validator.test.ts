@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { validateSkill } from "../validator";
-import type { Skill, ValidationError, ValidationWarning } from "../types";
+import { validateSkill } from "../validator.js";
+import type { Skill, ValidationError, ValidationWarning } from "../types.js";
 
 describe("SkillValidator", () => {
   describe("Valid Skills", () => {
