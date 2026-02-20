@@ -70,6 +70,7 @@ Configure your MCP client (e.g., Claude Desktop) to use the MCP server:
 ```
 
 Now your agent can discover and use skills via:
+
 - `use_skill` tool - Execute skill instructions
 - `skill://` resources - Browse available skills
 
@@ -158,7 +159,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-MIT © Luke Baker, Oliver Jägle
+MIT, Created by Oliver Jägle
 
 ## Links
 
