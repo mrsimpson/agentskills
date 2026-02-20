@@ -173,10 +173,10 @@ export class MCPServer {
    * Stub implementation - will be fully implemented in task 1.4.11
    * 
    * @param toolName - Name of the tool to call
-   * @param args - Arguments for the tool
+   * @param args - Arguments object for the tool
    * @returns Tool execution result
    */
-  async callTool(toolName: string, args: unknown[]): Promise<unknown> {
+  async callTool(toolName: string, args: Record<string, unknown>): Promise<unknown> {
     // Stub: return error for non-existent skills
     try {
       const skill = this.registry.getSkill(toolName);

@@ -202,4 +202,65 @@ This is test skill 3 instructions.
       expect(useSkillTool.inputSchema.properties.skill_name.enum.length).toBe(3);
     });
   });
+
+  describe("Tool Execution", () => {
+    it("should return skill content and metadata", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act
+      const result = await server.callTool("use_skill", { skill_name: "test-skill-1" });
+
+      // Assert
+      expect(result).toBeDefined();
+      expect(typeof result).toBe("object");
+      
+      // Parse the JSON response
+      const content = (result as any).content;
+      expect(content).toBeDefined();
+      expect(Array.isArray(content)).toBe(true);
+      expect(content.length).toBeGreaterThan(0);
+      
+      const textContent = content.find((c: any) => c.type === "text");
+      expect(textContent).toBeDefined();
+      expect(textContent.text).toBeDefined();
+      
+      // Parse the skill data from the text content
+      const skillData = JSON.parse(textContent.text);
+      expect(skillData.name).toBe("test-skill-1");
+      expect(skillData.description).toBe("A test skill for unit tests");
+      expect(skillData.body).toContain("This is test skill 1 instructions");
+    });
+
+    it("should return skill with metadata fields", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act
+      const result = await server.callTool("use_skill", { skill_name: "test-skill-2" });
+
+      // Assert
+      const content = (result as any).content;
+      const textContent = content.find((c: any) => c.type === "text");
+      const skillData = JSON.parse(textContent.text);
+      
+      expect(skillData).toHaveProperty("name");
+      expect(skillData).toHaveProperty("description");
+      expect(skillData).toHaveProperty("body");
+      expect(skillData.name).toBe("test-skill-2");
+    });
+
+    it("should handle skill with no arguments", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act - call without arguments parameter
+      const result = await server.callTool("use_skill", { skill_name: "test-skill-1" });
+
+      // Assert - should still work
+      expect(result).toBeDefined();
+      const content = (result as any).content;
+      expect(Array.isArray(content)).toBe(true);
+    });
+  });
 });
