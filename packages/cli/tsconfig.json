@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@mme/typescript-example-2": ["../typescript-example-2/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*"]
+}

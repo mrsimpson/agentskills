@@ -1,0 +1,2 @@
+# Automate and ensure dependencies are installed/synced with the branch's codebase
+pnpm install
