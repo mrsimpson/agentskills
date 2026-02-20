@@ -112,6 +112,35 @@ This is test skill 2 instructions.
       expect(useSkillTool.description.length).toBeGreaterThan(0);
     });
 
+    it("should include skill names and descriptions in tool description", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act
+      const tools = server.getTools();
+      const useSkillTool = tools.find((tool: any) => tool.name === "use_skill") as any;
+
+      // Assert
+      expect(useSkillTool.description).toContain("test-skill-1");
+      expect(useSkillTool.description).toContain("A test skill for unit tests");
+      expect(useSkillTool.description).toContain("test-skill-2");
+      expect(useSkillTool.description).toContain("Another test skill");
+    });
+
+    it("should handle empty skill list in description", async () => {
+      // Arrange
+      const emptyRegistry = new SkillRegistry();
+      const server = new MCPServer(emptyRegistry);
+
+      // Act
+      const tools = server.getTools();
+      const useSkillTool = tools.find((tool: any) => tool.name === "use_skill") as any;
+
+      // Assert
+      expect(useSkillTool.description).toBeDefined();
+      expect(useSkillTool.description).toContain("No skills currently loaded");
+    });
+
     it("should have inputSchema with skill_name parameter", async () => {
       // Arrange
       const server = new MCPServer(registry);

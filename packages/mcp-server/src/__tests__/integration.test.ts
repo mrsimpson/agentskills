@@ -244,6 +244,13 @@ This is another skill body with instructions for the second skill.
     );
     expect(useSkillTool).toBeDefined();
     expect(useSkillTool.description).toBeDefined();
+    
+    // Verify description includes skill names and descriptions
+    expect(useSkillTool.description).toContain("example-skill");
+    expect(useSkillTool.description).toContain("An example skill for integration testing");
+    expect(useSkillTool.description).toContain("another-skill");
+    expect(useSkillTool.description).toContain("Another skill for integration testing");
+    
     expect(useSkillTool.inputSchema).toBeDefined();
     expect(useSkillTool.inputSchema.type).toBe("object");
     
