@@ -1,6 +1,7 @@
 import { Command } from 'commander';
 import { installCommand } from './commands/install.js';
 import { addCommand } from './commands/add.js';
+import { listCommand } from './commands/list.js';
 
 /**
  * Creates the main CLI program
@@ -37,12 +38,20 @@ export function createCLI(): Command {
     });
 
   // Create "list" command
-  const listCommand = new Command('list')
-    .description('List all available skills')
-    .option('-f, --format <type>', 'Output format', 'table')
-    .option('--filter <query>', 'Filter skills by query')
-    .action((options, command) => {
-      // Stub action handler
+  const listCommandDef = new Command('list')
+    .description('List all configured skills')
+    .option('--cwd <path>', 'Working directory', process.cwd())
+    .action(async (options) => {
+      try {
+        const originalCwd = process.cwd();
+        process.chdir(options.cwd);
+        const output = await listCommand();
+        console.log(output);
+        process.chdir(originalCwd);
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
     });
 
   // Create "config" command
@@ -85,7 +94,7 @@ export function createCLI(): Command {
   // Register all commands
   program.addCommand(createCommand);
   program.addCommand(validateCommand);
-  program.addCommand(listCommand);
+  program.addCommand(listCommandDef);
   program.addCommand(configCommand);
   program.addCommand(installCommandDef);
   program.addCommand(addCommandDef);
