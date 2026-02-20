@@ -294,13 +294,38 @@ ${skillList}`;
     name: string;
     description: string;
     mimeType: string;
+    inputSchema: {
+      type: string;
+      properties: {
+        skillName: {
+          type: string;
+          enum: string[];
+          description: string;
+        };
+      };
+      required: string[];
+    };
   }> {
+    // Get skill names for enum (reuse same method as tool)
+    const skillNames = this.getSkillNames();
+    
     return [
       {
         uriTemplate: "skill://{skillName}",
         name: "Agent Skill",
         description: "Access skill instructions and metadata. Use skill names from the use_skill tool's skill_name parameter.",
-        mimeType: "text/markdown"
+        mimeType: "text/markdown",
+        inputSchema: {
+          type: "object",
+          properties: {
+            skillName: {
+              type: "string",
+              enum: skillNames,
+              description: "Name of the skill to retrieve"
+            }
+          },
+          required: ["skillName"]
+        }
       }
     ];
   }
