@@ -133,11 +133,11 @@ This is a test skill.
       const server = new MCPServer(registry);
 
       // Act
-      const result = await server.callTool("test-skill", []);
+      const result = await server.callTool("use_skill", { skill_name: "test-skill" });
 
       // Assert
       expect(result).toBeDefined();
-      // Stub can return anything for now, just verify it doesn't throw
+      // Tool execution should return proper result
     });
 
     it("should route resources/list requests", async () => {
@@ -177,7 +177,7 @@ This is a test skill.
       const server = new MCPServer(registry);
 
       // Act & Assert - calling non-existent tool should not throw
-      const result = await server.callTool("non-existent-skill", []);
+      const result = await server.callTool("non-existent-tool", {});
       expect(result).toBeDefined();
     });
 
@@ -188,7 +188,7 @@ This is a test skill.
       const server = new MCPServer(registry);
 
       // Act
-      const result = await server.callTool("non-existent-skill", []);
+      const result = await server.callTool("non-existent-tool", {});
 
       // Assert
       expect(result).toBeDefined();
