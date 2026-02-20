@@ -2,8 +2,60 @@ import { Command } from 'commander';
 
 /**
  * Creates the main CLI program
- * TDD stub - to be implemented in GREEN phase
  */
 export function createCLI(): Command {
-  throw new Error('Not implemented yet - TDD RED phase');
+  // Create main program
+  const program = new Command();
+
+  // Set program metadata
+  program
+    .name('agentskills')
+    .version('0.1.0')
+    .description('Agent Skills CLI for managing skills')
+    .option('-h, --help', 'Display help for command');
+
+  // Create "create" command
+  const createCommand = new Command('create')
+    .description('Create a new skill from a template')
+    .argument('<name>', 'Name of the skill to create')
+    .option('-t, --template <name>', 'Template to use', 'basic')
+    .option('-p, --path <path>', 'Path where to create the skill', '.')
+    .action((name, options, command) => {
+      // Stub action handler
+    });
+
+  // Create "validate" command
+  const validateCommand = new Command('validate')
+    .description('Validate a skill definition')
+    .argument('[path]', 'Path to the skill to validate')
+    .option('--strict', 'Enable strict validation mode')
+    .option('--fix', 'Automatically fix validation issues')
+    .action((path, options, command) => {
+      // Stub action handler
+    });
+
+  // Create "list" command
+  const listCommand = new Command('list')
+    .description('List all available skills')
+    .option('-f, --format <type>', 'Output format', 'table')
+    .option('--filter <query>', 'Filter skills by query')
+    .action((options, command) => {
+      // Stub action handler
+    });
+
+  // Create "config" command
+  const configCommand = new Command('config')
+    .description('Manage CLI configuration')
+    .argument('<action>', 'Configuration action to perform')
+    .action((action, options, command) => {
+      // Stub action handler
+    });
+
+  // Register all commands
+  program.addCommand(createCommand);
+  program.addCommand(validateCommand);
+  program.addCommand(listCommand);
+  program.addCommand(configCommand);
+
+  return program;
 }
