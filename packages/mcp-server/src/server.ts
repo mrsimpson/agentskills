@@ -18,6 +18,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { SkillRegistry } from "@agentskills/core";
 import { z } from "zod";
 import {
+  ListResourcesRequestSchema,
   ListResourceTemplatesRequestSchema,
   ReadResourceRequestSchema
 } from "@modelcontextprotocol/sdk/types.js";
@@ -119,6 +120,14 @@ export class MCPServer {
       resources: {}
     });
 
+    // Register resources/list handler (concrete resources)
+    (this.mcpServer as any).server.setRequestHandler(
+      ListResourcesRequestSchema,
+      async () => ({
+        resources: this.getResourcesList()
+      })
+    );
+
     // Register resources/templates/list handler via the underlying server
     (this.mcpServer as any).server.setRequestHandler(
       ListResourceTemplatesRequestSchema,
@@ -144,6 +153,30 @@ export class MCPServer {
   private getSkillNames(): string[] {
     const metadata = this.registry.getAllMetadata();
     return metadata.map((m) => m.name);
+  }
+
+  /**
+   * Get list of concrete resources (internal helper for MCP protocol)
+   *
+   * Returns all skills as concrete resources with skill:// URIs.
+   * Each skill is exposed as an individual resource for discovery.
+   *
+   * @returns Array of resource definitions for MCP protocol
+   */
+  private getResourcesList(): Array<{
+    uri: string;
+    name: string;
+    description: string;
+    mimeType: string;
+  }> {
+    const skills = this.registry.getAllMetadata();
+    
+    return skills.map(skill => ({
+      uri: `skill://${skill.name}`,
+      name: skill.name,
+      description: skill.description,
+      mimeType: "text/markdown"
+    }));
   }
 
   /**
@@ -364,6 +397,18 @@ ${skillList}`;
         }
       ]
     };
+  }
+
+  /**
+   * Get list of resources
+   *
+   * Returns concrete list of all skills as resources. This method is for testing and
+   * external callers. The MCP protocol uses getResourcesList internally.
+   *
+   * @returns Array of resource definitions
+   */
+  getResources(): unknown[] {
+    return this.getResourcesList();
   }
 
   /**
