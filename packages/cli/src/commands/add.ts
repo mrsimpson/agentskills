@@ -38,6 +38,47 @@ export async function addCommand(
     skipInstall?: boolean;
   }
 ): Promise<void> {
-  // TODO: Implement add command
-  throw new Error('Not implemented');
+  const cwd = options?.cwd ?? process.cwd();
+  
+  // 1. Validate inputs
+  if (!name || name.trim() === '') {
+    throw new Error('Skill name cannot be empty');
+  }
+  if (!spec || spec.trim() === '') {
+    throw new Error('Skill spec cannot be empty');
+  }
+  
+  // 2. Add to package.json
+  const configManager = new PackageConfigManager(cwd);
+  await configManager.addSkill(name, spec);
+  console.log(chalk.green(`✓ Added ${name} to package.json`));
+  
+  // 3. Install if not skipped
+  if (!options?.skipInstall) {
+    const spinner = ora(`Installing ${name}...`).start();
+    
+    try {
+      const config = await configManager.loadConfig();
+      const installer = new SkillInstaller(config.config.skillsDirectory);
+      
+      const result = await installer.install(name, spec);
+      spinner.stop();
+      
+      if (!result.success) {
+        // Handle both string error (from tests) and InstallError object
+        const errorMessage = typeof result.error === 'string' 
+          ? result.error 
+          : result.error?.message || 'Installation failed';
+        throw new Error(errorMessage);
+      }
+      
+      console.log(chalk.green(`✓ ${name} installed successfully`));
+    } catch (error) {
+      spinner.stop();
+      throw error;
+    }
+  }
+  
+  console.log(chalk.blue(`\n✅ Successfully added ${name}`));
+  console.log(chalk.gray(`   Spec: ${spec}`));
 }
