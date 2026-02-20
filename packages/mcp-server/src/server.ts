@@ -16,6 +16,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { SkillRegistry } from "@agentskills/core";
+import { z } from "zod";
 
 /**
  * MCPServer - Main server class for Agent Skills MCP integration
@@ -81,26 +82,18 @@ export class MCPServer {
    * Resource handlers will be implemented in task 1.4.12.
    */
   private registerHandlers(): void {
-    // Register use_skill tool
+    // Get skill names for enum
+    const skillNames = this.getSkillNames();
+    
+    // Register use_skill tool with Zod schema
     this.mcpServer.registerTool(
       "use_skill",
       {
         description: "Retrieve skill instructions and metadata for execution",
         inputSchema: {
-          type: "object",
-          properties: {
-            skill_name: {
-              type: "string",
-              description: "Name of the skill to retrieve",
-              enum: this.getSkillNames(),
-            },
-            arguments: {
-              type: "object",
-              description: "Optional arguments for skill execution context",
-            },
-          },
-          required: ["skill_name"],
-        } as any, // Temporary workaround for SDK types
+          skill_name: z.enum(skillNames.length > 0 ? (skillNames as [string, ...string[]]) : ["_no_skills_available"]).describe("Name of the skill to retrieve"),
+          arguments: z.object({}).passthrough().optional().describe("Optional arguments for skill execution context"),
+        },
       },
       async (args: Record<string, unknown>) => {
         return this.handleUseSkillTool(args);
