@@ -245,7 +245,7 @@ This is a test skill.
       // Assert
       expect(result).toBeDefined();
       // Should return error result, not throw
-      expect(result.isError || result.error).toBeDefined();
+      expect((result as any).isError || (result as any).error).toBeDefined();
     });
   });
 });
