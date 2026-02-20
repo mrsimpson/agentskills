@@ -84,4 +84,75 @@ This is test skill 2 instructions.
       expect(useSkillTool).toBeDefined();
     });
   });
+
+  describe("Tool Schema", () => {
+    it("should have correct tool name", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act
+      const tools = server.getTools();
+      const useSkillTool = tools.find((tool: any) => tool.name === "use_skill") as any;
+
+      // Assert
+      expect(useSkillTool.name).toBe("use_skill");
+    });
+
+    it("should have description", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act
+      const tools = server.getTools();
+      const useSkillTool = tools.find((tool: any) => tool.name === "use_skill") as any;
+
+      // Assert
+      expect(useSkillTool.description).toBeDefined();
+      expect(typeof useSkillTool.description).toBe("string");
+      expect(useSkillTool.description.length).toBeGreaterThan(0);
+    });
+
+    it("should have inputSchema with skill_name parameter", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act
+      const tools = server.getTools();
+      const useSkillTool = tools.find((tool: any) => tool.name === "use_skill") as any;
+
+      // Assert
+      expect(useSkillTool.inputSchema).toBeDefined();
+      expect(useSkillTool.inputSchema.type).toBe("object");
+      expect(useSkillTool.inputSchema.properties).toBeDefined();
+      expect(useSkillTool.inputSchema.properties.skill_name).toBeDefined();
+      expect(useSkillTool.inputSchema.properties.skill_name.type).toBe("string");
+    });
+
+    it("should have inputSchema with optional arguments parameter", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act
+      const tools = server.getTools();
+      const useSkillTool = tools.find((tool: any) => tool.name === "use_skill") as any;
+
+      // Assert
+      expect(useSkillTool.inputSchema.properties.arguments).toBeDefined();
+      expect(useSkillTool.inputSchema.properties.arguments.type).toBe("object");
+    });
+
+    it("should require skill_name parameter", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act
+      const tools = server.getTools();
+      const useSkillTool = tools.find((tool: any) => tool.name === "use_skill") as any;
+
+      // Assert
+      expect(useSkillTool.inputSchema.required).toBeDefined();
+      expect(Array.isArray(useSkillTool.inputSchema.required)).toBe(true);
+      expect(useSkillTool.inputSchema.required).toContain("skill_name");
+    });
+  });
 });
