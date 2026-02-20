@@ -7,7 +7,7 @@
  * Implementation to be completed following TDD approach.
  */
 
-import type { Skill, ValidationResult } from "./types";
+import type { Skill, ValidationResult } from "./types.js";
 
 /**
  * Validate a skill against Agent Skills specification

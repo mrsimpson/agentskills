@@ -11,7 +11,7 @@
 
 import matter from "gray-matter";
 import { promises as fs } from "fs";
-import type { ParseResult, ParseFailure, SkillMetadata, Skill, ParseErrorCode } from "./types";
+import type { ParseResult, ParseFailure, SkillMetadata, Skill, ParseErrorCode } from "./types.js";
 
 /**
  * Field name mapping from kebab-case (YAML) to camelCase (TypeScript)

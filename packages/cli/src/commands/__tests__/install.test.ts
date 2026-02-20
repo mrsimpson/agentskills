@@ -3,8 +3,8 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { installCommand } from '../install.js';
-import { SkillInstaller } from '../../../../core/src/installer.js';
-import type { InstallResult } from '../../../../core/src/types.js';
+import { SkillInstaller } from '@agentskills/core';
+import type { InstallResult } from '@agentskills/core';
 
 /**
  * Comprehensive test suite for install command

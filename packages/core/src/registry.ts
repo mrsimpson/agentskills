@@ -10,9 +10,9 @@
 
 import { promises as fs } from "fs";
 import { join, basename } from "path";
-import { parseSkill } from "./parser";
-import { validateSkill } from "./validator";
-import type { Skill, SkillMetadata, LoadResult, RegistryState } from "./types";
+import { parseSkill } from "./parser.js";
+import { validateSkill } from "./validator.js";
+import type { Skill, SkillMetadata, LoadResult, RegistryState } from "./types.js";
 
 /**
  * In-memory registry for managing agent skills

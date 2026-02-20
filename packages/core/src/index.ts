@@ -24,10 +24,10 @@ export type {
   SkillLockFile,
   SkillLockEntry,
   PackageConfig,
-} from "./types";
+} from "./types.js";
 
-export { parseSkill, parseSkillContent } from "./parser";
-export { validateSkill } from "./validator";
-export { SkillRegistry } from "./registry";
-export { SkillInstaller } from "./installer";
-export { PackageConfigManager } from "./package-config";
+export { parseSkill, parseSkillContent } from "./parser.js";
+export { validateSkill } from "./validator.js";
+export { SkillRegistry } from "./registry.js";
+export { SkillInstaller } from "./installer.js";
+export { PackageConfigManager } from "./package-config.js";

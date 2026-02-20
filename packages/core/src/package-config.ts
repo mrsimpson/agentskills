@@ -1,6 +1,6 @@
 import { promises as fs } from "fs";
 import { join } from "path";
-import type { PackageConfig } from "./types";
+import type { PackageConfig } from "./types.js";
 
 /**
  * PackageConfigManager - Manages package.json configuration for agent skills

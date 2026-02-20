@@ -18,8 +18,8 @@ import type {
   SkillLockFile,
   InstallError,
   InstallErrorCode,
-} from "./types";
-import { parseSkillContent } from "./parser";
+} from "./types.js";
+import { parseSkillContent } from "./parser.js";
 
 /**
  * SkillInstaller class for installing Agent Skills from various sources
