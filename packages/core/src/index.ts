@@ -23,9 +23,11 @@ export type {
   SkillManifest,
   SkillLockFile,
   SkillLockEntry,
+  PackageConfig,
 } from "./types";
 
 export { parseSkill, parseSkillContent } from "./parser";
 export { validateSkill } from "./validator";
 export { SkillRegistry } from "./registry";
 export { SkillInstaller } from "./installer";
+export { PackageConfigManager } from "./package-config";
