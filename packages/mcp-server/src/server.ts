@@ -89,7 +89,7 @@ export class MCPServer {
     this.mcpServer.registerTool(
       "use_skill",
       {
-        description: "Retrieve skill instructions and metadata for execution",
+        description: this.getToolDescription(),
         inputSchema: {
           skill_name: z.enum(skillNames.length > 0 ? (skillNames as [string, ...string[]]) : ["_no_skills_available"]).describe("Name of the skill to retrieve"),
           arguments: z.object({}).passthrough().optional().describe("Optional arguments for skill execution context"),
@@ -109,6 +109,31 @@ export class MCPServer {
   private getSkillNames(): string[] {
     const metadata = this.registry.getAllMetadata();
     return metadata.map((m) => m.name);
+  }
+
+  /**
+   * Get tool description with list of available skills
+   * 
+   * Generates a dynamic description that includes all loaded skills
+   * with their descriptions for better discoverability.
+   * 
+   * @returns Tool description string with skill list
+   */
+  private getToolDescription(): string {
+    const skills = this.registry.getAllMetadata();
+    
+    if (skills.length === 0) {
+      return "Retrieve skill instructions and metadata for execution. No skills currently loaded.";
+    }
+    
+    const skillList = skills
+      .map(skill => `- ${skill.name}: ${skill.description}`)
+      .join('\n');
+    
+    return `Retrieve skill instructions and metadata for execution.
+
+Available skills:
+${skillList}`;
   }
 
   /**
@@ -195,7 +220,7 @@ export class MCPServer {
     return [
       {
         name: "use_skill",
-        description: "Retrieve skill instructions and metadata for execution",
+        description: this.getToolDescription(),
         inputSchema: {
           type: "object",
           properties: {
