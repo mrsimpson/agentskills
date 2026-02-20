@@ -114,6 +114,11 @@ export class MCPServer {
       }
     );
 
+    // Register resource capabilities via the underlying server
+    (this.mcpServer as any).server.registerCapabilities({
+      resources: {}
+    });
+
     // Register resources/list handler via the underlying server
     (this.mcpServer as any).server.setRequestHandler(
       ListResourcesRequestSchema,

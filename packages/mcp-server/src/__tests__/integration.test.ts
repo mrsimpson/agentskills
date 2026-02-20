@@ -296,6 +296,69 @@ This is another skill body with instructions for the second skill.
     console.log("Tool successfully exposed via MCP protocol with skill enum");
     console.log("Tool execution successfully returned skill body");
 
+    // Step 9: Test resources/list
+    sendMessage({
+      jsonrpc: "2.0",
+      id: 4,
+      method: "resources/list",
+    });
+
+    // Step 10: Wait for resources/list response
+    const resourcesResponse = (await waitForResponse()) as any;
+    expect(resourcesResponse.id).toBe(4);
+    expect(resourcesResponse.result).toBeDefined();
+    expect(resourcesResponse.result.resources).toBeDefined();
+    expect(Array.isArray(resourcesResponse.result.resources)).toBe(true);
+
+    // Verify skills are exposed as resources
+    const resources = resourcesResponse.result.resources;
+    expect(resources.length).toBe(2);
+    
+    const exampleResource = resources.find(
+      (r: any) => r.uri === "skill://example-skill"
+    );
+    const anotherResource = resources.find(
+      (r: any) => r.uri === "skill://another-skill"
+    );
+    
+    expect(exampleResource).toBeDefined();
+    expect(exampleResource.name).toBe("example-skill");
+    expect(exampleResource.description).toBe("An example skill for integration testing");
+    expect(exampleResource.mimeType).toBe("text/markdown");
+    
+    expect(anotherResource).toBeDefined();
+    expect(anotherResource.name).toBe("another-skill");
+    expect(anotherResource.description).toBe("Another skill for integration testing");
+    expect(anotherResource.mimeType).toBe("text/markdown");
+
+    // Step 11: Test resources/read
+    sendMessage({
+      jsonrpc: "2.0",
+      id: 5,
+      method: "resources/read",
+      params: {
+        uri: "skill://example-skill",
+      },
+    });
+
+    // Step 12: Wait for resources/read response
+    const resourceReadResponse = (await waitForResponse()) as any;
+    expect(resourceReadResponse.id).toBe(5);
+    expect(resourceReadResponse.result).toBeDefined();
+    expect(resourceReadResponse.result.contents).toBeDefined();
+    expect(Array.isArray(resourceReadResponse.result.contents)).toBe(true);
+    expect(resourceReadResponse.result.contents.length).toBeGreaterThan(0);
+    
+    const resourceContent = resourceReadResponse.result.contents[0];
+    expect(resourceContent.uri).toBe("skill://example-skill");
+    expect(resourceContent.mimeType).toBe("text/markdown");
+    expect(resourceContent.text).toBeDefined();
+    expect(resourceContent.text).toContain("Example Skill");
+    expect(resourceContent.text).toContain("This is an example skill body with instructions for the first skill");
+
+    console.log("Resources successfully exposed via MCP protocol");
+    console.log("Resource reading successfully returned SKILL.md content");
+
     // Cleanup: Close subprocess
     serverProcess.stdin?.end();
     
