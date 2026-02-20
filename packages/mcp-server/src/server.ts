@@ -58,6 +58,9 @@ export class MCPServer {
       }
     );
 
+    // Register handlers BEFORE connecting (required by SDK)
+    this.registerHandlers();
+
     // Create stdio transport
     this.transport = new StdioServerTransport();
 
@@ -67,24 +70,47 @@ export class MCPServer {
       // Log error but don't throw - the process will exit on stdio close
       console.error("Failed to connect MCP server:", error);
     });
-
-    // Register handlers (stubs for now - full implementation in tasks 1.4.11 and 1.4.12)
-    this.registerHandlers();
   }
 
   /**
    * Register MCP request handlers
    * 
-   * This is a stub implementation. Full tool and resource handlers
-   * will be implemented in tasks 1.4.11 and 1.4.12.
+   * Registers the use_skill tool for retrieving skill instructions.
+   * Resource handlers will be implemented in task 1.4.12.
    */
   private registerHandlers(): void {
-    // Tool handlers will be implemented in task 1.4.11
-    // For now, we'll keep it simple - McpServer handles tools/list internally
-    // based on registered tools
-    
-    // We'll register a dummy handler to show the pattern
-    // Full implementation will come in task 1.4.11
+    // Register use_skill tool
+    this.mcpServer.registerTool(
+      "use_skill",
+      {
+        description: "Retrieve skill instructions and metadata for execution",
+        inputSchema: {
+          type: "object",
+          properties: {
+            skill_name: {
+              type: "string",
+              description: "Name of the skill to retrieve",
+            },
+            arguments: {
+              type: "object",
+              description: "Optional arguments for skill execution context",
+            },
+          },
+          required: ["skill_name"],
+        } as any, // Temporary workaround for SDK types
+      },
+      async () => {
+        // Stub implementation - full tool execution in next phase
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: "Stub implementation",
+            },
+          ],
+        };
+      }
+    );
   }
 
   /**
@@ -102,14 +128,31 @@ export class MCPServer {
   /**
    * Get list of available tools
    * 
-   * Stub implementation - will be fully implemented in task 1.4.11
+   * Returns the use_skill tool definition.
    * 
    * @returns Array of tool definitions
    */
   getTools(): unknown[] {
-    // Stub: return empty array
-    // Full implementation in task 1.4.11 will return skills as tools
-    return [];
+    return [
+      {
+        name: "use_skill",
+        description: "Retrieve skill instructions and metadata for execution",
+        inputSchema: {
+          type: "object",
+          properties: {
+            skill_name: {
+              type: "string",
+              description: "Name of the skill to retrieve",
+            },
+            arguments: {
+              type: "object",
+              description: "Optional arguments for skill execution context",
+            },
+          },
+          required: ["skill_name"],
+        },
+      },
+    ];
   }
 
   /**
