@@ -22,17 +22,52 @@ describe("MCP Server Integration - Subprocess Execution", () => {
     skillsDir = join(tempDir, ".agentskills", "skills");
     await fs.mkdir(skillsDir, { recursive: true });
 
-    // Create a valid test skill
-    const testSkillContent = `---
-name: test-skill
-description: A test skill for integration testing
+    // Create package.json with agentskills configuration
+    const packageJson = {
+      name: "test-project",
+      agentskills: {
+        "example-skill": "file:./local-skills/example-skill",
+        "another-skill": "file:./local-skills/another-skill",
+      },
+    };
+    await fs.writeFile(
+      join(tempDir, "package.json"),
+      JSON.stringify(packageJson, null, 2)
+    );
+
+    // Create example-skill
+    const exampleSkillDir = join(skillsDir, "example-skill");
+    await fs.mkdir(exampleSkillDir, { recursive: true });
+    const exampleSkillContent = `---
+name: example-skill
+description: An example skill for integration testing
 ---
 
-# Test Skill
+# Example Skill
 
-This is a test skill body with instructions.
+This is an example skill body with instructions for the first skill.
 `;
-    await fs.writeFile(join(skillsDir, "test-skill.md"), testSkillContent);
+    await fs.writeFile(
+      join(exampleSkillDir, "SKILL.md"),
+      exampleSkillContent
+    );
+
+    // Create another-skill
+    const anotherSkillDir = join(skillsDir, "another-skill");
+    await fs.mkdir(anotherSkillDir, { recursive: true });
+    const anotherSkillContent = `---
+name: another-skill
+description: Another skill for integration testing
+---
+
+# Another Skill
+
+This is another skill body with instructions for the second skill.
+`;
+    await fs.writeFile(
+      join(anotherSkillDir, "SKILL.md"),
+      anotherSkillContent
+    );
   });
 
   afterEach(async () => {
@@ -48,7 +83,7 @@ This is a test skill body with instructions.
     }
   });
 
-  it("should spawn server, initialize via MCP protocol, and expose use_skill tool", async () => {
+  it("should spawn server, initialize via MCP protocol, and expose use_skill tool with skill enum", async () => {
     // Get path to compiled server binary
     const serverBinPath = join(
       process.cwd(),
@@ -56,8 +91,8 @@ This is a test skill body with instructions.
       "bin.js"
     );
 
-    // Spawn the server as a subprocess
-    serverProcess = spawn("node", [serverBinPath, skillsDir], {
+    // Spawn the server as a subprocess with project directory (not skills directory)
+    serverProcess = spawn("node", [serverBinPath, tempDir], {
       stdio: ["pipe", "pipe", "pipe"],
     });
 
@@ -203,7 +238,7 @@ This is a test skill body with instructions.
     expect(toolsResponse.result.tools).toBeDefined();
     expect(Array.isArray(toolsResponse.result.tools)).toBe(true);
 
-    // Step 6: Verify use_skill tool is exposed
+    // Step 6: Verify use_skill tool is exposed with skill_name enum
     const useSkillTool = toolsResponse.result.tools.find(
       (tool: any) => tool.name === "use_skill"
     );
@@ -212,9 +247,47 @@ This is a test skill body with instructions.
     expect(useSkillTool.inputSchema).toBeDefined();
     expect(useSkillTool.inputSchema.type).toBe("object");
     
-    // Note: The SDK may transform the schema during registration
-    // The key assertion is that the tool is exposed with a valid schema structure
-    console.log("Tool successfully exposed via MCP protocol");
+    // Verify skill_name parameter has enum with loaded skill names
+    expect(useSkillTool.inputSchema.properties).toBeDefined();
+    expect(useSkillTool.inputSchema.properties.skill_name).toBeDefined();
+    expect(useSkillTool.inputSchema.properties.skill_name.type).toBe("string");
+    expect(useSkillTool.inputSchema.properties.skill_name.enum).toBeDefined();
+    expect(Array.isArray(useSkillTool.inputSchema.properties.skill_name.enum)).toBe(true);
+    expect(useSkillTool.inputSchema.properties.skill_name.enum).toContain("example-skill");
+    expect(useSkillTool.inputSchema.properties.skill_name.enum).toContain("another-skill");
+    expect(useSkillTool.inputSchema.properties.skill_name.enum.length).toBe(2);
+
+    // Step 7: Test tool execution - call use_skill with example-skill
+    sendMessage({
+      jsonrpc: "2.0",
+      id: 3,
+      method: "tools/call",
+      params: {
+        name: "use_skill",
+        arguments: {
+          skill_name: "example-skill",
+        },
+      },
+    });
+
+    // Step 8: Wait for tool execution response
+    const toolCallResponse = (await waitForResponse()) as any;
+    expect(toolCallResponse.id).toBe(3);
+    expect(toolCallResponse.result).toBeDefined();
+    expect(toolCallResponse.result.content).toBeDefined();
+    expect(Array.isArray(toolCallResponse.result.content)).toBe(true);
+    expect(toolCallResponse.result.content.length).toBeGreaterThan(0);
+    expect(toolCallResponse.result.content[0].type).toBe("text");
+    
+    // Parse the skill response and verify it contains the skill body
+    const skillResponse = JSON.parse(toolCallResponse.result.content[0].text);
+    expect(skillResponse.name).toBe("example-skill");
+    expect(skillResponse.description).toBe("An example skill for integration testing");
+    expect(skillResponse.body).toContain("Example Skill");
+    expect(skillResponse.body).toContain("This is an example skill body with instructions for the first skill");
+
+    console.log("Tool successfully exposed via MCP protocol with skill enum");
+    console.log("Tool execution successfully returned skill body");
 
     // Cleanup: Close subprocess
     serverProcess.stdin?.end();
