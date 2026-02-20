@@ -159,6 +159,35 @@ This is test skill 2 instructions for resource reading.
       expect(template.name).toBe("Agent Skill");
       expect(typeof template.description).toBe("string");
       expect(template.mimeType).toBe("text/markdown");
+      
+      // NEW: Verify inputSchema is present
+      expect(template.inputSchema).toBeDefined();
+      expect(template.inputSchema.properties.skillName.enum).toEqual(
+        expect.arrayContaining(['test-skill-1', 'test-skill-2'])
+      );
+    });
+
+    it("should include inputSchema with skill name enum", async () => {
+      // Arrange
+      const server = new MCPServer(registry);
+
+      // Act
+      const templates = server.getResourceTemplates() as any[];
+
+      // Assert
+      expect(templates).toHaveLength(1);
+      expect(templates[0]).toHaveProperty('inputSchema');
+
+      const schema = templates[0].inputSchema;
+      expect(schema.type).toBe('object');
+      expect(schema.properties).toHaveProperty('skillName');
+      expect(schema.properties.skillName.type).toBe('string');
+      expect(schema.properties.skillName.enum).toEqual(
+        expect.arrayContaining(['test-skill-1', 'test-skill-2'])
+      );
+      expect(schema.properties.skillName.enum.length).toBe(2);
+      expect(schema.properties.skillName.description).toBeDefined();
+      expect(schema.required).toContain('skillName');
     });
 
     it("should exist even with empty skill list", async () => {
@@ -167,11 +196,15 @@ This is test skill 2 instructions for resource reading.
       const server = new MCPServer(emptyRegistry);
 
       // Act
-      const templates = server.getResourceTemplates();
+      const templates = server.getResourceTemplates() as any[];
 
       // Assert
       expect(Array.isArray(templates)).toBe(true);
       expect(templates.length).toBe(1); // Template exists regardless
+      
+      // NEW: Verify inputSchema exists even with empty skills
+      expect(templates[0].inputSchema).toBeDefined();
+      expect(templates[0].inputSchema.properties.skillName.enum).toEqual([]);
     });
   });
 

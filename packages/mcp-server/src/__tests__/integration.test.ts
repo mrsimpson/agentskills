@@ -325,6 +325,19 @@ This is another skill body with instructions for the second skill.
     expect(template.description).toContain("use_skill tool");
     expect(template.description).toContain("skill_name parameter");
     expect(template.mimeType).toBe("text/markdown");
+    
+    // NEW: Verify inputSchema with skill enum is present
+    expect(template.inputSchema).toBeDefined();
+    expect(template.inputSchema.type).toBe("object");
+    expect(template.inputSchema.properties).toBeDefined();
+    expect(template.inputSchema.properties.skillName).toBeDefined();
+    expect(template.inputSchema.properties.skillName.type).toBe("string");
+    expect(template.inputSchema.properties.skillName.enum).toBeDefined();
+    expect(Array.isArray(template.inputSchema.properties.skillName.enum)).toBe(true);
+    expect(template.inputSchema.properties.skillName.enum).toContain("example-skill");
+    expect(template.inputSchema.properties.skillName.enum).toContain("another-skill");
+    expect(template.inputSchema.properties.skillName.enum.length).toBe(2);
+    expect(template.inputSchema.required).toContain("skillName");
 
     // Step 11: Test resources/read
     sendMessage({
