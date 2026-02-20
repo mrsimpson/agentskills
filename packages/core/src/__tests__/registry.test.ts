@@ -2,34 +2,34 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { parseSkillContent } from "../parser";
 import { SkillRegistry } from "../registry";
-import type { SkillSource, LoadResult, RegistryState, Skill, SkillMetadata } from "../types";
+import type { LoadResult, RegistryState, Skill, SkillMetadata } from "../types";
 
 /**
- * Comprehensive test suite for SkillRegistry component
+ * Test suite for simplified SkillRegistry (TDD RED phase)
  * 
- * Following TDD approach from agentic-knowledge:
- * - Minimal mocking (use real file system with temp directories)
- * - Test-driven interface design
- * - Clear test structure with arrange-act-assert
+ * New simplified model:
+ * - Single directory path (not SkillSource array)
+ * - Expects <skill-name>/SKILL.md structure (exactly 2 levels deep)
+ * - STRICT: Throws errors on misconfiguration (fail fast)
+ * - No multi-source, no priority, no partial failures
  * 
- * Coverage:
- * 1. Basic operations (load, get, getAll, metadata)
- * 2. Source priority (first-source-wins)
- * 3. Nested directory discovery
- * 4. Error handling (graceful degradation)
- * 5. State management
- * 6. Edge cases
+ * Test coverage (~22 tests):
+ * 1. Basic Loading (5 tests)
+ * 2. Strict Error Handling (8 tests)
+ * 3. Directory Structure (4 tests)
+ * 4. Edge Cases (3 tests)
+ * 5. State Management (2 tests)
  */
-
-const FIXTURES_DIR = join(__dirname, "fixtures", "skills");
 
 /**
  * Helper: Create a temp directory for test isolation
  */
 async function createTempDir(): Promise<string> {
-  const tempPath = join(tmpdir(), `skill-registry-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const tempPath = join(
+    tmpdir(),
+    `skill-registry-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  );
   await fs.mkdir(tempPath, { recursive: true });
   return tempPath;
 }
@@ -46,13 +46,30 @@ async function cleanupTempDir(path: string): Promise<void> {
 }
 
 /**
- * Helper: Create a skill file in a directory
+ * Helper: Create a skill with SKILL.md in subdirectory
  */
-async function createSkillFile(dir: string, filename: string, content: string): Promise<string> {
-  const filePath = join(dir, filename);
-  await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(filePath, content, "utf-8");
-  return filePath;
+async function createSkill(
+  baseDir: string,
+  skillName: string,
+  content: string
+): Promise<string> {
+  const skillDir = join(baseDir, skillName);
+  await fs.mkdir(skillDir, { recursive: true });
+  const skillPath = join(skillDir, "SKILL.md");
+  await fs.writeFile(skillPath, content, "utf-8");
+  return skillPath;
+}
+
+/**
+ * Helper: Create nested directories (scripts/, references/)
+ */
+async function createNestedDir(
+  skillDir: string,
+  nestedDirName: string
+): Promise<string> {
+  const nestedPath = join(skillDir, nestedDirName);
+  await fs.mkdir(nestedPath, { recursive: true });
+  return nestedPath;
 }
 
 /**
@@ -71,33 +88,10 @@ This is a test skill.
 }
 
 /**
- * Helper: Get skill content with all fields
- */
-function getFullSkillContent(name: string, description: string): string {
-  return `---
-name: ${name}
-description: ${description}
-license: MIT
-compatibility: claude-3.5-sonnet
-allowed-tools:
-  - bash
-  - read_file
-metadata:
-  author: Test Author
-  version: 1.0.0
----
-
-# ${name}
-
-This is a full test skill with all fields.
-`;
-}
-
-/**
  * Helper: Get invalid skill content (missing required field)
  */
-function getInvalidSkillContent(missingField: 'name' | 'description'): string {
-  if (missingField === 'name') {
+function getInvalidSkillContent(missingField: "name" | "description"): string {
+  if (missingField === "name") {
     return `---
 description: A skill without a name
 ---
@@ -118,7 +112,7 @@ This skill is missing the description field.
   }
 }
 
-describe("SkillRegistry", () => {
+describe("SkillRegistry - Simplified Model", () => {
   let tempDirs: string[] = [];
 
   /**
@@ -131,86 +125,31 @@ describe("SkillRegistry", () => {
     tempDirs = [];
   });
 
-  describe("Basic Operations", () => {
-    it("should start with empty state", () => {
-      // Arrange & Act
-      const registry = new SkillRegistry();
-      const state = registry.getState();
-
-      // Assert
-      expect(state.skillCount).toBe(0);
-      expect(state.sources).toEqual([]);
-      expect(state.lastLoaded).toBeUndefined();
-    });
-
-    it("should load skills from a single directory", async () => {
+  describe("Basic Loading", () => {
+    it("should load skills from valid directory structure", async () => {
       // Arrange
       const registry = new SkillRegistry();
       const tempDir = await createTempDir();
       tempDirs.push(tempDir);
 
-      await createSkillFile(
+      await createSkill(
         tempDir,
-        "skill1.md",
+        "test-skill-1",
         getBasicSkillContent("test-skill-1", "First test skill")
       );
-      await createSkillFile(
+      await createSkill(
         tempDir,
-        "skill2.md",
+        "test-skill-2",
         getBasicSkillContent("test-skill-2", "Second test skill")
       );
 
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-
       // Act
-      const result = await registry.loadSkills(sources);
+      const result = await registry.loadSkills(tempDir);
 
       // Assert
       expect(result.loaded).toBe(2);
-      expect(result.failed).toBe(0);
-      expect(result.errors).toEqual([]);
-      expect(result.warnings).toEqual([]);
-
-      const state = registry.getState();
-      expect(state.skillCount).toBe(2);
-      expect(state.sources).toEqual([tempDir]);
-      expect(state.lastLoaded).toBeInstanceOf(Date);
-    });
-
-    it("should load skills from multiple directories", async () => {
-      // Arrange
-      const registry = new SkillRegistry();
-      const tempDir1 = await createTempDir();
-      const tempDir2 = await createTempDir();
-      tempDirs.push(tempDir1, tempDir2);
-
-      await createSkillFile(
-        tempDir1,
-        "skill1.md",
-        getBasicSkillContent("test-skill-1", "First test skill")
-      );
-      await createSkillFile(
-        tempDir2,
-        "skill2.md",
-        getBasicSkillContent("test-skill-2", "Second test skill")
-      );
-
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir1 },
-        { type: "local_directory", path: tempDir2 }
-      ];
-
-      // Act
-      const result = await registry.loadSkills(sources);
-
-      // Assert
-      expect(result.loaded).toBe(2);
-      expect(result.failed).toBe(0);
-      
-      const state = registry.getState();
-      expect(state.sources).toEqual([tempDir1, tempDir2]);
+      expect(result.skillsDir).toBe(tempDir);
+      expect(result.timestamp).toBeInstanceOf(Date);
     });
 
     it("should get skill by name", async () => {
@@ -219,16 +158,13 @@ describe("SkillRegistry", () => {
       const tempDir = await createTempDir();
       tempDirs.push(tempDir);
 
-      await createSkillFile(
+      await createSkill(
         tempDir,
-        "skill1.md",
+        "test-skill-1",
         getBasicSkillContent("test-skill-1", "First test skill")
       );
 
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-      await registry.loadSkills(sources);
+      await registry.loadSkills(tempDir);
 
       // Act
       const skill = registry.getSkill("test-skill-1");
@@ -240,51 +176,24 @@ describe("SkillRegistry", () => {
       expect(skill?.body).toContain("# test-skill-1");
     });
 
-    it("should return undefined for non-existent skill", async () => {
-      // Arrange
-      const registry = new SkillRegistry();
-      const tempDir = await createTempDir();
-      tempDirs.push(tempDir);
-
-      await createSkillFile(
-        tempDir,
-        "skill1.md",
-        getBasicSkillContent("test-skill-1", "First test skill")
-      );
-
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-      await registry.loadSkills(sources);
-
-      // Act
-      const skill = registry.getSkill("non-existent-skill");
-
-      // Assert
-      expect(skill).toBeUndefined();
-    });
-
     it("should get all skills", async () => {
       // Arrange
       const registry = new SkillRegistry();
       const tempDir = await createTempDir();
       tempDirs.push(tempDir);
 
-      await createSkillFile(
+      await createSkill(
         tempDir,
-        "skill1.md",
+        "test-skill-1",
         getBasicSkillContent("test-skill-1", "First test skill")
       );
-      await createSkillFile(
+      await createSkill(
         tempDir,
-        "skill2.md",
+        "test-skill-2",
         getBasicSkillContent("test-skill-2", "Second test skill")
       );
 
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-      await registry.loadSkills(sources);
+      await registry.loadSkills(tempDir);
 
       // Act
       const skills = registry.getAllSkills();
@@ -296,22 +205,19 @@ describe("SkillRegistry", () => {
       expect(names).toContain("test-skill-2");
     });
 
-    it("should get skill metadata only", async () => {
+    it("should get skill metadata", async () => {
       // Arrange
       const registry = new SkillRegistry();
       const tempDir = await createTempDir();
       tempDirs.push(tempDir);
 
-      await createSkillFile(
+      await createSkill(
         tempDir,
-        "skill1.md",
-        getFullSkillContent("test-skill-1", "First test skill")
+        "test-skill-1",
+        getBasicSkillContent("test-skill-1", "First test skill")
       );
 
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-      await registry.loadSkills(sources);
+      await registry.loadSkills(tempDir);
 
       // Act
       const metadata = registry.getSkillMetadata("test-skill-1");
@@ -320,862 +226,385 @@ describe("SkillRegistry", () => {
       expect(metadata).toBeDefined();
       expect(metadata?.name).toBe("test-skill-1");
       expect(metadata?.description).toBe("First test skill");
-      expect(metadata?.license).toBe("MIT");
-      expect(metadata?.compatibility).toBe("claude-3.5-sonnet");
     });
 
-    it("should return undefined for non-existent skill metadata", async () => {
+    it("should get registry state", async () => {
       // Arrange
       const registry = new SkillRegistry();
       const tempDir = await createTempDir();
       tempDirs.push(tempDir);
 
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-      await registry.loadSkills(sources);
-
-      // Act
-      const metadata = registry.getSkillMetadata("non-existent");
-
-      // Assert
-      expect(metadata).toBeUndefined();
-    });
-
-    it("should get all metadata", async () => {
-      // Arrange
-      const registry = new SkillRegistry();
-      const tempDir = await createTempDir();
-      tempDirs.push(tempDir);
-
-      await createSkillFile(
+      await createSkill(
         tempDir,
-        "skill1.md",
-        getFullSkillContent("test-skill-1", "First test skill")
+        "test-skill-1",
+        getBasicSkillContent("test-skill-1", "First test skill")
       );
-      await createSkillFile(
+      await createSkill(
         tempDir,
-        "skill2.md",
-        getFullSkillContent("test-skill-2", "Second test skill")
+        "test-skill-2",
+        getBasicSkillContent("test-skill-2", "Second test skill")
       );
 
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-      await registry.loadSkills(sources);
-
       // Act
-      const allMetadata = registry.getAllMetadata();
+      await registry.loadSkills(tempDir);
+      const state = registry.getState();
 
       // Assert
-      expect(allMetadata).toHaveLength(2);
-      const metadataNames = allMetadata.map((m: SkillMetadata) => m.name);
-      expect(metadataNames).toContain("test-skill-1");
-      expect(metadataNames).toContain("test-skill-2");
-      expect(allMetadata.every((m: SkillMetadata) => m.license === "MIT")).toBe(true);
+      expect(state.skillCount).toBe(2);
+      expect(state.skillsDir).toBe(tempDir);
+      expect(state.lastLoaded).toBeInstanceOf(Date);
     });
   });
 
-  describe("Source Priority (First-Source-Wins)", () => {
-    it("should give priority to first source when skills have same name", async () => {
-      // Arrange
-      const registry = new SkillRegistry();
-      const tempDir1 = await createTempDir();
-      const tempDir2 = await createTempDir();
-      tempDirs.push(tempDir1, tempDir2);
-
-      // First source has skill with description "First source"
-      await createSkillFile(
-        tempDir1,
-        "skill.md",
-        getBasicSkillContent("test-skill", "First source")
-      );
-
-      // Second source has same skill with different description
-      await createSkillFile(
-        tempDir2,
-        "skill.md",
-        getBasicSkillContent("test-skill", "Second source")
-      );
-
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir1 },
-        { type: "local_directory", path: tempDir2 }
-      ];
-
-      // Act
-      const result = await registry.loadSkills(sources);
-
-      // Assert
-      expect(result.loaded).toBe(1); // Only one skill loaded
-      expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0]).toContain("test-skill");
-      expect(result.warnings[0]).toContain("conflict");
-
-      const skill = registry.getSkill("test-skill");
-      expect(skill?.metadata.description).toBe("First source");
-    });
-
-    it("should log warning for each conflicting skill", async () => {
-      // Arrange
-      const registry = new SkillRegistry();
-      const tempDir1 = await createTempDir();
-      const tempDir2 = await createTempDir();
-      const tempDir3 = await createTempDir();
-      tempDirs.push(tempDir1, tempDir2, tempDir3);
-
-      // Create same skill in all three sources
-      await createSkillFile(
-        tempDir1,
-        "skill.md",
-        getBasicSkillContent("test-skill", "First source")
-      );
-      await createSkillFile(
-        tempDir2,
-        "skill.md",
-        getBasicSkillContent("test-skill", "Second source")
-      );
-      await createSkillFile(
-        tempDir3,
-        "skill.md",
-        getBasicSkillContent("test-skill", "Third source")
-      );
-
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir1 },
-        { type: "local_directory", path: tempDir2 },
-        { type: "local_directory", path: tempDir3 }
-      ];
-
-      // Act
-      const result = await registry.loadSkills(sources);
-
-      // Assert
-      expect(result.loaded).toBe(1);
-      expect(result.warnings).toHaveLength(2); // Two conflicts (source 2 and 3)
-      expect(result.warnings.every((w: string) => w.includes("test-skill"))).toBe(true);
-    });
-
-    it("should respect explicit priority values", async () => {
-      // Arrange
-      const registry = new SkillRegistry();
-      const tempDir1 = await createTempDir();
-      const tempDir2 = await createTempDir();
-      tempDirs.push(tempDir1, tempDir2);
-
-      await createSkillFile(
-        tempDir1,
-        "skill.md",
-        getBasicSkillContent("test-skill", "Lower priority")
-      );
-      await createSkillFile(
-        tempDir2,
-        "skill.md",
-        getBasicSkillContent("test-skill", "Higher priority")
-      );
-
-      // Second source has higher priority
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir1, priority: 1 },
-        { type: "local_directory", path: tempDir2, priority: 10 }
-      ];
-
-      // Act
-      const result = await registry.loadSkills(sources);
-
-      // Assert
-      expect(result.loaded).toBe(1);
-      const skill = registry.getSkill("test-skill");
-      expect(skill?.metadata.description).toBe("Higher priority");
-    });
-  });
-
-  describe("Nested Directory Discovery", () => {
-    it("should find skills in subdirectories", async () => {
-      // Arrange
-      const registry = new SkillRegistry();
-      const tempDir = await createTempDir();
-      tempDirs.push(tempDir);
-
-      // Create nested structure
-      await createSkillFile(
-        join(tempDir, "subdir1"),
-        "skill1.md",
-        getBasicSkillContent("nested-skill-1", "Nested in subdir1")
-      );
-      await createSkillFile(
-        join(tempDir, "subdir2"),
-        "skill2.md",
-        getBasicSkillContent("nested-skill-2", "Nested in subdir2")
-      );
-
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-
-      // Act
-      const result = await registry.loadSkills(sources);
-
-      // Assert
-      expect(result.loaded).toBe(2);
-      expect(registry.getAllSkills()).toHaveLength(2);
-      expect(registry.getSkill("nested-skill-1")).toBeDefined();
-      expect(registry.getSkill("nested-skill-2")).toBeDefined();
-    });
-
-    it("should recursively traverse nested directories", async () => {
-      // Arrange
-      const registry = new SkillRegistry();
-      const tempDir = await createTempDir();
-      tempDirs.push(tempDir);
-
-      // Create deeply nested structure
-      await createSkillFile(
-        join(tempDir, "level1", "level2", "level3"),
-        "deep-skill.md",
-        getBasicSkillContent("deep-skill", "Deeply nested skill")
-      );
-      await createSkillFile(
-        tempDir,
-        "root-skill.md",
-        getBasicSkillContent("root-skill", "Root level skill")
-      );
-
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-
-      // Act
-      const result = await registry.loadSkills(sources);
-
-      // Assert
-      expect(result.loaded).toBe(2);
-      expect(registry.getSkill("deep-skill")).toBeDefined();
-      expect(registry.getSkill("root-skill")).toBeDefined();
-    });
-
-    it("should find multiple skill files in same directory", async () => {
-      // Arrange
-      const registry = new SkillRegistry();
-      const tempDir = await createTempDir();
-      tempDirs.push(tempDir);
-
-      await createSkillFile(
-        tempDir,
-        "skill1.md",
-        getBasicSkillContent("skill-1", "First skill")
-      );
-      await createSkillFile(
-        tempDir,
-        "skill2.md",
-        getBasicSkillContent("skill-2", "Second skill")
-      );
-      await createSkillFile(
-        tempDir,
-        "SKILL.md",
-        getBasicSkillContent("skill-3", "Third skill")
-      );
-
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-
-      // Act
-      const result = await registry.loadSkills(sources);
-
-      // Assert
-      expect(result.loaded).toBe(3);
-    });
-
-    it("should handle duplicate skill names in nested directories with first-found-wins", async () => {
-      // Arrange
-      const registry = new SkillRegistry();
-      const tempDir = await createTempDir();
-      tempDirs.push(tempDir);
-
-      // Create duplicate in root and subdirectory
-      await createSkillFile(
-        tempDir,
-        "skill.md",
-        getBasicSkillContent("duplicate-skill", "Root level")
-      );
-      await createSkillFile(
-        join(tempDir, "subdir"),
-        "skill.md",
-        getBasicSkillContent("duplicate-skill", "Subdirectory level")
-      );
-
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-
-      // Act
-      const result = await registry.loadSkills(sources);
-
-      // Assert
-      expect(result.loaded).toBe(1);
-      expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0]).toContain("duplicate-skill");
-    });
-  });
-
-  describe("Error Handling (Graceful Degradation)", () => {
-    it("should continue loading when one skill file is invalid", async () => {
-      // Arrange
-      const registry = new SkillRegistry();
-      const tempDir = await createTempDir();
-      tempDirs.push(tempDir);
-
-      // One valid, one invalid
-      await createSkillFile(
-        tempDir,
-        "valid.md",
-        getBasicSkillContent("valid-skill", "Valid skill")
-      );
-      await createSkillFile(
-        tempDir,
-        "invalid.md",
-        getInvalidSkillContent("name")
-      );
-
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-
-      // Act
-      const result = await registry.loadSkills(sources);
-
-      // Assert
-      expect(result.loaded).toBe(1);
-      expect(result.failed).toBe(1);
-      expect(result.errors).toHaveLength(1);
-      expect(result.errors[0]).toContain("invalid.md");
-
-      // Valid skill should still be loaded
-      expect(registry.getSkill("valid-skill")).toBeDefined();
-    });
-
-    it("should log parse errors but continue loading", async () => {
-      // Arrange
-      const registry = new SkillRegistry();
-      const tempDir = await createTempDir();
-      tempDirs.push(tempDir);
-
-      await createSkillFile(
-        tempDir,
-        "skill1.md",
-        getBasicSkillContent("skill-1", "First skill")
-      );
-      await createSkillFile(
-        tempDir,
-        "invalid-yaml.md",
-        "---\ninvalid: yaml: content:\n---\n\n# Invalid"
-      );
-      await createSkillFile(
-        tempDir,
-        "skill2.md",
-        getBasicSkillContent("skill-2", "Second skill")
-      );
-
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-
-      // Act
-      const result = await registry.loadSkills(sources);
-
-      // Assert
-      expect(result.loaded).toBe(2);
-      expect(result.failed).toBe(1);
-      expect(result.errors).toHaveLength(1);
-      expect(registry.getAllSkills()).toHaveLength(2);
-    });
-
-    it("should collect validation warnings without blocking load", async () => {
-      // Arrange
-      const registry = new SkillRegistry();
-      const tempDir = await createTempDir();
-      tempDirs.push(tempDir);
-
-      // Create skill with short description (validation warning)
-      await createSkillFile(
-        tempDir,
-        "skill.md",
-        getBasicSkillContent("test-skill", "Short")
-      );
-
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-
-      // Act
-      const result = await registry.loadSkills(sources);
-
-      // Assert
-      expect(result.loaded).toBe(1);
-      expect(result.failed).toBe(0);
-      // Validation warnings should be collected if validator reports them
-      expect(registry.getSkill("test-skill")).toBeDefined();
-    });
-
-    it("should handle empty directories gracefully", async () => {
-      // Arrange
-      const registry = new SkillRegistry();
-      const tempDir = await createTempDir();
-      tempDirs.push(tempDir);
-
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-
-      // Act
-      const result = await registry.loadSkills(sources);
-
-      // Assert
-      expect(result.loaded).toBe(0);
-      expect(result.failed).toBe(0);
-      expect(result.errors).toEqual([]);
-      expect(registry.getAllSkills()).toEqual([]);
-    });
-
-    it("should handle non-existent directories", async () => {
+  describe("Strict Error Handling", () => {
+    it("should throw if skillsDir does not exist", async () => {
       // Arrange
       const registry = new SkillRegistry();
       const nonExistentPath = join(tmpdir(), "non-existent-dir-" + Date.now());
 
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: nonExistentPath }
-      ];
-
-      // Act
-      const result = await registry.loadSkills(sources);
-
-      // Assert
-      expect(result.loaded).toBe(0);
-      expect(result.errors).toHaveLength(1);
-      expect(result.errors[0]).toContain(nonExistentPath);
-      expect(registry.getAllSkills()).toEqual([]);
+      // Act & Assert
+      await expect(registry.loadSkills(nonExistentPath)).rejects.toThrow();
     });
 
-    it("should handle directories with only non-skill files", async () => {
+    it("should throw if skillsDir is a file (not directory)", async () => {
       // Arrange
       const registry = new SkillRegistry();
       const tempDir = await createTempDir();
       tempDirs.push(tempDir);
 
-      // Create non-skill files
-      await fs.writeFile(join(tempDir, "README.md"), "# README", "utf-8");
-      await fs.writeFile(join(tempDir, "notes.txt"), "Notes", "utf-8");
-      await fs.writeFile(join(tempDir, "config.json"), "{}", "utf-8");
+      const filePath = join(tempDir, "not-a-directory.txt");
+      await fs.writeFile(filePath, "This is a file", "utf-8");
 
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-
-      // Act
-      const result = await registry.loadSkills(sources);
-
-      // Assert
-      expect(result.loaded).toBe(0);
-      expect(result.failed).toBe(0);
-      expect(registry.getAllSkills()).toEqual([]);
+      // Act & Assert
+      await expect(registry.loadSkills(filePath)).rejects.toThrow();
     });
 
-    it("should continue when all skills in a directory are invalid", async () => {
+    it("should throw if subdirectory missing SKILL.md", async () => {
       // Arrange
       const registry = new SkillRegistry();
-      const tempDir1 = await createTempDir();
-      const tempDir2 = await createTempDir();
-      tempDirs.push(tempDir1, tempDir2);
+      const tempDir = await createTempDir();
+      tempDirs.push(tempDir);
 
-      // First directory has all invalid skills
-      await createSkillFile(
-        tempDir1,
-        "invalid1.md",
+      // Create subdirectory without SKILL.md
+      const skillDir = join(tempDir, "incomplete-skill");
+      await fs.mkdir(skillDir, { recursive: true });
+      await fs.writeFile(join(skillDir, "README.md"), "# README", "utf-8");
+
+      // Act & Assert
+      await expect(registry.loadSkills(tempDir)).rejects.toThrow();
+    });
+
+    it("should throw if SKILL.md has invalid frontmatter", async () => {
+      // Arrange
+      const registry = new SkillRegistry();
+      const tempDir = await createTempDir();
+      tempDirs.push(tempDir);
+
+      const skillDir = join(tempDir, "invalid-skill");
+      await fs.mkdir(skillDir, { recursive: true });
+      await fs.writeFile(
+        join(skillDir, "SKILL.md"),
+        "---\ninvalid: yaml: content:\n---\n\n# Invalid",
+        "utf-8"
+      );
+
+      // Act & Assert
+      await expect(registry.loadSkills(tempDir)).rejects.toThrow();
+    });
+
+    it("should throw if SKILL.md missing required fields", async () => {
+      // Arrange
+      const registry = new SkillRegistry();
+      const tempDir = await createTempDir();
+      tempDirs.push(tempDir);
+
+      await createSkill(
+        tempDir,
+        "invalid-skill",
         getInvalidSkillContent("name")
       );
-      await createSkillFile(
-        tempDir1,
-        "invalid2.md",
-        getInvalidSkillContent("description")
+
+      // Act & Assert
+      await expect(registry.loadSkills(tempDir)).rejects.toThrow();
+    });
+
+    it("should throw if validation fails (invalid name format)", async () => {
+      // Arrange
+      const registry = new SkillRegistry();
+      const tempDir = await createTempDir();
+      tempDirs.push(tempDir);
+
+      await createSkill(
+        tempDir,
+        "invalid-skill",
+        getBasicSkillContent("Invalid Skill!", "Invalid name with spaces and exclamation")
       );
 
-      // Second directory has valid skill
-      await createSkillFile(
-        tempDir2,
-        "valid.md",
-        getBasicSkillContent("valid-skill", "Valid skill")
-      );
+      // Act & Assert
+      await expect(registry.loadSkills(tempDir)).rejects.toThrow();
+    });
 
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir1 },
-        { type: "local_directory", path: tempDir2 }
-      ];
+    it("should throw if subdirectory is empty", async () => {
+      // Arrange
+      const registry = new SkillRegistry();
+      const tempDir = await createTempDir();
+      tempDirs.push(tempDir);
 
-      // Act
-      const result = await registry.loadSkills(sources);
+      // Create empty subdirectory
+      const emptyDir = join(tempDir, "empty-skill");
+      await fs.mkdir(emptyDir, { recursive: true });
 
-      // Assert
-      expect(result.loaded).toBe(1);
-      expect(result.failed).toBe(2);
-      expect(result.errors).toHaveLength(2);
-      expect(registry.getSkill("valid-skill")).toBeDefined();
+      // Act & Assert
+      await expect(registry.loadSkills(tempDir)).rejects.toThrow();
+    });
+
+    it("should throw if SKILL.md is empty", async () => {
+      // Arrange
+      const registry = new SkillRegistry();
+      const tempDir = await createTempDir();
+      tempDirs.push(tempDir);
+
+      const skillDir = join(tempDir, "empty-skill");
+      await fs.mkdir(skillDir, { recursive: true });
+      await fs.writeFile(join(skillDir, "SKILL.md"), "", "utf-8");
+
+      // Act & Assert
+      await expect(registry.loadSkills(tempDir)).rejects.toThrow();
     });
   });
 
-  describe("State Management", () => {
-    it("should update state after loading skills", async () => {
+  describe("Directory Structure", () => {
+    it("should load from skill-name/SKILL.md pattern", async () => {
       // Arrange
       const registry = new SkillRegistry();
       const tempDir = await createTempDir();
       tempDirs.push(tempDir);
 
-      await createSkillFile(
+      await createSkill(
         tempDir,
-        "skill.md",
-        getBasicSkillContent("test-skill", "Test skill")
+        "my-skill",
+        getBasicSkillContent("my-skill", "A test skill")
       );
-
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-
-      const beforeState = registry.getState();
-      expect(beforeState.skillCount).toBe(0);
-      expect(beforeState.lastLoaded).toBeUndefined();
 
       // Act
-      const loadTime = new Date();
-      await registry.loadSkills(sources);
-      const afterState = registry.getState();
+      const result = await registry.loadSkills(tempDir);
 
       // Assert
-      expect(afterState.skillCount).toBe(1);
-      expect(afterState.sources).toEqual([tempDir]);
-      expect(afterState.lastLoaded).toBeInstanceOf(Date);
-      expect(afterState.lastLoaded!.getTime()).toBeGreaterThanOrEqual(loadTime.getTime());
+      expect(result.loaded).toBe(1);
+      const skill = registry.getSkill("my-skill");
+      expect(skill).toBeDefined();
     });
 
-    it("should replace state when loading again", async () => {
-      // Arrange
-      const registry = new SkillRegistry();
-      const tempDir1 = await createTempDir();
-      const tempDir2 = await createTempDir();
-      tempDirs.push(tempDir1, tempDir2);
-
-      await createSkillFile(
-        tempDir1,
-        "skill1.md",
-        getBasicSkillContent("skill-1", "First skill")
-      );
-      await createSkillFile(
-        tempDir2,
-        "skill2.md",
-        getBasicSkillContent("skill-2", "Second skill")
-      );
-
-      // First load
-      await registry.loadSkills([{ type: "local_directory", path: tempDir1 }]);
-      expect(registry.getState().skillCount).toBe(1);
-      expect(registry.getSkill("skill-1")).toBeDefined();
-
-      // Act - Second load with different source
-      await registry.loadSkills([{ type: "local_directory", path: tempDir2 }]);
-
-      // Assert
-      const state = registry.getState();
-      expect(state.skillCount).toBe(1);
-      expect(state.sources).toEqual([tempDir2]);
-      expect(registry.getSkill("skill-1")).toBeUndefined(); // Old skill gone
-      expect(registry.getSkill("skill-2")).toBeDefined(); // New skill present
-    });
-
-    it("should clear state on reload", async () => {
+    it("should ignore nested directories (scripts/, references/)", async () => {
       // Arrange
       const registry = new SkillRegistry();
       const tempDir = await createTempDir();
       tempDirs.push(tempDir);
 
-      await createSkillFile(
-        tempDir,
-        "skill.md",
-        getBasicSkillContent("test-skill", "Test skill")
-      );
+      // Create valid skill
+      const skillDir = join(tempDir, "my-skill");
+      await createSkill(tempDir, "my-skill", getBasicSkillContent("my-skill", "A test skill"));
 
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
+      // Create nested directories with files
+      await createNestedDir(skillDir, "scripts");
+      await fs.writeFile(join(skillDir, "scripts", "helper.sh"), "#!/bin/bash", "utf-8");
 
-      // Initial load
-      await registry.loadSkills(sources);
-      expect(registry.getState().skillCount).toBe(1);
-
-      // Remove the skill file
-      await fs.unlink(join(tempDir, "skill.md"));
-
-      // Act - Reload
-      await registry.loadSkills(sources);
-
-      // Assert
-      expect(registry.getState().skillCount).toBe(0);
-      expect(registry.getSkill("test-skill")).toBeUndefined();
-    });
-
-    it("should track multiple sources in state", async () => {
-      // Arrange
-      const registry = new SkillRegistry();
-      const tempDir1 = await createTempDir();
-      const tempDir2 = await createTempDir();
-      const tempDir3 = await createTempDir();
-      tempDirs.push(tempDir1, tempDir2, tempDir3);
-
-      await createSkillFile(
-        tempDir1,
-        "skill1.md",
-        getBasicSkillContent("skill-1", "First")
-      );
-      await createSkillFile(
-        tempDir2,
-        "skill2.md",
-        getBasicSkillContent("skill-2", "Second")
-      );
-      await createSkillFile(
-        tempDir3,
-        "skill3.md",
-        getBasicSkillContent("skill-3", "Third")
-      );
-
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir1 },
-        { type: "local_directory", path: tempDir2 },
-        { type: "local_directory", path: tempDir3 }
-      ];
+      await createNestedDir(skillDir, "references");
+      await fs.writeFile(join(skillDir, "references", "doc.md"), "# Documentation", "utf-8");
 
       // Act
-      await registry.loadSkills(sources);
-      const state = registry.getState();
+      const result = await registry.loadSkills(tempDir);
 
       // Assert
-      expect(state.sources).toHaveLength(3);
-      expect(state.sources).toContain(tempDir1);
-      expect(state.sources).toContain(tempDir2);
-      expect(state.sources).toContain(tempDir3);
+      expect(result.loaded).toBe(1);
+      const skills = registry.getAllSkills();
+      expect(skills).toHaveLength(1);
+    });
+
+    it("should handle multiple skills in separate subdirectories", async () => {
+      // Arrange
+      const registry = new SkillRegistry();
+      const tempDir = await createTempDir();
+      tempDirs.push(tempDir);
+
+      await createSkill(
+        tempDir,
+        "skill-one",
+        getBasicSkillContent("skill-one", "First skill")
+      );
+      await createSkill(
+        tempDir,
+        "skill-two",
+        getBasicSkillContent("skill-two", "Second skill")
+      );
+      await createSkill(
+        tempDir,
+        "skill-three",
+        getBasicSkillContent("skill-three", "Third skill")
+      );
+
+      // Act
+      const result = await registry.loadSkills(tempDir);
+
+      // Assert
+      expect(result.loaded).toBe(3);
+      expect(registry.getSkill("skill-one")).toBeDefined();
+      expect(registry.getSkill("skill-two")).toBeDefined();
+      expect(registry.getSkill("skill-three")).toBeDefined();
+    });
+
+    it("should return empty registry for empty skillsDir (no subdirectories)", async () => {
+      // Arrange
+      const registry = new SkillRegistry();
+      const tempDir = await createTempDir();
+      tempDirs.push(tempDir);
+
+      // Act
+      const result = await registry.loadSkills(tempDir);
+
+      // Assert
+      expect(result.loaded).toBe(0);
+      expect(result.skillsDir).toBe(tempDir);
+      expect(registry.getAllSkills()).toEqual([]);
     });
   });
 
   describe("Edge Cases", () => {
-    it("should handle case when no skills found in any source", async () => {
-      // Arrange
-      const registry = new SkillRegistry();
-      const tempDir1 = await createTempDir();
-      const tempDir2 = await createTempDir();
-      tempDirs.push(tempDir1, tempDir2);
-
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir1 },
-        { type: "local_directory", path: tempDir2 }
-      ];
-
-      // Act
-      const result = await registry.loadSkills(sources);
-
-      // Assert
-      expect(result.loaded).toBe(0);
-      expect(result.failed).toBe(0);
-      expect(registry.getAllSkills()).toEqual([]);
-      expect(registry.getAllMetadata()).toEqual([]);
-    });
-
-    it("should handle case when all skills are invalid", async () => {
+    it("should ignore hidden subdirectories (.git/)", async () => {
       // Arrange
       const registry = new SkillRegistry();
       const tempDir = await createTempDir();
       tempDirs.push(tempDir);
 
-      await createSkillFile(
+      // Create valid skill
+      await createSkill(
         tempDir,
-        "invalid1.md",
-        getInvalidSkillContent("name")
-      );
-      await createSkillFile(
-        tempDir,
-        "invalid2.md",
-        getInvalidSkillContent("description")
+        "my-skill",
+        getBasicSkillContent("my-skill", "A test skill")
       );
 
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-
-      // Act
-      const result = await registry.loadSkills(sources);
-
-      // Assert
-      expect(result.loaded).toBe(0);
-      expect(result.failed).toBe(2);
-      expect(result.errors).toHaveLength(2);
-      expect(registry.getAllSkills()).toEqual([]);
-    });
-
-    it("should handle loading with empty sources array", async () => {
-      // Arrange
-      const registry = new SkillRegistry();
-
-      // Act
-      const result = await registry.loadSkills([]);
-
-      // Assert
-      expect(result.loaded).toBe(0);
-      expect(result.failed).toBe(0);
-      expect(result.errors).toEqual([]);
-      expect(registry.getState().skillCount).toBe(0);
-    });
-
-    it("should handle skill files with same content but different filenames", async () => {
-      // Arrange
-      const registry = new SkillRegistry();
-      const tempDir = await createTempDir();
-      tempDirs.push(tempDir);
-
-      const content = getBasicSkillContent("same-skill", "Same skill");
-      await createSkillFile(tempDir, "skill1.md", content);
-      await createSkillFile(tempDir, "skill2.md", content);
-
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-
-      // Act
-      const result = await registry.loadSkills(sources);
-
-      // Assert - Only one skill loaded due to duplicate name
-      expect(result.loaded).toBe(1);
-      expect(result.warnings).toHaveLength(1);
-      expect(result.warnings[0]).toContain("same-skill");
-    });
-
-    it("should handle very long directory paths", async () => {
-      // Arrange
-      const registry = new SkillRegistry();
-      const tempDir = await createTempDir();
-      tempDirs.push(tempDir);
-
-      // Create deeply nested path
-      const deepPath = join(tempDir, "a", "b", "c", "d", "e", "f", "g", "h");
-      await createSkillFile(
-        deepPath,
-        "skill.md",
-        getBasicSkillContent("deep-skill", "Deep nested skill")
+      // Create hidden directory with SKILL.md
+      const hiddenDir = join(tempDir, ".git");
+      await fs.mkdir(hiddenDir, { recursive: true });
+      await fs.writeFile(
+        join(hiddenDir, "SKILL.md"),
+        getBasicSkillContent("hidden-skill", "Hidden skill"),
+        "utf-8"
       );
 
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-
       // Act
-      const result = await registry.loadSkills(sources);
+      const result = await registry.loadSkills(tempDir);
 
       // Assert
       expect(result.loaded).toBe(1);
-      expect(registry.getSkill("deep-skill")).toBeDefined();
+      expect(registry.getSkill("my-skill")).toBeDefined();
+      expect(registry.getSkill("hidden-skill")).toBeUndefined();
     });
 
-    it("should handle skill names with special characters in filenames", async () => {
+    it("should ignore non-directory files in skillsDir", async () => {
       // Arrange
       const registry = new SkillRegistry();
       const tempDir = await createTempDir();
       tempDirs.push(tempDir);
 
-      await createSkillFile(
+      // Create valid skill
+      await createSkill(
         tempDir,
-        "my-skill-v2.md",
-        getBasicSkillContent("my-skill-v2", "Skill with hyphens and numbers")
+        "my-skill",
+        getBasicSkillContent("my-skill", "A test skill")
       );
 
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
+      // Create files in root skillsDir
+      await fs.writeFile(join(tempDir, "README.md"), "# README", "utf-8");
+      await fs.writeFile(join(tempDir, "notes.txt"), "Notes", "utf-8");
 
       // Act
-      const result = await registry.loadSkills(sources);
+      const result = await registry.loadSkills(tempDir);
 
       // Assert
       expect(result.loaded).toBe(1);
-      expect(registry.getSkill("my-skill-v2")).toBeDefined();
+      expect(registry.getSkill("my-skill")).toBeDefined();
     });
 
-    it.skipIf(process.platform === "darwin" || process.platform === "win32")(
-      "should handle mixed case skill filenames (SKILL.md vs skill.md)",
-      async () => {
-        // Note: Skipped on macOS and Windows due to case-insensitive filesystems
-        // On these platforms, SKILL.md and skill.md refer to the same file
-
-        // Arrange
-        const registry = new SkillRegistry();
-        const tempDir = await createTempDir();
-        tempDirs.push(tempDir);
-
-        await createSkillFile(
-          tempDir,
-          "SKILL.md",
-          getBasicSkillContent("uppercase-file", "Uppercase filename")
-        );
-        await createSkillFile(
-          tempDir,
-          "skill.md",
-          getBasicSkillContent("lowercase-file", "Lowercase filename")
-        );
-
-        const sources: SkillSource[] = [
-          { type: "local_directory", path: tempDir }
-        ];
-
-        // Act
-        const result = await registry.loadSkills(sources);
-
-        // Assert
-        expect(result.loaded).toBe(2);
-        expect(registry.getSkill("uppercase-file")).toBeDefined();
-        expect(registry.getSkill("lowercase-file")).toBeDefined();
-      }
-    );
-
-    it("should return immutable skill objects", async () => {
+    it("should verify skill name from directory name matches SKILL.md name", async () => {
       // Arrange
       const registry = new SkillRegistry();
       const tempDir = await createTempDir();
       tempDirs.push(tempDir);
 
-      await createSkillFile(
+      // Create skill with mismatched directory and metadata name
+      const skillDir = join(tempDir, "directory-name");
+      await fs.mkdir(skillDir, { recursive: true });
+      await fs.writeFile(
+        join(skillDir, "SKILL.md"),
+        getBasicSkillContent("different-name", "Mismatched name"),
+        "utf-8"
+      );
+
+      // Act & Assert
+      // Should throw because directory name doesn't match skill name
+      await expect(registry.loadSkills(tempDir)).rejects.toThrow();
+    });
+  });
+
+  describe("State Management", () => {
+    it("should record timestamp on load", async () => {
+      // Arrange
+      const registry = new SkillRegistry();
+      const tempDir = await createTempDir();
+      tempDirs.push(tempDir);
+
+      await createSkill(
         tempDir,
-        "skill.md",
+        "test-skill",
         getBasicSkillContent("test-skill", "Test skill")
       );
 
-      const sources: SkillSource[] = [
-        { type: "local_directory", path: tempDir }
-      ];
-      await registry.loadSkills(sources);
+      const beforeLoad = new Date();
 
-      // Act - Get skill and try to modify it
-      const skill1 = registry.getSkill("test-skill");
-      const skill2 = registry.getSkill("test-skill");
+      // Act
+      const result = await registry.loadSkills(tempDir);
+      const state = registry.getState();
 
-      // Assert - Should return new objects each time (or frozen objects)
-      expect(skill1).toBeDefined();
-      expect(skill2).toBeDefined();
-      // Verify that modifications don't affect registry
-      if (skill1) {
-        const originalDescription = skill1.metadata.description;
-        // TypeScript might prevent this, but test runtime behavior
-        try {
-          (skill1.metadata as any).description = "Modified";
-        } catch {
-          // Expected to throw if frozen
-        }
-        const skill3 = registry.getSkill("test-skill");
-        expect(skill3?.metadata.description).toBe(originalDescription);
-      }
+      const afterLoad = new Date();
+
+      // Assert
+      expect(result.timestamp).toBeInstanceOf(Date);
+      expect(state.lastLoaded).toBeInstanceOf(Date);
+      expect(result.timestamp.getTime()).toBeGreaterThanOrEqual(beforeLoad.getTime());
+      expect(result.timestamp.getTime()).toBeLessThanOrEqual(afterLoad.getTime());
+    });
+
+    it("should reflect loaded skills count and directory in state", async () => {
+      // Arrange
+      const registry = new SkillRegistry();
+      const tempDir = await createTempDir();
+      tempDirs.push(tempDir);
+
+      await createSkill(
+        tempDir,
+        "skill-1",
+        getBasicSkillContent("skill-1", "First skill")
+      );
+      await createSkill(
+        tempDir,
+        "skill-2",
+        getBasicSkillContent("skill-2", "Second skill")
+      );
+      await createSkill(
+        tempDir,
+        "skill-3",
+        getBasicSkillContent("skill-3", "Third skill")
+      );
+
+      // Act
+      await registry.loadSkills(tempDir);
+      const state = registry.getState();
+
+      // Assert
+      expect(state.skillCount).toBe(3);
+      expect(state.skillsDir).toBe(tempDir);
+      expect(state.lastLoaded).toBeInstanceOf(Date);
     });
   });
 });
