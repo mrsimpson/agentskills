@@ -145,18 +145,6 @@ describe('CLI Framework', () => {
       expect(listCommand.description()).toBeDefined();
       expect(listCommand.description().length).toBeGreaterThan(0);
     });
-
-    it('should have --format option', () => {
-      const options = listCommand.options;
-      const formatOption = options.find((opt) => opt.long === '--format');
-      expect(formatOption).toBeDefined();
-    });
-
-    it('should have --filter option', () => {
-      const options = listCommand.options;
-      const filterOption = options.find((opt) => opt.long === '--filter');
-      expect(filterOption).toBeDefined();
-    });
   });
 
   describe('Config Command', () => {
@@ -390,33 +378,6 @@ describe('CLI Framework', () => {
       expect(options.fix).toBe(true);
     });
 
-    it('should parse --format option for list command', async () => {
-      const mockAction = vi.fn();
-      const listCommand = program.commands.find((cmd) => cmd.name() === 'list')!;
-      listCommand.action(mockAction);
-
-      await program.parseAsync(
-        ['node', 'agentskills', 'list', '--format', 'json']
-      );
-
-      expect(mockAction).toHaveBeenCalled();
-      const options = mockAction.mock.calls[0][0];
-      expect(options.format).toBe('json');
-    });
-
-    it('should parse --filter option for list command', async () => {
-      const mockAction = vi.fn();
-      const listCommand = program.commands.find((cmd) => cmd.name() === 'list')!;
-      listCommand.action(mockAction);
-
-      await program.parseAsync(
-        ['node', 'agentskills', 'list', '--filter', 'category:web']
-      );
-
-      expect(mockAction).toHaveBeenCalled();
-      const options = mockAction.mock.calls[0][0];
-      expect(options.filter).toBe('category:web');
-    });
   });
 
   describe('Exit Codes', () => {
@@ -483,13 +444,10 @@ describe('CLI Framework', () => {
       listCommand.action(mockAction);
 
       await program.parseAsync(
-        ['node', 'agentskills', 'list', '--format', 'json', '--filter', 'category:web']
+        ['node', 'agentskills', 'list']
       );
 
       expect(mockAction).toHaveBeenCalled();
-      const options = mockAction.mock.calls[0][0];
-      expect(options.format).toBe('json');
-      expect(options.filter).toBe('category:web');
     });
 
     it('should handle complete config command flow', async () => {

@@ -40,14 +40,10 @@ export function createCLI(): Command {
   // Create "list" command
   const listCommandDef = new Command('list')
     .description('List all configured skills')
-    .option('--cwd <path>', 'Working directory', process.cwd())
-    .action(async (options) => {
+    .action(async () => {
       try {
-        const originalCwd = process.cwd();
-        process.chdir(options.cwd);
         const output = await listCommand();
         console.log(output);
-        process.chdir(originalCwd);
       } catch (error) {
         console.error(error instanceof Error ? error.message : String(error));
         process.exit(1);
@@ -65,10 +61,9 @@ export function createCLI(): Command {
   // Create "install" command
   const installCommandDef = new Command('install')
     .description('Install skills from package.json')
-    .option('--cwd <path>', 'Working directory', process.cwd())
-    .action(async (options) => {
+    .action(async () => {
       try {
-        await installCommand({ cwd: options.cwd });
+        await installCommand({ cwd: process.cwd() });
       } catch (error) {
         console.error(error instanceof Error ? error.message : String(error));
         process.exit(1);
@@ -80,11 +75,10 @@ export function createCLI(): Command {
     .description('Add a skill to package.json and install it')
     .argument('<name>', 'Skill name')
     .argument('<spec>', 'Skill spec (github:user/repo, git+https://..., file:...)')
-    .option('--cwd <path>', 'Working directory', process.cwd())
     .option('--skip-install', 'Only update package.json without installing', false)
     .action(async (name, spec, options) => {
       try {
-        await addCommand(name, spec, { cwd: options.cwd, skipInstall: options.skipInstall });
+        await addCommand(name, spec, { cwd: process.cwd(), skipInstall: options.skipInstall });
       } catch (error) {
         console.error(error instanceof Error ? error.message : String(error));
         process.exit(1);
