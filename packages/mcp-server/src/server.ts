@@ -177,11 +177,11 @@ ${skillList}`;
   /**
    * Handle use_skill tool execution
    *
-   * Retrieves skill instructions and metadata for the requested skill.
-   * Returns skill data as JSON in MCP text content format.
+   * Retrieves skill instructions for the requested skill.
+   * Returns only instructions - metadata is available via resources.
    *
    * @param args - Tool arguments with skill_name and optional arguments
-   * @returns MCP tool result with skill data
+   * @returns MCP tool result with skill instructions
    */
   private async handleUseSkillTool(
     args: Record<string, unknown>
@@ -195,41 +195,13 @@ ${skillList}`;
       throw new Error(`Skill not found: ${skillName}`);
     }
 
-    // Build skill data response
-    const skillData = {
-      name: skill.metadata.name,
-      description: skill.metadata.description,
-      body: skill.body,
-      // Include optional metadata if present
-      ...(skill.metadata.license && { license: skill.metadata.license }),
-      ...(skill.metadata.compatibility && {
-        compatibility: skill.metadata.compatibility
-      }),
-      ...(skill.metadata.allowedTools && {
-        allowedTools: skill.metadata.allowedTools
-      }),
-      // Include Claude Code extensions if present
-      ...(skill.metadata.disableModelInvocation !== undefined && {
-        disableModelInvocation: skill.metadata.disableModelInvocation
-      }),
-      ...(skill.metadata.userInvocable !== undefined && {
-        userInvocable: skill.metadata.userInvocable
-      }),
-      ...(skill.metadata.argumentHint && {
-        argumentHint: skill.metadata.argumentHint
-      }),
-      ...(skill.metadata.context && { context: skill.metadata.context }),
-      ...(skill.metadata.agent && { agent: skill.metadata.agent }),
-      ...(skill.metadata.model && { model: skill.metadata.model }),
-      ...(skill.metadata.hooks && { hooks: skill.metadata.hooks })
-    };
-
-    // Return as MCP text content
+    // Return ONLY instructions - simple and clean
+    // Metadata is available via resources for discovery
     return {
       content: [
         {
           type: "text" as const,
-          text: JSON.stringify(skillData, null, 2)
+          text: JSON.stringify({ instructions: skill.body }, null, 2)
         }
       ]
     };
