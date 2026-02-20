@@ -326,8 +326,24 @@ export class SkillInstaller {
       sourcePath = sourcePath.substring(2);
     }
     
+    // Expand tilde to home directory
+    if (sourcePath.startsWith("~/")) {
+      const os = await import("os");
+      sourcePath = join(os.homedir(), sourcePath.substring(2));
+    }
+    
     // Resolve relative paths
     sourcePath = resolve(sourcePath);
+    
+    // Verify source exists
+    try {
+      const stat = await fs.stat(sourcePath);
+      if (!stat.isDirectory()) {
+        throw new Error(`Source is not a directory: ${sourcePath}`);
+      }
+    } catch (error) {
+      throw new Error(`Local path not found: ${sourcePath}`);
+    }
     
     // Copy directory recursively
     await fs.mkdir(installPath, { recursive: true });
@@ -335,12 +351,17 @@ export class SkillInstaller {
   }
 
   /**
-   * Recursively copy directory
+   * Recursively copy directory, excluding .agentskills and node_modules
    */
   private async copyDir(src: string, dest: string): Promise<void> {
     const entries = await fs.readdir(src, { withFileTypes: true });
     
     for (const entry of entries) {
+      // Skip .agentskills, node_modules, and hidden directories
+      if (entry.name === '.agentskills' || entry.name === 'node_modules' || entry.name.startsWith('.')) {
+        continue;
+      }
+      
       const srcPath = join(src, entry.name);
       const destPath = join(dest, entry.name);
       
