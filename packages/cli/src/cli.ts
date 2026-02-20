@@ -17,26 +17,6 @@ export function createCLI(): Command {
     .description('Agent Skills CLI for managing skills')
     .option('-h, --help', 'Display help for command');
 
-  // Create "create" command
-  const createCommand = new Command('create')
-    .description('Create a new skill from a template')
-    .argument('<name>', 'Name of the skill to create')
-    .option('-t, --template <name>', 'Template to use', 'basic')
-    .option('-p, --path <path>', 'Path where to create the skill', '.')
-    .action((name, options, command) => {
-      // Stub action handler
-    });
-
-  // Create "validate" command
-  const validateCommand = new Command('validate')
-    .description('Validate a skill definition')
-    .argument('[path]', 'Path to the skill to validate')
-    .option('--strict', 'Enable strict validation mode')
-    .option('--fix', 'Automatically fix validation issues')
-    .action((path, options, command) => {
-      // Stub action handler
-    });
-
   // Create "list" command
   const listCommandDef = new Command('list')
     .description('List all configured skills')
@@ -48,14 +28,6 @@ export function createCLI(): Command {
         console.error(error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
-    });
-
-  // Create "config" command
-  const configCommand = new Command('config')
-    .description('Manage CLI configuration')
-    .argument('<action>', 'Configuration action to perform')
-    .action((action, options, command) => {
-      // Stub action handler
     });
 
   // Create "install" command
@@ -86,10 +58,7 @@ export function createCLI(): Command {
     });
 
   // Register all commands
-  program.addCommand(createCommand);
-  program.addCommand(validateCommand);
   program.addCommand(listCommandDef);
-  program.addCommand(configCommand);
   program.addCommand(installCommandDef);
   program.addCommand(addCommandDef);
 

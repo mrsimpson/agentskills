@@ -41,96 +41,26 @@ describe('CLI Framework', () => {
   });
 
   describe('Command Registration', () => {
-    it('should register "create" command', () => {
-      const commands = program.commands;
-      const createCommand = commands.find((cmd) => cmd.name() === 'create');
-      expect(createCommand).toBeDefined();
-    });
-
-    it('should register "validate" command', () => {
-      const commands = program.commands;
-      const validateCommand = commands.find((cmd) => cmd.name() === 'validate');
-      expect(validateCommand).toBeDefined();
-    });
-
     it('should register "list" command', () => {
       const commands = program.commands;
       const listCommand = commands.find((cmd) => cmd.name() === 'list');
       expect(listCommand).toBeDefined();
     });
 
-    it('should register "config" command', () => {
+    it('should register "install" command', () => {
       const commands = program.commands;
-      const configCommand = commands.find((cmd) => cmd.name() === 'config');
-      expect(configCommand).toBeDefined();
+      const installCommand = commands.find((cmd) => cmd.name() === 'install');
+      expect(installCommand).toBeDefined();
     });
 
-    it('should have exactly 6 commands registered', () => {
-      expect(program.commands).toHaveLength(6);
-    });
-  });
-
-  describe('Create Command', () => {
-    let createCommand: Command;
-
-    beforeEach(() => {
-      createCommand = program.commands.find((cmd) => cmd.name() === 'create')!;
+    it('should register "add" command', () => {
+      const commands = program.commands;
+      const addCommand = commands.find((cmd) => cmd.name() === 'add');
+      expect(addCommand).toBeDefined();
     });
 
-    it('should have description', () => {
-      expect(createCommand.description()).toBeDefined();
-      expect(createCommand.description().length).toBeGreaterThan(0);
-    });
-
-    it('should require <name> argument', () => {
-      const args = createCommand.registeredArguments;
-      expect(args).toHaveLength(1);
-      expect(args[0].name()).toBe('name');
-      expect(args[0].required).toBe(true);
-    });
-
-    it('should have --template option', () => {
-      const options = createCommand.options;
-      const templateOption = options.find((opt) => opt.long === '--template');
-      expect(templateOption).toBeDefined();
-    });
-
-    it('should have --path option', () => {
-      const options = createCommand.options;
-      const pathOption = options.find((opt) => opt.long === '--path');
-      expect(pathOption).toBeDefined();
-    });
-  });
-
-  describe('Validate Command', () => {
-    let validateCommand: Command;
-
-    beforeEach(() => {
-      validateCommand = program.commands.find((cmd) => cmd.name() === 'validate')!;
-    });
-
-    it('should have description', () => {
-      expect(validateCommand.description()).toBeDefined();
-      expect(validateCommand.description().length).toBeGreaterThan(0);
-    });
-
-    it('should have optional [path] argument', () => {
-      const args = validateCommand.registeredArguments;
-      expect(args).toHaveLength(1);
-      expect(args[0].name()).toBe('path');
-      expect(args[0].required).toBe(false);
-    });
-
-    it('should have --strict option', () => {
-      const options = validateCommand.options;
-      const strictOption = options.find((opt) => opt.long === '--strict');
-      expect(strictOption).toBeDefined();
-    });
-
-    it('should have --fix option', () => {
-      const options = validateCommand.options;
-      const fixOption = options.find((opt) => opt.long === '--fix');
-      expect(fixOption).toBeDefined();
+    it('should have exactly 3 commands registered', () => {
+      expect(program.commands).toHaveLength(3);
     });
   });
 
@@ -147,34 +77,13 @@ describe('CLI Framework', () => {
     });
   });
 
-  describe('Config Command', () => {
-    let configCommand: Command;
-
-    beforeEach(() => {
-      configCommand = program.commands.find((cmd) => cmd.name() === 'config')!;
-    });
-
-    it('should have description', () => {
-      expect(configCommand.description()).toBeDefined();
-      expect(configCommand.description().length).toBeGreaterThan(0);
-    });
-
-    it('should require <action> argument', () => {
-      const args = configCommand.registeredArguments;
-      expect(args.length).toBeGreaterThan(0);
-      expect(args[0].name()).toBe('action');
-      expect(args[0].required).toBe(true);
-    });
-  });
-
   describe('Help Output', () => {
     it('should display help when --help flag is used', () => {
       const helpText = program.helpInformation();
       expect(helpText).toContain('agentskills');
-      expect(helpText).toContain('create');
-      expect(helpText).toContain('validate');
       expect(helpText).toContain('list');
-      expect(helpText).toContain('config');
+      expect(helpText).toContain('install');
+      expect(helpText).toContain('add');
     });
 
     it('should show version in help output', () => {
@@ -199,29 +108,22 @@ describe('CLI Framework', () => {
   });
 
   describe('Command-Specific Help', () => {
-    it('should provide help for create command', () => {
-      const createCommand = program.commands.find((cmd) => cmd.name() === 'create')!;
-      const helpText = createCommand.helpInformation();
-      expect(helpText).toContain('create');
-      expect(helpText).toContain('name');
-    });
-
-    it('should provide help for validate command', () => {
-      const validateCommand = program.commands.find((cmd) => cmd.name() === 'validate')!;
-      const helpText = validateCommand.helpInformation();
-      expect(helpText).toContain('validate');
-    });
-
     it('should provide help for list command', () => {
       const listCommand = program.commands.find((cmd) => cmd.name() === 'list')!;
       const helpText = listCommand.helpInformation();
       expect(helpText).toContain('list');
     });
 
-    it('should provide help for config command', () => {
-      const configCommand = program.commands.find((cmd) => cmd.name() === 'config')!;
-      const helpText = configCommand.helpInformation();
-      expect(helpText).toContain('config');
+    it('should provide help for install command', () => {
+      const installCommand = program.commands.find((cmd) => cmd.name() === 'install')!;
+      const helpText = installCommand.helpInformation();
+      expect(helpText).toContain('install');
+    });
+
+    it('should provide help for add command', () => {
+      const addCommand = program.commands.find((cmd) => cmd.name() === 'add')!;
+      const helpText = addCommand.helpInformation();
+      expect(helpText).toContain('add');
     });
   });
 
@@ -278,28 +180,6 @@ describe('CLI Framework', () => {
   });
 
   describe('Command Parsing', () => {
-    it('should parse create command with name argument', async () => {
-      const mockAction = vi.fn();
-      const createCommand = program.commands.find((cmd) => cmd.name() === 'create')!;
-      createCommand.action(mockAction);
-
-      await program.parseAsync(['node', 'agentskills', 'create', 'my-skill']);
-
-      expect(mockAction).toHaveBeenCalledWith('my-skill', expect.any(Object), expect.any(Command));
-    });
-
-    it('should parse validate command with optional path', async () => {
-      const mockAction = vi.fn();
-      const validateCommand = program.commands.find(
-        (cmd) => cmd.name() === 'validate'
-      )!;
-      validateCommand.action(mockAction);
-
-      await program.parseAsync(['node', 'agentskills', 'validate']);
-
-      expect(mockAction).toHaveBeenCalled();
-    });
-
     it('should parse list command', async () => {
       const mockAction = vi.fn();
       const listCommand = program.commands.find((cmd) => cmd.name() === 'list')!;
@@ -309,75 +189,15 @@ describe('CLI Framework', () => {
 
       expect(mockAction).toHaveBeenCalled();
     });
-
-    it('should parse config command with action argument', async () => {
-      const mockAction = vi.fn();
-      const configCommand = program.commands.find((cmd) => cmd.name() === 'config')!;
-      configCommand.action(mockAction);
-
-      await program.parseAsync(['node', 'agentskills', 'config', 'show']);
-
-      expect(mockAction).toHaveBeenCalledWith('show', expect.any(Object), expect.any(Command));
-    });
   });
 
   describe('Option Parsing', () => {
-    it('should parse --template option for create command', async () => {
-      const mockAction = vi.fn();
-      const createCommand = program.commands.find((cmd) => cmd.name() === 'create')!;
-      createCommand.action(mockAction);
-
-      await program.parseAsync(
-        ['node', 'agentskills', 'create', 'my-skill', '--template', 'basic']
-      );
-
-      expect(mockAction).toHaveBeenCalled();
-      const options = mockAction.mock.calls[0][1];
-      expect(options.template).toBe('basic');
+    // All option parsing tests for implemented commands are in their respective command test files
+    it('should have options configured for commands', () => {
+      program.commands.forEach((cmd) => {
+        expect(cmd.options).toBeDefined();
+      });
     });
-
-    it('should parse --path option for create command', async () => {
-      const mockAction = vi.fn();
-      const createCommand = program.commands.find((cmd) => cmd.name() === 'create')!;
-      createCommand.action(mockAction);
-
-      await program.parseAsync(
-        ['node', 'agentskills', 'create', 'my-skill', '--path', './skills']
-      );
-
-      expect(mockAction).toHaveBeenCalled();
-      const options = mockAction.mock.calls[0][1];
-      expect(options.path).toBe('./skills');
-    });
-
-    it('should parse --strict flag for validate command', async () => {
-      const mockAction = vi.fn();
-      const validateCommand = program.commands.find(
-        (cmd) => cmd.name() === 'validate'
-      )!;
-      validateCommand.action(mockAction);
-
-      await program.parseAsync(['node', 'agentskills', 'validate', '--strict']);
-
-      expect(mockAction).toHaveBeenCalled();
-      const options = mockAction.mock.calls[0][1];
-      expect(options.strict).toBe(true);
-    });
-
-    it('should parse --fix flag for validate command', async () => {
-      const mockAction = vi.fn();
-      const validateCommand = program.commands.find(
-        (cmd) => cmd.name() === 'validate'
-      )!;
-      validateCommand.action(mockAction);
-
-      await program.parseAsync(['node', 'agentskills', 'validate', '--fix']);
-
-      expect(mockAction).toHaveBeenCalled();
-      const options = mockAction.mock.calls[0][1];
-      expect(options.fix).toBe(true);
-    });
-
   });
 
   describe('Exit Codes', () => {
@@ -397,47 +217,6 @@ describe('CLI Framework', () => {
   });
 
   describe('Integration Tests', () => {
-    it('should handle complete create command flow', async () => {
-      const mockAction = vi.fn();
-      const createCommand = program.commands.find((cmd) => cmd.name() === 'create')!;
-      createCommand.action(mockAction);
-
-      await program.parseAsync(
-        [
-          'node',
-          'agentskills',
-          'create',
-          'my-skill',
-          '--template',
-          'basic',
-          '--path',
-          './skills',
-        ]
-      );
-
-      expect(mockAction).toHaveBeenCalledWith('my-skill', expect.any(Object), expect.any(Command));
-      const options = mockAction.mock.calls[0][1];
-      expect(options.template).toBe('basic');
-      expect(options.path).toBe('./skills');
-    });
-
-    it('should handle complete validate command flow', async () => {
-      const mockAction = vi.fn();
-      const validateCommand = program.commands.find(
-        (cmd) => cmd.name() === 'validate'
-      )!;
-      validateCommand.action(mockAction);
-
-      await program.parseAsync(
-        ['node', 'agentskills', 'validate', './my-skill', '--strict', '--fix']
-      );
-
-      expect(mockAction).toHaveBeenCalledWith('./my-skill', expect.any(Object), expect.any(Command));
-      const options = mockAction.mock.calls[0][1];
-      expect(options.strict).toBe(true);
-      expect(options.fix).toBe(true);
-    });
-
     it('should handle complete list command flow', async () => {
       const mockAction = vi.fn();
       const listCommand = program.commands.find((cmd) => cmd.name() === 'list')!;
@@ -448,16 +227,6 @@ describe('CLI Framework', () => {
       );
 
       expect(mockAction).toHaveBeenCalled();
-    });
-
-    it('should handle complete config command flow', async () => {
-      const mockAction = vi.fn();
-      const configCommand = program.commands.find((cmd) => cmd.name() === 'config')!;
-      configCommand.action(mockAction);
-
-      await program.parseAsync(['node', 'agentskills', 'config', 'show']);
-
-      expect(mockAction).toHaveBeenCalledWith('show', expect.any(Object), expect.any(Command));
     });
   });
 
