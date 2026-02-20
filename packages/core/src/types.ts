@@ -126,12 +126,14 @@ export interface ValidationResult {
 
 /**
  * Result of loading skills into registry
+ * 
+ * Note: Loading is strict - any error throws exception.
+ * No partial failures allowed (fail fast on misconfiguration).
  */
 export interface LoadResult {
-  loaded: number;
-  failed: number;
-  warnings: string[];
-  errors: string[];
+  loaded: number;      // Number of skills successfully loaded
+  skillsDir: string;   // Directory loaded from
+  timestamp: Date;     // When skills were loaded
 }
 
 /**
@@ -139,7 +141,7 @@ export interface LoadResult {
  */
 export interface RegistryState {
   skillCount: number;
-  sources: string[];
+  skillsDir: string;   // Directory skills loaded from (changed from sources array)
   lastLoaded?: Date;
 }
 
