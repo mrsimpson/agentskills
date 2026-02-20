@@ -1,5 +1,6 @@
 import { Command } from 'commander';
 import { installCommand } from './commands/install.js';
+import { addCommand } from './commands/add.js';
 
 /**
  * Creates the main CLI program
@@ -65,12 +66,29 @@ export function createCLI(): Command {
       }
     });
 
+  // Create "add" command
+  const addCommandDef = new Command('add')
+    .description('Add a skill to package.json and install it')
+    .argument('<name>', 'Skill name')
+    .argument('<spec>', 'Skill spec (github:user/repo, git+https://..., file:...)')
+    .option('--cwd <path>', 'Working directory', process.cwd())
+    .option('--skip-install', 'Only update package.json without installing', false)
+    .action(async (name, spec, options) => {
+      try {
+        await addCommand(name, spec, { cwd: options.cwd, skipInstall: options.skipInstall });
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
+
   // Register all commands
   program.addCommand(createCommand);
   program.addCommand(validateCommand);
   program.addCommand(listCommand);
   program.addCommand(configCommand);
   program.addCommand(installCommandDef);
+  program.addCommand(addCommandDef);
 
   return program;
 }
