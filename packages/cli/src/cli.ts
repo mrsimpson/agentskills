@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import { installCommand } from './commands/install.js';
 
 /**
  * Creates the main CLI program
@@ -51,11 +52,25 @@ export function createCLI(): Command {
       // Stub action handler
     });
 
+  // Create "install" command
+  const installCommandDef = new Command('install')
+    .description('Install skills from package.json')
+    .option('--cwd <path>', 'Working directory', process.cwd())
+    .action(async (options) => {
+      try {
+        await installCommand({ cwd: options.cwd });
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      }
+    });
+
   // Register all commands
   program.addCommand(createCommand);
   program.addCommand(validateCommand);
   program.addCommand(listCommand);
   program.addCommand(configCommand);
+  program.addCommand(installCommandDef);
 
   return program;
 }
