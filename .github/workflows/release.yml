@@ -131,28 +131,11 @@ jobs:
       - name: Publish to npm
         if: steps.version.outputs.new_tag
         run: |
-          # Publish core package first as other packages depend on it
-          cd packages/core
-          pnpm publish --access public --no-git-checks
-          cd ../..
+          # Publish all packages in workspace
+          # pnpm -r publishes packages in topological order (dependencies first)
+          pnpm -r publish --access public --no-git-checks
 
-          # Publish content-loader package
-          cd packages/content-loader
-          pnpm publish --access public --no-git-checks
-          cd ../..
-
-          # Publish MCP server as standalone package
-          cd packages/mcp-server
-          pnpm publish --access public --no-git-checks
-          cd ../..
-
-           # Convert workspace dependencies to actual versions for publishing
-           # NOTE: pnpm 10+ now handles this automatically during pack/publish
-           # Keeping this line for reference, but it's no longer needed with pnpm 10.29.3+
-           # NEW_VERSION=${{ steps.version.outputs.new_version }}
-           # find packages -name "package.json" -exec sed -i 's/"workspace:\*"/"^'$NEW_VERSION'"/g' {} \;
-
-           # Publish main package
+          # Publish main package
           pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
