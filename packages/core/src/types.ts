@@ -270,7 +270,8 @@ export type McpClientType =
   | "cline"
   | "continue"
   | "cursor"
-  | "junie";
+  | "junie"
+  | "zed";
 
 /**
  * Parameter specification for MCP server configuration

@@ -31,13 +31,64 @@ import inquirer from "inquirer";
  * @param options - Options for the install command
  * @param options.cwd - Working directory (default: process.cwd())
  * @param options.withMcp - Skip MCP validation (will be handled by auto-install)
+ * @param options.agent - Explicit MCP agent/client specification
  */
 export async function installCommand(options?: {
   cwd?: string;
   withMcp?: boolean;
+  agent?: string;
 }): Promise<void> {
   const cwd = options?.cwd ?? process.cwd();
   const withMcp = options?.withMcp ?? false;
+
+  // Agent name mapping to client types
+  const AGENT_MAP: Record<string, McpClientType> = {
+    claude: "claude-desktop",
+    "claude-desktop": "claude-desktop",
+    cline: "cline",
+    continue: "continue",
+    cursor: "cursor",
+    junie: "junie",
+    zed: "zed",
+    vscode: "cline" // cline runs in vscode
+  };
+
+  // Determine client type: use --agent parameter first, fall back to auto-detection
+  let clientType: McpClientType | null = null;
+  const mcpConfigManager = new MCPConfigManager();
+
+  if (options?.agent) {
+    const normalizedAgent = options.agent.toLowerCase();
+    clientType = AGENT_MAP[normalizedAgent];
+    if (!clientType) {
+      console.error(chalk.red(`✗ Unknown agent: ${options.agent}`));
+      console.error(
+        chalk.yellow(`Supported agents: ${Object.keys(AGENT_MAP).join(", ")}`)
+      );
+      process.exit(1);
+      return;
+    }
+    console.log(chalk.blue(`🎯 Configuring for agent: ${clientType}`));
+  } else {
+    clientType = mcpConfigManager.detectClient();
+    if (clientType) {
+      console.log(chalk.blue(`🔍 Auto-detected agent: ${clientType}`));
+    }
+  }
+
+  // Validate --with-mcp requires --agent
+  if (withMcp && !options?.agent && !clientType) {
+    console.error(
+      chalk.red(
+        `✗ --with-mcp requires --agent parameter to specify which MCP client to configure`
+      )
+    );
+    console.error(
+      chalk.yellow(`  Example: agentskills install --with-mcp --agent claude`)
+    );
+    process.exit(1);
+    return;
+  }
 
   try {
     // 1. Load package.json config
@@ -49,9 +100,10 @@ export async function installCommand(options?: {
       throw new Error("package.json not found");
     }
 
-    // 2. Auto-install agentskills-mcp server (always run, even if no skills)
-    const mcpConfigManager = new MCPConfigManager();
-    await ensureAgentskillsMCPServer(mcpConfigManager);
+    // 2. Auto-install agentskills-mcp server (only if agent specified/detected)
+    if (clientType) {
+      await ensureAgentskillsMCPServer(mcpConfigManager, clientType);
+    }
 
     // 3. Check if any skills to install
     const skillEntries = Object.entries(config.skills);
@@ -149,14 +201,22 @@ export async function installCommand(options?: {
       // 10. MCP Dependency handling
       if (withMcp) {
         // Auto-install MCP servers with parameter prompting
-        const hasError = await installMCPServers(installer);
+        const hasError = await installMCPServers(
+          installer,
+          clientType,
+          mcpConfigManager
+        );
         if (hasError) {
           process.exit(1);
           return;
         }
       } else {
         // Just validate and show errors
-        const hasError = await validateMCPDependencies(installer);
+        const hasError = await validateMCPDependencies(
+          installer,
+          clientType,
+          mcpConfigManager
+        );
         if (hasError) {
           process.exit(1);
           return;
@@ -211,25 +271,25 @@ export async function installCommand(options?: {
  * Validate MCP server dependencies for installed skills
  *
  * @param installer - SkillInstaller instance
+ * @param clientType - The MCP client type (can be null if no agent specified)
+ * @param mcpConfigManager - MCP config manager
  * @returns True if there are missing dependencies (error), false otherwise
  */
 async function validateMCPDependencies(
-  installer: SkillInstaller
+  installer: SkillInstaller,
+  clientType: McpClientType | null,
+  mcpConfigManager: MCPConfigManager
 ): Promise<boolean> {
   try {
-    // 1. Detect MCP client
-    const mcpConfigManager = new MCPConfigManager();
-    const clientType: McpClientType | null = mcpConfigManager.detectClient();
-
-    // If no MCP client detected, skip validation
+    // If no MCP client detected/specified, skip validation
     if (!clientType) {
       return false;
     }
 
-    // 2. Load installed skills
+    // 1. Load installed skills
     const installedSkills = await installer.loadInstalledSkills();
 
-    // 3. Collect MCP dependencies
+    // 2. Collect MCP dependencies
     const mcpChecker = new MCPDependencyChecker();
     const dependencies: McpDependencyInfo[] =
       mcpChecker.collectDependencies(installedSkills);
@@ -239,19 +299,19 @@ async function validateMCPDependencies(
       return false;
     }
 
-    // 4. Check which dependencies are configured
+    // 3. Check which dependencies are configured
     const checkResult = await mcpChecker.checkDependencies(
       clientType,
       dependencies,
       mcpConfigManager
     );
 
-    // 5. If all configured, we're done
+    // 4. If all configured, we're done
     if (checkResult.allConfigured) {
       return false;
     }
 
-    // 6. Display error message for missing dependencies
+    // 5. Display error message for missing dependencies
     console.error(chalk.red.bold("\n❌ Missing MCP server dependencies"));
     console.error(
       chalk.red(
@@ -272,7 +332,7 @@ async function validateMCPDependencies(
     // Suggest using --with-mcp flag
     console.error(
       chalk.blue(
-        "💡 Tip: Run with --with-mcp flag to automatically configure these servers"
+        "💡 Tip: Run with --with-mcp --agent <name> to automatically configure these servers"
       )
     );
     console.error("");
@@ -292,23 +352,33 @@ async function validateMCPDependencies(
  * Install and configure MCP servers with parameter prompting
  *
  * @param installer - SkillInstaller instance
+ * @param clientType - The MCP client type (can be null if no agent specified)
+ * @param mcpConfigManager - MCP config manager
  * @returns True if there are errors, false otherwise
  */
-async function installMCPServers(installer: SkillInstaller): Promise<boolean> {
+async function installMCPServers(
+  installer: SkillInstaller,
+  clientType: McpClientType | null,
+  mcpConfigManager: MCPConfigManager
+): Promise<boolean> {
   try {
-    // 1. Detect MCP client
-    const mcpConfigManager = new MCPConfigManager();
-    const clientType: McpClientType | null = mcpConfigManager.detectClient();
-
-    // If no MCP client detected, skip
+    // If no MCP client detected/specified, error out
     if (!clientType) {
-      return false;
+      console.error(
+        chalk.red(
+          `✗ --with-mcp requires --agent parameter to specify which MCP client to configure`
+        )
+      );
+      console.error(
+        chalk.yellow(`  Example: agentskills install --with-mcp --agent claude`)
+      );
+      return true;
     }
 
-    // 2. Load installed skills
+    // 1. Load installed skills
     const installedSkills = await installer.loadInstalledSkills();
 
-    // 3. Collect MCP dependencies
+    // 2. Collect MCP dependencies
     const mcpChecker = new MCPDependencyChecker();
     const dependencies: McpDependencyInfo[] =
       mcpChecker.collectDependencies(installedSkills);
@@ -318,19 +388,19 @@ async function installMCPServers(installer: SkillInstaller): Promise<boolean> {
       return false;
     }
 
-    // 4. Check which dependencies are configured
+    // 3. Check which dependencies are configured
     const checkResult = await mcpChecker.checkDependencies(
       clientType,
       dependencies,
       mcpConfigManager
     );
 
-    // 5. If all configured, we're done
+    // 4. If all configured, we're done
     if (checkResult.allConfigured) {
       return false;
     }
 
-    // 6. Process each missing dependency
+    // 5. Process each missing dependency
     for (const dep of checkResult.missing) {
       try {
         console.log(
@@ -359,7 +429,7 @@ async function installMCPServers(installer: SkillInstaller): Promise<boolean> {
         ) {
           console.error(
             chalk.yellow(
-              `\n⚠ MCP server configuration cancelled by user. You can configure manually or run install --with-mcp again.`
+              `\n⚠ MCP server configuration cancelled by user. You can configure manually or run install --with-mcp --agent ${clientType} again.`
             )
           );
           return true;
@@ -493,24 +563,18 @@ async function installMCPServer(
  * Ensure agentskills-mcp server is configured in MCP client
  *
  * This function automatically adds the @codemcp/agentskills-mcp server
- * to the detected MCP client configuration if it's not already configured.
+ * to the specified MCP client configuration if it's not already configured.
  * This provides seamless integration with the agentskills ecosystem.
  *
  * @param configManager - MCP config manager
+ * @param clientType - The MCP client type to configure
  */
 async function ensureAgentskillsMCPServer(
-  configManager: MCPConfigManager
+  configManager: MCPConfigManager,
+  clientType: McpClientType
 ): Promise<void> {
   try {
-    // 1. Detect MCP client
-    const clientType = configManager.detectClient();
-
-    // If no MCP client detected, skip gracefully
-    if (!clientType) {
-      return;
-    }
-
-    // 2. Check if agentskills server is already configured
+    // 1. Check if agentskills server is already configured
     const isConfigured = await configManager.isServerConfigured(
       clientType,
       "agentskills"
@@ -521,7 +585,7 @@ async function ensureAgentskillsMCPServer(
       return;
     }
 
-    // 3. Add agentskills server to configuration
+    // 2. Add agentskills server to configuration
     const serverConfig = {
       command: "npx",
       args: ["-y", "@codemcp/agentskills-mcp"],
@@ -531,7 +595,7 @@ async function ensureAgentskillsMCPServer(
 
     await configManager.addServer(clientType, "agentskills", serverConfig);
 
-    // 4. Show success message
+    // 3. Show success message
     console.log(
       chalk.green(
         `✓ Added agentskills MCP server to ${clientType} configuration`

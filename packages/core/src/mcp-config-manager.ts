@@ -19,7 +19,7 @@ export class MCPConfigManager {
    * Returns null if no client is detected
    */
   detectClient(): McpClientType | null {
-    // Priority order: claude-desktop, cline, continue, cursor, junie
+    // Priority order: claude-desktop, cline, continue, cursor, junie, zed
     if (process.env.CLAUDE_DESKTOP) {
       return "claude-desktop";
     }
@@ -34,6 +34,9 @@ export class MCPConfigManager {
     }
     if (process.env.JUNIE_MCP) {
       return "junie";
+    }
+    if (process.env.ZED_MCP) {
+      return "zed";
     }
     return null;
   }
@@ -58,6 +61,8 @@ export class MCPConfigManager {
         return join(home, ".cursor/mcp_settings.json");
       case "junie":
         return join(home, ".junie/mcp_settings.json");
+      case "zed":
+        return join(home, ".config/zed/settings.json");
       default:
         throw new Error(`Unknown client type: ${clientType}`);
     }
