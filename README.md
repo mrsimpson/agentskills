@@ -83,8 +83,7 @@ Point your MCP client (Claude Desktop, Cline, Continue, Cursor, Junie, Kiro, Zed
 {
   "mcpServers": {
     "agentskills": {
-      "command": "agentskills-mcp",
-      "cwd": "/path/to/your/project"
+      "command": "agentskills-mcp"
     }
   }
 }

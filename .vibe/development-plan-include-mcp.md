@@ -382,8 +382,7 @@ requires-mcp-servers:
     "server-name": {
       "command": "npx",
       "args": ["-y", "@scope/package-name", "arg1", "arg2"],
-      "env": { "API_KEY": "value" },
-      "cwd": "/absolute/path"
+      "env": { "API_KEY": "value" }
     }
   }
 }
@@ -391,14 +390,14 @@ requires-mcp-servers:
 
 **Key Insights:**
 
-1. **Fields**: `command` (required), `args` (optional), `env` (optional), `cwd` (optional)
+1. **Fields**: `command` (required), `args` (optional), `env` (optional)
 2. **No Built-in Registry**: MCP protocol has no standard server registry; clients use external registries or manual config
 3. **Static Configuration**: Most clients require restart to apply config changes
 4. **Security**: Credentials via `env` vars, OAuth for remote servers, manual approval for sensitive ops
 5. **Transport Types**: STDIO (local) vs SSE/HTTP (remote)
 6. **NPM Pattern**: Common to use `npx -y @scope/package` for auto-installing servers
 
-**Critical Constraint:** Clients need the full server spec (command, args, env, cwd) added to their config file **before launch**. Skills can't dynamically add servers at runtime in most clients.
+**Critical Constraint:** Clients need the full server spec (command, args, env) added to their config file **before launch**. Skills can't dynamically add servers at runtime in most clients.
 
 ---
 
@@ -470,15 +469,11 @@ requires-mcp-servers:
         - "/path/to/custom-server.js"
       env:
         API_KEY: "${CUSTOM_API_KEY}"
-      cwd: "${PROJECT_ROOT}"
       parameters:
         CUSTOM_API_KEY:
           description: "API key for internal tool"
           required: true
           sensitive: true
-        PROJECT_ROOT:
-          description: "Project root directory"
-          default: "${CWD}"
 ---
 ```
 
@@ -493,7 +488,6 @@ interface McpServerDependency {
     command: string; // Executable command
     args?: string[]; // Arguments (may contain ${VAR} placeholders)
     env?: Record<string, string>; // Environment vars (may contain ${VAR} placeholders)
-    cwd?: string; // Working directory (may contain ${VAR})
     parameters?: Record<string, ParameterSpec>; // Define all ${VAR} placeholders
   };
 }

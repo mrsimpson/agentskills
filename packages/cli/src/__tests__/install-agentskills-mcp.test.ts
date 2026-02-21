@@ -193,8 +193,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
         {
           command: "npx",
           args: ["-y", "@codemcp/agentskills-mcp"],
-          env: {},
-          cwd: "/test/project"
+          env: {}
         },
         "/test/project"
       );
@@ -256,7 +255,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       );
     });
 
-    it("should use process.cwd() as cwd in server config", async () => {
+    it("should use process.cwd() as working directory when server runs", async () => {
       // Setup
       const config: PackageConfig = {
         skills: {
@@ -307,12 +306,14 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
         agent: "claude"
       });
 
-      // Verify cwd is from process.cwd()
+      // Verify server config without cwd (working directory inherited)
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
         "claude-desktop",
         "agentskills",
         expect.objectContaining({
-          cwd: "/custom/working/directory"
+          command: "npx",
+          args: ["-y", "@codemcp/agentskills-mcp"],
+          env: {}
         }),
         "/custom/working/directory"
       );
@@ -895,8 +896,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
         {
           command: "npx",
           args: ["-y", "@codemcp/agentskills-mcp"],
-          env: {},
-          cwd: "/test/project"
+          env: {}
         },
         "/test/project"
       );
@@ -957,8 +957,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
         {
           command: "npx",
           args: ["-y", "@codemcp/agentskills-mcp"],
-          env: {},
-          cwd: "/test/project"
+          env: {}
         },
         "/test/project"
       );

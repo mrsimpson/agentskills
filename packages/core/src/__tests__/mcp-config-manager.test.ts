@@ -231,8 +231,7 @@ describe("MCPConfigManager", () => {
       const serverConfig = {
         command: "npx",
         args: ["-y", "@codemcp/agentskills"],
-        env: { NODE_ENV: "production" },
-        cwd: "/path/to/dir"
+        env: { NODE_ENV: "production" }
       };
 
       const manager = new MCPConfigManager();

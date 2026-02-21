@@ -581,7 +581,6 @@ describe("SkillValidator", () => {
               env: {
                 GITHUB_TOKEN: "{{GITHUB_TOKEN}}"
               },
-              cwd: "/tmp",
               parameters: {
                 "github-token": {
                   description: "GitHub personal access token",

@@ -607,8 +607,7 @@ async function ensureAgentskillsMCPServer(
     const serverConfig = {
       command: "npx",
       args: ["-y", "@codemcp/agentskills-mcp"],
-      env: {},
-      cwd: projectRoot
+      env: {}
     };
 
     await configManager.addServer(

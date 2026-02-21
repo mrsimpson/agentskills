@@ -295,7 +295,6 @@ export interface McpServerDependency {
   command: string; // Executable command
   args?: string[]; // Arguments (may contain placeholders)
   env?: Record<string, string>; // Environment vars
-  cwd?: string; // Working directory
   parameters?: Record<string, McpParameterSpec>; // Parameter definitions
 }
 
@@ -306,7 +305,6 @@ export interface McpServerConfig {
   command: string;
   args?: string[];
   env?: Record<string, string>;
-  cwd?: string;
 }
 
 /**

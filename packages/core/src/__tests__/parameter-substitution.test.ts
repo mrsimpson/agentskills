@@ -241,15 +241,13 @@ describe("Parameter Substitution", () => {
         env: {
           API_KEY: "{{API_KEY}}",
           DEBUG: "true"
-        },
-        cwd: "{{CWD}}"
+        }
       };
 
       const result = substituteParameters(config, {
         PACKAGE: "@modelcontextprotocol/server-filesystem",
         WORKSPACE_PATH: "/home/user",
-        API_KEY: "secret-123",
-        CWD: "/project"
+        API_KEY: "secret-123"
       });
 
       expect(result).toEqual({
@@ -258,8 +256,7 @@ describe("Parameter Substitution", () => {
         env: {
           API_KEY: "secret-123",
           DEBUG: "true"
-        },
-        cwd: "/project"
+        }
       });
     });
 
