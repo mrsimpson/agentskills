@@ -2,7 +2,7 @@ name: Release and Publish
 
 on:
   push:
-    branches: [main]
+    branches: [main, load-docs]
 
 permissions:
   contents: write
@@ -28,6 +28,11 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
+
+      - name: Install platform-specific dependencies
+        run: |
+          # Install platform dependencies for Linux (temporary, not saved to package.json)
+          pnpm add @oxlint/linux-x64-gnu --save-dev || echo "Failed to install oxlint platform dependency, continuing..."
 
       - name: Check formatting
         run: pnpm run format:check:all
@@ -73,6 +78,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Install platform-specific dependencies
+        run: |
+          # Install platform dependencies for Linux CI environment (temporary, not saved to package.json)
+          pnpm add @oxlint/linux-x64-gnu --save-dev || echo "Failed to install oxlint platform dependency"
+
       - name: Build project
         run: pnpm run build
 
@@ -94,6 +104,9 @@ jobs:
 
           # Update all workspace package versions
           pnpm -r exec pnpm version $NEW_VERSION --no-git-tag-version
+
+          # Ensure no platform-specific dependencies were accidentally saved
+          pnpm remove @oxlint/linux-x64-gnu 2>/dev/null || true
 
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
@@ -123,8 +136,8 @@ jobs:
           pnpm publish --access public --no-git-checks
           cd ../..
 
-          # Publish CLI package
-          cd packages/cli
+          # Publish content-loader package
+          cd packages/content-loader
           pnpm publish --access public --no-git-checks
           cd ../..
 
@@ -133,7 +146,13 @@ jobs:
           pnpm publish --access public --no-git-checks
           cd ../..
 
-          # Publish main package
+           # Convert workspace dependencies to actual versions for publishing
+           # NOTE: pnpm 10+ now handles this automatically during pack/publish
+           # Keeping this line for reference, but it's no longer needed with pnpm 10.29.3+
+           # NEW_VERSION=${{ steps.version.outputs.new_version }}
+           # find packages -name "package.json" -exec sed -i 's/"workspace:\*"/"^'$NEW_VERSION'"/g' {} \;
+
+           # Publish main package
           pnpm publish --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

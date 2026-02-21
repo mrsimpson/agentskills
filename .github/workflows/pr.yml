@@ -25,6 +25,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Install platform-specific dependencies
+        run: |
+          # Install platform dependencies for Linux (temporary, not saved to package.json)
+          pnpm add @oxlint/linux-x64-gnu --save-dev || echo "Failed to install oxlint platform dependency, continuing..."
+
       - name: Check formatting
         run: pnpm run format:check:all
 
