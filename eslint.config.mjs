@@ -21,6 +21,18 @@ export default [
     }
   },
   {
+    // Relaxed rules for test files
+    files: [
+      "**/__tests__/**/*.{ts,tsx}",
+      "**/*.test.{ts,tsx}",
+      "**/*.spec.{ts,tsx}"
+    ],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "off"
+    }
+  },
+  {
     // Config for JavaScript files - no TypeScript parsing
     files: ["**/*.{js,jsx}"],
     ...js.configs.recommended

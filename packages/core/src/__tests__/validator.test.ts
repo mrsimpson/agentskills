@@ -1,6 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { validateSkill } from "../validator.js";
-import type { Skill, ValidationError, ValidationWarning } from "../types.js";
+import type {
+  Skill,
+  ValidationError,
+  ValidationWarning,
+  McpParameterSpec
+} from "../types.js";
 
 describe("SkillValidator", () => {
   describe("Valid Skills", () => {
@@ -69,8 +74,11 @@ describe("SkillValidator", () => {
         { name: "a".repeat(65), description: "test" },
         "INVALID_NAME_LENGTH"
       ]
-    ])("should fail for %s name", (_, metadata, code) => {
-      const result = validateSkill({ metadata: metadata as any, body: "" });
+    ])("should fail for %s name", (_description, metadata, code) => {
+      const result = validateSkill({
+        metadata: metadata as unknown as Skill["metadata"],
+        body: ""
+      });
       expect(result.valid).toBe(false);
       expect(result.errors.some((e: ValidationError) => e.code === code)).toBe(
         true
@@ -88,7 +96,7 @@ describe("SkillValidator", () => {
       ["-test", "leading hyphen"],
       ["test-", "trailing hyphen"],
       ["test--skill", "consecutive hyphens"]
-    ])("should fail for name with %s", (name, _) => {
+    ])("should fail for name with %s", (name) => {
       const result = validateSkill({
         metadata: { name, description: "test" },
         body: ""
@@ -124,8 +132,11 @@ describe("SkillValidator", () => {
         { name: "test", description: "a".repeat(1025) },
         "INVALID_DESCRIPTION_LENGTH"
       ]
-    ])("should fail for %s description", (_, metadata, code) => {
-      const result = validateSkill({ metadata: metadata as any, body: "" });
+    ])("should fail for %s description", (_description, metadata, code) => {
+      const result = validateSkill({
+        metadata: metadata as unknown as Skill["metadata"],
+        body: ""
+      });
       expect(result.valid).toBe(false);
       expect(result.errors.some((e: ValidationError) => e.code === code)).toBe(
         true
@@ -174,33 +185,37 @@ describe("SkillValidator", () => {
     it.each([
       [
         "metadata as string",
-        { metadata: "string" as any },
+        { metadata: "string" as unknown },
         "INVALID_FIELD_TYPE"
       ],
       [
         "metadata as array",
-        { metadata: ["array"] as any },
+        { metadata: ["array"] as unknown },
         "INVALID_FIELD_TYPE"
       ],
-      ["metadata as null", { metadata: null as any }, "INVALID_FIELD_TYPE"],
+      ["metadata as null", { metadata: null as unknown }, "INVALID_FIELD_TYPE"],
       [
         "allowedTools as string",
-        { allowedTools: "string" as any },
+        { allowedTools: "string" as unknown },
         "INVALID_FIELD_TYPE"
       ],
       [
         "allowedTools as object",
-        { allowedTools: {} as any },
+        { allowedTools: {} as unknown },
         "INVALID_FIELD_TYPE"
       ],
       [
         "allowedTools as null",
-        { allowedTools: null as any },
+        { allowedTools: null as unknown },
         "INVALID_FIELD_TYPE"
       ]
-    ])("should fail for %s", (_, extraFields, code) => {
+    ])("should fail for %s", (_description, extraFields, code) => {
       const result = validateSkill({
-        metadata: { name: "test", description: "test", ...extraFields },
+        metadata: {
+          name: "test",
+          description: "test",
+          ...extraFields
+        } as unknown as Skill["metadata"],
         body: ""
       });
       expect(result.valid).toBe(false);
@@ -246,8 +261,8 @@ describe("SkillValidator", () => {
           name: "Test-INVALID",
           description: "",
           compatibility: "a".repeat(600),
-          metadata: "invalid" as any,
-          allowedTools: "invalid" as any
+          metadata: "invalid" as unknown as Record<string, unknown>,
+          allowedTools: "invalid" as unknown as string[]
         },
         body: ""
       };
@@ -306,7 +321,7 @@ describe("SkillValidator", () => {
       expect(
         validateSkill({
           metadata: { name: "test", description: "test" },
-          body: undefined as any
+          body: undefined as unknown as string
         }).valid
       ).toBe(true);
       expect(
@@ -347,6 +362,426 @@ describe("SkillValidator", () => {
         expect(typeof e.code).toBe("string");
         expect(typeof e.message).toBe("string");
       });
+    });
+  });
+
+  describe("requiresMcpServers Validation", () => {
+    it("should pass validation when requires-mcp-servers is not present", () => {
+      const result = validateSkill({
+        metadata: {
+          name: "test-skill",
+          description: "A test skill without MCP server dependencies"
+        },
+        body: "# Skill content"
+      });
+      expect(result.valid).toBe(true);
+      expect(result.errors.length).toBe(0);
+    });
+
+    it("should validate empty requiresMcpServers array", () => {
+      const result = validateSkill({
+        metadata: {
+          name: "test",
+          description: "test",
+          requiresMcpServers: []
+        },
+        body: ""
+      });
+      expect(result.valid).toBe(true);
+    });
+
+    it("should fail when server is missing required field: name", () => {
+      const result = validateSkill({
+        metadata: {
+          name: "test",
+          description: "test",
+          requiresMcpServers: [
+            {
+              command: "npx",
+              description: "A test server"
+            } as unknown as Skill["metadata"]["requiresMcpServers"]
+          ]
+        } as unknown as Skill["metadata"],
+        body: ""
+      });
+      expect(result.valid).toBe(false);
+      expect(
+        result.errors.some((e: ValidationError) => e.code === "MISSING_FIELD")
+      ).toBe(true);
+    });
+
+    it("should fail when server is missing required field: command", () => {
+      const result = validateSkill({
+        metadata: {
+          name: "test",
+          description: "test",
+          requiresMcpServers: [
+            {
+              name: "test-server",
+              description: "A test server"
+            } as unknown as Skill["metadata"]["requiresMcpServers"]
+          ]
+        } as unknown as Skill["metadata"],
+        body: ""
+      });
+      expect(result.valid).toBe(false);
+      expect(
+        result.errors.some((e: ValidationError) => e.code === "MISSING_FIELD")
+      ).toBe(true);
+    });
+
+    it("should fail when server is missing required field: description", () => {
+      const result = validateSkill({
+        metadata: {
+          name: "test",
+          description: "test",
+          requiresMcpServers: [
+            {
+              name: "test-server",
+              command: "npx"
+            } as unknown as Skill["metadata"]["requiresMcpServers"]
+          ]
+        } as unknown as Skill["metadata"],
+        body: ""
+      });
+      expect(result.valid).toBe(false);
+      expect(
+        result.errors.some((e: ValidationError) => e.code === "MISSING_FIELD")
+      ).toBe(true);
+    });
+
+    it.each([
+      ["spaces", "test server"],
+      ["special chars", "test@server"],
+      ["consecutive hyphens", "test--server"],
+      ["uppercase", "Test-Server"],
+      ["leading hyphen", "-test-server"],
+      ["trailing hyphen", "test-server-"],
+      ["underscores", "test_server"],
+      ["dots", "test.server"]
+    ])("should fail for server name with %s", (_, name) => {
+      const result = validateSkill({
+        metadata: {
+          name: "test",
+          description: "test",
+          requiresMcpServers: [
+            {
+              name,
+              command: "npx",
+              description: "A test server"
+            }
+          ]
+        },
+        body: ""
+      });
+      expect(result.valid).toBe(false);
+      expect(
+        result.errors.some(
+          (e: ValidationError) => e.code === "INVALID_NAME_FORMAT"
+        )
+      ).toBe(true);
+    });
+
+    it("should fail when server parameter is missing required field: description", () => {
+      const result = validateSkill({
+        metadata: {
+          name: "test",
+          description: "test",
+          requiresMcpServers: [
+            {
+              name: "test-server",
+              command: "npx",
+              description: "A test server",
+              args: ["{{API_KEY}}"],
+              parameters: {
+                "api-key": {
+                  required: true
+                } as unknown as McpParameterSpec
+              }
+            }
+          ]
+        } as unknown as Skill["metadata"],
+        body: ""
+      });
+      expect(result.valid).toBe(false);
+      expect(
+        result.errors.some((e: ValidationError) => e.code === "MISSING_FIELD")
+      ).toBe(true);
+    });
+
+    it("should fail when server parameter is missing required field: required", () => {
+      const result = validateSkill({
+        metadata: {
+          name: "test",
+          description: "test",
+          requiresMcpServers: [
+            {
+              name: "test-server",
+              command: "npx",
+              description: "A test server",
+              args: ["{{API_KEY}}"],
+              parameters: {
+                "api-key": {
+                  description: "API key for authentication"
+                } as unknown as McpParameterSpec
+              }
+            }
+          ]
+        } as unknown as Skill["metadata"],
+        body: ""
+      });
+      expect(result.valid).toBe(false);
+      expect(
+        result.errors.some((e: ValidationError) => e.code === "MISSING_FIELD")
+      ).toBe(true);
+    });
+
+    it("should fail when server parameter has invalid default value type", () => {
+      const result = validateSkill({
+        metadata: {
+          name: "test",
+          description: "test",
+          requiresMcpServers: [
+            {
+              name: "test-server",
+              command: "npx",
+              description: "A test server",
+              parameters: {
+                "api-key": {
+                  description: "API key",
+                  required: false,
+                  default: 12345 as unknown as string
+                }
+              }
+            }
+          ]
+        },
+        body: ""
+      });
+      expect(result.valid).toBe(false);
+      expect(
+        result.errors.some(
+          (e: ValidationError) => e.code === "INVALID_FIELD_TYPE"
+        )
+      ).toBe(true);
+    });
+
+    it("should validate a complete valid MCP server specification", () => {
+      const result = validateSkill({
+        metadata: {
+          name: "test",
+          description: "test",
+          requiresMcpServers: [
+            {
+              name: "github-server",
+              package: "@modelcontextprotocol/server-github",
+              command: "npx",
+              description: "GitHub MCP server for repository access",
+              args: ["-y", "@modelcontextprotocol/server-github"],
+              env: {
+                GITHUB_TOKEN: "{{GITHUB_TOKEN}}"
+              },
+              parameters: {
+                "github-token": {
+                  description: "GitHub personal access token",
+                  required: true,
+                  sensitive: true,
+                  example: "ghp_xxxxxxxxxxxx"
+                }
+              }
+            }
+          ]
+        },
+        body: ""
+      });
+      expect(result.valid).toBe(true);
+    });
+
+    it("should validate multiple servers in array", () => {
+      const result = validateSkill({
+        metadata: {
+          name: "test",
+          description: "test",
+          requiresMcpServers: [
+            {
+              name: "server-one",
+              command: "npx",
+              description: "First server"
+            },
+            {
+              name: "server-two",
+              command: "node",
+              description: "Second server",
+              args: ["server.js"]
+            },
+            {
+              name: "server-three",
+              command: "python",
+              description: "Third server",
+              args: ["-m", "server"]
+            }
+          ]
+        },
+        body: ""
+      });
+      expect(result.valid).toBe(true);
+    });
+
+    it.each([
+      ["camelCase", "apiKey"],
+      ["PascalCase", "ApiKey"],
+      ["snake_case", "api_key"],
+      ["spaces", "api key"],
+      ["uppercase", "API-KEY"],
+      ["consecutive hyphens", "api--key"]
+    ])("should fail for parameter name with %s", (_, paramName) => {
+      const result = validateSkill({
+        metadata: {
+          name: "test",
+          description: "test",
+          requiresMcpServers: [
+            {
+              name: "test-server",
+              command: "npx",
+              description: "A test server",
+              parameters: {
+                [paramName]: {
+                  description: "Test parameter",
+                  required: true
+                }
+              }
+            }
+          ]
+        },
+        body: ""
+      });
+      expect(result.valid).toBe(false);
+      expect(
+        result.errors.some(
+          (e: ValidationError) => e.code === "INVALID_NAME_FORMAT"
+        )
+      ).toBe(true);
+    });
+
+    it("should fail when args is not an array", () => {
+      const result = validateSkill({
+        metadata: {
+          name: "test",
+          description: "test",
+          requiresMcpServers: [
+            {
+              name: "test-server",
+              command: "npx",
+              description: "A test server",
+              args: "not-an-array" as unknown as string[]
+            }
+          ]
+        } as unknown as Skill["metadata"],
+        body: ""
+      });
+      expect(result.valid).toBe(false);
+      expect(
+        result.errors.some(
+          (e: ValidationError) => e.code === "INVALID_FIELD_TYPE"
+        )
+      ).toBe(true);
+    });
+
+    it("should fail when env is not an object", () => {
+      const result = validateSkill({
+        metadata: {
+          name: "test",
+          description: "test",
+          requiresMcpServers: [
+            {
+              name: "test-server",
+              command: "npx",
+              description: "A test server",
+              env: "not-an-object" as unknown as Record<string, string>
+            }
+          ]
+        } as unknown as Skill["metadata"],
+        body: ""
+      });
+      expect(result.valid).toBe(false);
+      expect(
+        result.errors.some(
+          (e: ValidationError) => e.code === "INVALID_FIELD_TYPE"
+        )
+      ).toBe(true);
+    });
+
+    it("should fail when parameters is not an object", () => {
+      const result = validateSkill({
+        metadata: {
+          name: "test",
+          description: "test",
+          requiresMcpServers: [
+            {
+              name: "test-server",
+              command: "npx",
+              description: "A test server",
+              parameters: ["not", "an", "object"] as unknown as Record<
+                string,
+                McpParameterSpec
+              >
+            }
+          ]
+        } as unknown as Skill["metadata"],
+        body: ""
+      });
+      expect(result.valid).toBe(false);
+      expect(
+        result.errors.some(
+          (e: ValidationError) => e.code === "INVALID_FIELD_TYPE"
+        )
+      ).toBe(true);
+    });
+
+    it("should fail when server has additional properties", () => {
+      const result = validateSkill({
+        metadata: {
+          name: "test",
+          description: "test",
+          requiresMcpServers: [
+            {
+              name: "test-server",
+              command: "npx",
+              description: "A test server",
+              unexpectedField: "should not be here"
+            } as unknown as Skill["metadata"]["requiresMcpServers"]
+          ]
+        } as unknown as Skill["metadata"],
+        body: ""
+      });
+      expect(result.valid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
+    });
+
+    it("should fail when parameter has additional properties", () => {
+      const result = validateSkill({
+        metadata: {
+          name: "test",
+          description: "test",
+          requiresMcpServers: [
+            {
+              name: "test-server",
+              command: "npx",
+              description: "A test server",
+              parameters: {
+                "api-key": {
+                  description: "API key",
+                  required: true,
+                  unexpectedField: "should not be here"
+                } as unknown as McpParameterSpec
+              }
+            }
+          ]
+        } as unknown as Skill["metadata"],
+        body: ""
+      });
+      expect(result.valid).toBe(false);
+      expect(result.errors.length).toBeGreaterThan(0);
     });
   });
 });

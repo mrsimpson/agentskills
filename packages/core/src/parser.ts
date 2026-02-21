@@ -35,7 +35,8 @@ const FIELD_MAP: Record<string, string> = {
   context: "context",
   agent: "agent",
   model: "model",
-  hooks: "hooks"
+  hooks: "hooks",
+  "requires-mcp-servers": "requiresMcpServers"
 };
 
 /**

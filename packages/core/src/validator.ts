@@ -178,6 +178,237 @@ export function validateSkill(skill: Skill): ValidationResult {
     });
   }
 
+  // Validate requiresMcpServers - optional field
+  if (skill.metadata.requiresMcpServers !== undefined) {
+    const mcpServers = skill.metadata.requiresMcpServers;
+
+    // Must be an array
+    if (!Array.isArray(mcpServers)) {
+      errors.push({
+        code: "INVALID_FIELD_TYPE",
+        field: "requiresMcpServers",
+        message: "RequiresMcpServers must be an array"
+      });
+    } else {
+      // Validate each server in the array
+      mcpServers.forEach((server, index) => {
+        const serverPrefix = `requiresMcpServers[${index}]`;
+
+        // Check if server is an object
+        if (!server || typeof server !== "object" || Array.isArray(server)) {
+          errors.push({
+            code: "INVALID_FIELD_TYPE",
+            field: serverPrefix,
+            message: `Server at index ${index} must be an object`
+          });
+          return;
+        }
+
+        // Validate required fields: name, command, description
+        if (!server.name) {
+          errors.push({
+            code: "MISSING_FIELD",
+            field: `${serverPrefix}.name`,
+            message: "Server name is required"
+          });
+        } else if (typeof server.name === "string") {
+          // Validate server name format (lowercase-hyphens, no leading/trailing/consecutive hyphens)
+          const hasConsecutiveHyphens = server.name.includes("--");
+          const serverNamePattern = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/;
+
+          if (hasConsecutiveHyphens || !serverNamePattern.test(server.name)) {
+            errors.push({
+              code: "INVALID_NAME_FORMAT",
+              field: `${serverPrefix}.name`,
+              message:
+                "Server name must contain only lowercase letters, numbers, and hyphens; must start and end with alphanumeric; no consecutive hyphens"
+            });
+          }
+        }
+
+        if (!server.command) {
+          errors.push({
+            code: "MISSING_FIELD",
+            field: `${serverPrefix}.command`,
+            message: "Server command is required"
+          });
+        }
+
+        if (!server.description) {
+          errors.push({
+            code: "MISSING_FIELD",
+            field: `${serverPrefix}.description`,
+            message: "Server description is required"
+          });
+        }
+
+        // Validate optional fields
+        if (server.args !== undefined) {
+          if (!Array.isArray(server.args)) {
+            errors.push({
+              code: "INVALID_FIELD_TYPE",
+              field: `${serverPrefix}.args`,
+              message: "Server args must be an array"
+            });
+          }
+        }
+
+        if (server.env !== undefined) {
+          if (
+            !server.env ||
+            typeof server.env !== "object" ||
+            Array.isArray(server.env)
+          ) {
+            errors.push({
+              code: "INVALID_FIELD_TYPE",
+              field: `${serverPrefix}.env`,
+              message: "Server env must be an object"
+            });
+          }
+        }
+
+        if (server.parameters !== undefined) {
+          if (
+            !server.parameters ||
+            typeof server.parameters !== "object" ||
+            Array.isArray(server.parameters)
+          ) {
+            errors.push({
+              code: "INVALID_FIELD_TYPE",
+              field: `${serverPrefix}.parameters`,
+              message: "Server parameters must be an object"
+            });
+          } else {
+            // Validate each parameter
+            Object.entries(server.parameters).forEach(
+              ([paramName, paramSpec]) => {
+                const paramPrefix = `${serverPrefix}.parameters.${paramName}`;
+
+                // Validate parameter name format (lowercase-hyphens, no consecutive hyphens)
+                const hasConsecutiveHyphens = paramName.includes("--");
+                const paramNamePattern = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/;
+
+                if (
+                  hasConsecutiveHyphens ||
+                  !paramNamePattern.test(paramName)
+                ) {
+                  errors.push({
+                    code: "INVALID_NAME_FORMAT",
+                    field: paramPrefix,
+                    message:
+                      "Parameter name must contain only lowercase letters, numbers, and hyphens; must start and end with alphanumeric; no consecutive hyphens"
+                  });
+                }
+
+                // Validate parameter spec
+                if (!paramSpec || typeof paramSpec !== "object") {
+                  errors.push({
+                    code: "INVALID_FIELD_TYPE",
+                    field: paramPrefix,
+                    message: "Parameter spec must be an object"
+                  });
+                  return;
+                }
+
+                // Required fields: description, required
+                if (paramSpec.description === undefined) {
+                  errors.push({
+                    code: "MISSING_FIELD",
+                    field: `${paramPrefix}.description`,
+                    message: "Parameter description is required"
+                  });
+                }
+
+                if (paramSpec.required === undefined) {
+                  errors.push({
+                    code: "MISSING_FIELD",
+                    field: `${paramPrefix}.required`,
+                    message: "Parameter required field is required"
+                  });
+                }
+
+                // Validate optional fields
+                if (
+                  paramSpec.default !== undefined &&
+                  typeof paramSpec.default !== "string"
+                ) {
+                  errors.push({
+                    code: "INVALID_FIELD_TYPE",
+                    field: `${paramPrefix}.default`,
+                    message: "Parameter default must be a string"
+                  });
+                }
+
+                if (
+                  paramSpec.example !== undefined &&
+                  typeof paramSpec.example !== "string"
+                ) {
+                  errors.push({
+                    code: "INVALID_FIELD_TYPE",
+                    field: `${paramPrefix}.example`,
+                    message: "Parameter example must be a string"
+                  });
+                }
+
+                if (
+                  paramSpec.sensitive !== undefined &&
+                  typeof paramSpec.sensitive !== "boolean"
+                ) {
+                  errors.push({
+                    code: "INVALID_FIELD_TYPE",
+                    field: `${paramPrefix}.sensitive`,
+                    message: "Parameter sensitive must be a boolean"
+                  });
+                }
+
+                // Check for additional properties
+                const allowedKeys = [
+                  "description",
+                  "required",
+                  "default",
+                  "example",
+                  "sensitive"
+                ];
+                const extraKeys = Object.keys(paramSpec).filter(
+                  (key) => !allowedKeys.includes(key)
+                );
+                if (extraKeys.length > 0) {
+                  errors.push({
+                    code: "INVALID_FIELD_TYPE",
+                    field: paramPrefix,
+                    message: `Parameter has unexpected fields: ${extraKeys.join(", ")}`
+                  });
+                }
+              }
+            );
+          }
+        }
+
+        // Check for additional properties on server
+        const allowedServerKeys = [
+          "name",
+          "package",
+          "description",
+          "command",
+          "args",
+          "env",
+          "cwd",
+          "parameters"
+        ];
+        const extraServerKeys = Object.keys(server).filter(
+          (key) => !allowedServerKeys.includes(key)
+        );
+        if (extraServerKeys.length > 0) {
+          errors.push({
+            code: "INVALID_FIELD_TYPE",
+            field: serverPrefix,
+            message: `Server has unexpected fields: ${extraServerKeys.join(", ")}`
+          });
+        }
+      });
+    }
+  }
+
   return {
     valid: errors.length === 0,
     errors,

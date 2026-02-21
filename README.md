@@ -75,22 +75,61 @@ agentskills install
 
 This downloads skills to `.agentskills/skills/` directory.
 
-### 4. Configure MCP Client
+## MCP Server Dependencies
 
-Point your MCP client (Claude Desktop, Cline, Continue, etc.) to the server:
+Skills can declare MCP server dependencies that are automatically configured for your agent.
+
+**Example SKILL.md frontmatter:**
+
+```yaml
+---
+name: my-skill
+requires-mcp-servers:
+  - name: filesystem
+    package: "@modelcontextprotocol/server-filesystem"
+    description: "For file operations"
+    command: npx
+    args:
+      ["-y", "@modelcontextprotocol/server-filesystem", "{{WORKSPACE_PATH}}"]
+    parameters:
+      WORKSPACE_PATH:
+        description: "Root directory"
+        required: true
+        default: "."
+---
+```
+
+**Install with validation:**
+
+```bash
+agentskills install --agent claude
+```
+
+**Auto-install missing servers:**
+
+```bash
+agentskills install --with-mcp --agent cline
+```
+
+**Supported agents:** `claude`, `cline`, `continue`, `cursor`, `junie`, `kiro`, `zed`
+
+Configs are created in project directory (`.claude/`, `.kiro/`, etc.) for version control.
+
+### 5. Configure MCP Client
+
+Point your MCP client (Claude Desktop, Cline, Continue, Cursor, Junie, Kiro, Zed, etc.) to the server:
 
 ```json
 {
   "mcpServers": {
     "agentskills": {
-      "command": "agentskills-mcp",
-      "cwd": "/path/to/your/project"
+      "command": "agentskills-mcp"
     }
   }
 }
 ```
 
-### 5. Use Skills
+### 6. Use Skills
 
 Your agent can now:
 
@@ -112,9 +151,10 @@ Agent ← MCP Protocol ← agentskills-mcp (server) ← skill registry
 
 ## Features
 
-- 🔌 **MCP Protocol Support** - Works with Claude Desktop, Cline, Continue, and other MCP clients
+- 🔌 **MCP Protocol Support** - Works with Claude Desktop, Cline, Continue, Cursor, Junie, Kiro, Zed, and other MCP clients
 - 📦 **Package Manager Integration** - Declare skills in `package.json`, version control your configuration
 - 🚀 **Multiple Sources** - Install from GitHub repos, local paths, or tarball URLs
+- 🔧 **MCP Server Dependencies** - Skills declare required MCP servers, auto-configured for your agent
 - ✅ **Validation** - Built-in parsing and validation for Agent Skills format
 - 🔍 **Discovery** - Skills automatically exposed via MCP resources and tools
 - 🔒 **Security** - Server only serves skill content; agents control execution
@@ -164,6 +204,11 @@ Commit this to your repo, and your entire team uses the same skills configuratio
 ```bash
 agentskills install
 ```
+
+Options:
+
+- `--agent <name>` - Validate MCP server dependencies for specified agent (claude, cline, continue, cursor, junie, kiro, zed)
+- `--with-mcp` - Auto-install missing MCP servers and update agent config
 
 ### Add a new skill
 

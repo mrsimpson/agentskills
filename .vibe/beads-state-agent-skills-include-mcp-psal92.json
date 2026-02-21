@@ -1,0 +1,29 @@
+{
+  "conversationId": "agent-skills-include-mcp-psal92",
+  "projectPath": "/Users/oliverjaegle/projects/privat/mcp-server/agent-skills",
+  "epicId": "agent-skills-2",
+  "phaseTasks": [
+    {
+      "phaseId": "explore",
+      "phaseName": "Explore",
+      "taskId": "agent-skills-2.1"
+    },
+    {
+      "phaseId": "plan",
+      "phaseName": "Plan",
+      "taskId": "agent-skills-2.2"
+    },
+    {
+      "phaseId": "code",
+      "phaseName": "Code",
+      "taskId": "agent-skills-2.3"
+    },
+    {
+      "phaseId": "commit",
+      "phaseName": "Commit",
+      "taskId": "agent-skills-2.4"
+    }
+  ],
+  "createdAt": "2026-02-21T10:55:21.330Z",
+  "updatedAt": "2026-02-21T10:55:21.330Z"
+}
