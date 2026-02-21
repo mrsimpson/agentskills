@@ -13,10 +13,7 @@
  *   agentskills add --skip-install my-skill git+https://...
  */
 
-import { promises as fs } from 'fs';
-import { join } from 'path';
 import { PackageConfigManager, SkillInstaller } from '@codemcp/agentskills-core';
-import type { InstallResult } from '@codemcp/agentskills-core';
 import ora from 'ora';
 import chalk from 'chalk';
 

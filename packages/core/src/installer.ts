@@ -16,7 +16,6 @@ import type {
   InstallAllResult,
   SkillManifest,
   SkillLockFile,
-  InstallError,
   InstallErrorCode,
 } from "./types.js";
 import { parseSkillContent } from "./parser.js";
@@ -150,7 +149,7 @@ export class SkillInstaller {
         }
       } else {
         const metadata = await pacote.manifest(spec, opts);
-        resolvedVersion = this.extractVersion(spec, metadata);
+        resolvedVersion = this.extractVersion(spec, metadata as unknown as Record<string, unknown>);
         integrity = metadata._integrity || metadata.dist?.integrity || "";
       }
 
@@ -341,7 +340,7 @@ export class SkillInstaller {
       if (!stat.isDirectory()) {
         throw new Error(`Source is not a directory: ${sourcePath}`);
       }
-    } catch (error) {
+    } catch {
       throw new Error(`Local path not found: ${sourcePath}`);
     }
     
@@ -424,7 +423,7 @@ export class SkillInstaller {
   /**
    * Extract version from spec or metadata
    */
-  private extractVersion(spec: string, metadata: any): string {
+  private extractVersion(spec: string, metadata: Record<string, unknown>): string {
     // Try to extract from spec first
     const hashIndex = spec.indexOf("#");
     if (hashIndex !== -1) {
@@ -432,16 +431,16 @@ export class SkillInstaller {
     }
 
     // Try to extract from metadata
-    if (metadata.version) {
+    if (typeof metadata.version === "string") {
       return metadata.version;
     }
 
-    if (metadata.gitHead) {
+    if (typeof metadata.gitHead === "string") {
       return metadata.gitHead.substring(0, 7);
     }
 
     // Default to "latest" or branch name
-    return metadata._resolved || "latest";
+    return typeof metadata._resolved === "string" ? metadata._resolved : "latest";
   }
 
   /**
@@ -473,7 +472,7 @@ export class SkillInstaller {
     // Npm packages cannot contain "format" or similar non-package words
     const isScopedPackage = /^@[a-z0-9-]+\/[a-z0-9-]+(@.+)?$/.test(spec);
     // Valid npm package: no spaces, starts with letter or @, contains only valid chars
-    const isNpmPackage = /^[a-z][a-z0-9-]*(@[\w\.\-~]+)?$/.test(spec);
+    const isNpmPackage = /^[a-z][a-z0-9-]*(@[\w.-~]+)?$/.test(spec);
 
     // Reject obvious non-packages (containing spaces, invalid keywords, etc.)
     if (spec.includes(" ") || spec.includes("invalid")) {

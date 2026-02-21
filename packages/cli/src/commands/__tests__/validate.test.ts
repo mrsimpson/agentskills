@@ -736,7 +736,7 @@ This skill has a very short description which should trigger a warning.
         // Assert
         const output = consoleErrorSpy.mock.calls.map(call => call.join(' ')).join('\n');
         // Should have indented error details (spaces or dashes)
-        expect(output).toMatch(/\s{2,}|  -/);
+        expect(output).toMatch(/\s{2,}| {2}-/);
       });
     });
 

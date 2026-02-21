@@ -59,25 +59,14 @@ _This document follows the C4 model for software architecture documentation, foc
 └─────────────────────────────┼─────────────────────────────────────────┘
                               │
          ┏━━━━━━━━━━━━━━━━━━━━┷━━━━━━━━━━━━━━━━━━━━━┓
-         ┃    Agent Skills MCP Server                ┃
-         ┃    (Tool-First Architecture)              ┃
-         ┃                                           ┃
+         ┃    Agent Skills MCP Server               ┃
+         ┃    (Tool-First Architecture)             ┃
+         ┃                                          ┃
          ┃  • Discovers & parses SKILL.md files     ┃
          ┃  • invoke_skill tool (enum params)       ┃
-         ┃  • String interpolation ($ARGUMENTS)     ┃
          ┃  • Resources for supporting files        ┃
          ┃  • NO execution (security by design)     ┃
-         ┗━━━━━━━━━━━━━━━━━━┯━━━━━━━━━━━━━━━━━━━━━┛
-                              │
-                              │ File System I/O
-                              │ (Read-Only)
-         ┌────────────────────┴──────────────────────┐
-         │                                            │
-    ┌────▼──────────┐  ┌────────────────┐  ┌────────▼────────┐
-    │ .claude/      │  │ ~/.claude/     │  │ Custom          │
-    │ skills/       │  │ skills/        │  │ Directories     │
-    │ (Project)     │  │ (Global)       │  │ (Config)        │
-    └───────────────┘  └────────────────┘  └─────────────────┘
+         ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 ```
 
 ## 2. Container Architecture (C4 Level 2)
@@ -91,6 +80,7 @@ The system is organized as a **monorepo** with three npm packages using pnpm wor
 **Purpose**: Shared types, parsers, and utilities used by both CLI and MCP server.
 
 **Responsibilities**:
+
 - SKILL.md parsing (YAML frontmatter + Markdown body)
 - Skill validation against Agent Skills standard
 - String interpolation engine ($ARGUMENTS, $N, ${CLAUDE_SESSION_ID})
@@ -98,12 +88,14 @@ The system is organized as a **monorepo** with three npm packages using pnpm wor
 - File system utilities for skill discovery
 - Skill registry with hot reload support
 
-**Dependencies**: 
+**Dependencies**:
+
 - `js-yaml` (YAML parsing)
 - `gray-matter` (frontmatter extraction)
 - `chokidar` (file watching)
 
 **Exported APIs**:
+
 - `parseSkill(content: string): Skill`
 - `validateSkill(skill: Skill): ValidationResult`
 - `interpolateArguments(content: string, args: string[]): string`
@@ -114,6 +106,7 @@ The system is organized as a **monorepo** with three npm packages using pnpm wor
 **Purpose**: Developer tool for managing, creating, and validating Agent Skills locally.
 
 **Responsibilities**:
+
 - Create new skill scaffolds (`agent-skills create`)
 - Validate skill files (`agent-skills validate`)
 - List discovered skills (`agent-skills list`)
@@ -121,6 +114,7 @@ The system is organized as a **monorepo** with three npm packages using pnpm wor
 - Interactive skill development workflow
 
 **Dependencies**:
+
 - `@agentskills/core` (all core functionality)
 - `commander` (CLI framework)
 - `chalk` (terminal colors)
@@ -128,6 +122,7 @@ The system is organized as a **monorepo** with three npm packages using pnpm wor
 - `inquirer` (interactive prompts)
 
 **CLI Commands**:
+
 ```bash
 agent-skills create <name>     # Create new skill scaffold
 agent-skills validate [path]   # Validate skill(s)
@@ -141,6 +136,7 @@ agent-skills init              # Initialize project
 **Purpose**: MCP server exposing Agent Skills to MCP-compatible clients.
 
 **Responsibilities**:
+
 - Implement MCP protocol using @modelcontextprotocol/sdk
 - Expose `invoke_skill` tool with enum parameter (all discovered skills)
 - Process tool invocations (argument interpolation, skill retrieval)
@@ -149,10 +145,12 @@ agent-skills init              # Initialize project
 - Configuration loading and validation
 
 **Dependencies**:
+
 - `@agentskills/core` (skill parsing and registry)
 - `@modelcontextprotocol/sdk` (MCP protocol)
 
 **MCP Interface**:
+
 - **Tool**: `invoke_skill(skill_name: enum, arguments: string[])`
 - **Resources**: `skill://<skill-name>/scripts/<file>`, `skill://<skill-name>/references/<file>`, etc.
 - **Transport**: stdio (primary), HTTP (future)
@@ -161,38 +159,38 @@ agent-skills init              # Initialize project
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         Monorepo: agent-skills                       │
-│                                                                       │
+│                         Monorepo: agent-skills                      │
+│                                                                     │
 │  ┌───────────────────────────────────────────────────────────────┐  │
 │  │  @agentskills/core                                            │  │
-│  │  ┌────────────┐  ┌──────────────┐  ┌────────────────────┐   │  │
-│  │  │ Skill      │  │ String       │  │ Skill Registry     │   │  │
-│  │  │ Parser     │  │ Interpolator │  │ (with hot reload)  │   │  │
-│  │  └────────────┘  └──────────────┘  └────────────────────┘   │  │
-│  │  ┌────────────┐  ┌──────────────┐  ┌────────────────────┐   │  │
-│  │  │ Validator  │  │ Types        │  │ File System Utils  │   │  │
-│  │  └────────────┘  └──────────────┘  └────────────────────┘   │  │
+│  │  ┌────────────┐  ┌──────────────┐  ┌────────────────────┐     │  │
+│  │  │ Skill      │  │ String       │  │ Skill Registry     │     │  │
+│  │  │ Parser     │  │ Interpolator │  │ (with hot reload)  │     │  │
+│  │  └────────────┘  └──────────────┘  └────────────────────┘     │  │
+│  │  ┌────────────┐  ┌──────────────┐  ┌────────────────────┐     │  │
+│  │  │ Validator  │  │ Types        │  │ File System Utils  │     │  │
+│  │  └────────────┘  └──────────────┘  └────────────────────┘     │  │
 │  └───────────────────────────────────────────────────────────────┘  │
-│           ▲                                      ▲                   │
-│           │                                      │                   │
-│           │ imports                              │ imports           │
+│           ▲                                      ▲                  │
+│           │                                      │                  │
+│           │ imports                              │ imports          │
 │  ┌────────┴──────────────┐          ┌───────────┴────────────────┐  │
 │  │  @agentskills/cli     │          │  @agentskills/mcp-server   │  │
 │  │                       │          │                            │  │
-│  │  ┌─────────────────┐ │          │  ┌──────────────────────┐  │  │
-│  │  │ Create Command  │ │          │  │ MCP Tool Handler     │  │  │
-│  │  ├─────────────────┤ │          │  ├──────────────────────┤  │  │
-│  │  │ Validate Command│ │          │  │ invoke_skill(enum)   │  │  │
-│  │  ├─────────────────┤ │          │  ├──────────────────────┤  │  │
-│  │  │ List Command    │ │          │  │ Resource Handler     │  │  │
-│  │  ├─────────────────┤ │          │  ├──────────────────────┤  │  │
-│  │  │ Config Command  │ │          │  │ Transport (stdio)    │  │  │
-│  │  └─────────────────┘ │          │  └──────────────────────┘  │  │
+│  │  ┌─────────────────┐  │          │  ┌──────────────────────┐  │  │
+│  │  │ Create Command  │  │          │  │ MCP Tool Handler     │  │  │
+│  │  ├─────────────────┤  │          │  ├──────────────────────┤  │  │
+│  │  │ Validate Command│  │          │  │ invoke_skill(enum)   │  │  │
+│  │  ├─────────────────┤  │          │  ├──────────────────────┤  │  │
+│  │  │ List Command    │  │          │  │ Resource Handler     │  │  │
+│  │  ├─────────────────┤  │          │  ├──────────────────────┤  │  │
+│  │  │ Config Command  │  │          │  │ Transport (stdio)    │  │  │
+│  │  └─────────────────┘  │          │  └──────────────────────┘  │  │
 │  │                       │          │                            │  │
-│  │  Output: CLI binary  │          │  Output: MCP server binary │  │
+│  │  Output: CLI binary   │          │  Output: MCP server binary │  │
 │  └───────────────────────┘          └────────────────────────────┘  │
-│           │                                      │                   │
-└───────────┼──────────────────────────────────────┼───────────────────┘
+│           │                                      │                  │
+└───────────┼──────────────────────────────────────┼──────────────────┘
             │                                      │
             ▼                                      ▼
     ┌───────────────┐                    ┌────────────────┐
@@ -216,16 +214,18 @@ agent-skills init              # Initialize project
 ### 3.1 @agentskills/core Components
 
 #### SkillParser Component
+
 ```typescript
 // Responsibility: Parse SKILL.md files into structured objects
 interface SkillParser {
-  parse(content: string): ParseResult<Skill>
-  extractFrontmatter(content: string): FrontmatterResult
-  parseMarkdown(content: string): string
+  parse(content: string): ParseResult<Skill>;
+  extractFrontmatter(content: string): FrontmatterResult;
+  parseMarkdown(content: string): string;
 }
 ```
 
 **Key Functions**:
+
 - Extract YAML frontmatter using `gray-matter`
 - Validate required fields (name, description)
 - Parse optional fields (license, compatibility, metadata, allowed-tools)
@@ -233,16 +233,18 @@ interface SkillParser {
 - Handle malformed files gracefully
 
 #### SkillValidator Component
+
 ```typescript
 // Responsibility: Validate skills against Agent Skills standard
 interface SkillValidator {
-  validate(skill: Skill): ValidationResult
-  validateFrontmatter(frontmatter: Record<string, any>): ValidationError[]
-  validateContent(content: string): ValidationError[]
+  validate(skill: Skill): ValidationResult;
+  validateFrontmatter(frontmatter: Record<string, any>): ValidationError[];
+  validateContent(content: string): ValidationError[];
 }
 ```
 
 **Validation Rules**:
+
 - Required fields present and correct type
 - Description length (~100 tokens recommendation)
 - Content length (<5000 tokens recommendation)
@@ -250,40 +252,24 @@ interface SkillValidator {
 - Valid license identifiers
 - Metadata structure
 
-#### StringInterpolator Component
-```typescript
-// Responsibility: Process variable substitutions in skill content
-interface StringInterpolator {
-  interpolate(content: string, context: InterpolationContext): string
-  substituteArguments(content: string, args: string[]): string
-  substituteSessionId(content: string, sessionId: string): string
-  extractDynamicCommands(content: string): string[] // !`command` syntax
-}
-```
-
-**Substitution Patterns**:
-- `$ARGUMENTS` → all arguments as space-separated string
-- `$N` (e.g., `$1`, `$2`) → individual argument by index
-- `$ARGUMENTS[N]` → individual argument by index (alternative syntax)
-- `${CLAUDE_SESSION_ID}` → session identifier from MCP context
-- `` !`command` `` → flag for dynamic execution (returned raw, not executed)
-
 #### SkillRegistry Component
+
 ```typescript
 // Responsibility: In-memory registry with hot reload
 class SkillRegistry {
-  private skills: Map<string, Skill>
-  private watchers: FSWatcher[]
-  
-  async load(directories: string[]): Promise<void>
-  get(name: string): Skill | undefined
-  list(filter?: SkillFilter): Skill[]
-  watch(directories: string[], onChange: () => void): void
-  refresh(): Promise<void>
+  private skills: Map<string, Skill>;
+  private watchers: FSWatcher[];
+
+  async load(directories: string[]): Promise<void>;
+  get(name: string): Skill | undefined;
+  list(filter?: SkillFilter): Skill[];
+  watch(directories: string[], onChange: () => void): void;
+  refresh(): Promise<void>;
 }
 ```
 
 **Features**:
+
 - Multi-directory discovery with priority ordering
 - Nested directory traversal
 - File watching with `chokidar`
@@ -291,87 +277,97 @@ class SkillRegistry {
 - Conflict resolution (same skill name in multiple locations)
 
 #### FileSystemUtils Component
+
 ```typescript
 // Responsibility: File system operations for skill discovery
 interface FileSystemUtils {
-  findSkills(directory: string): Promise<string[]>
-  readSkillFile(path: string): Promise<string>
-  getSupportingFiles(skillPath: string): Promise<SupportingFiles>
-  resolveSkillPath(name: string, directories: string[]): string | undefined
+  findSkills(directory: string): Promise<string[]>;
+  readSkillFile(path: string): Promise<string>;
+  getSupportingFiles(skillPath: string): Promise<SupportingFiles>;
+  resolveSkillPath(name: string, directories: string[]): string | undefined;
 }
 ```
 
 ### 3.2 @agentskills/cli Components
 
 #### CommandExecutor Component
+
 - Orchestrates command execution
 - Loads configuration
 - Initializes SkillRegistry
 - Handles errors and user feedback
 
 #### CreateCommand Component
+
 ```typescript
 // agent-skills create <name>
 interface CreateCommand {
-  execute(name: string, options: CreateOptions): Promise<void>
-  promptForMetadata(): Promise<SkillMetadata>
-  scaffoldSkillDirectory(path: string, metadata: SkillMetadata): Promise<void>
+  execute(name: string, options: CreateOptions): Promise<void>;
+  promptForMetadata(): Promise<SkillMetadata>;
+  scaffoldSkillDirectory(path: string, metadata: SkillMetadata): Promise<void>;
 }
 ```
 
 **Features**:
+
 - Interactive prompts for skill metadata
 - Scaffold directory structure (SKILL.md, scripts/, references/, assets/)
 - Template selection (basic, advanced, custom)
 - Open in editor after creation
 
 #### ValidateCommand Component
+
 ```typescript
 // agent-skills validate [path]
 interface ValidateCommand {
-  execute(path?: string): Promise<ValidationReport>
-  validateSingle(skillPath: string): Promise<ValidationResult>
-  validateAll(directory: string): Promise<ValidationResult[]>
-  displayReport(results: ValidationResult[]): void
+  execute(path?: string): Promise<ValidationReport>;
+  validateSingle(skillPath: string): Promise<ValidationResult>;
+  validateAll(directory: string): Promise<ValidationResult[]>;
+  displayReport(results: ValidationResult[]): void;
 }
 ```
 
 **Output**:
+
 - Color-coded validation results
 - Detailed error messages with line numbers
 - Summary statistics (passed/failed/warnings)
 - Exit code based on results
 
 #### ListCommand Component
+
 ```typescript
 // agent-skills list
 interface ListCommand {
-  execute(options: ListOptions): Promise<void>
-  displayTable(skills: Skill[]): void
-  displayJson(skills: Skill[]): void
-  filterSkills(skills: Skill[], filters: SkillFilter): Skill[]
+  execute(options: ListOptions): Promise<void>;
+  displayTable(skills: Skill[]): void;
+  displayJson(skills: Skill[]): void;
+  filterSkills(skills: Skill[], filters: SkillFilter): Skill[];
 }
 ```
 
 **Display Formats**:
+
 - Table view (name, description, location)
 - JSON output for scripting
 - Tree view for nested directories
 - Filter by compatibility, metadata, etc.
 
 #### ConfigCommand Component
+
 ```typescript
 // agent-skills config
 interface ConfigCommand {
-  execute(action: string): Promise<void>
-  init(): Promise<void>
-  set(key: string, value: any): Promise<void>
-  get(key: string): Promise<any>
-  list(): Promise<void>
+  execute(action: string): Promise<void>;
+  init(): Promise<void>;
+  set(key: string, value: any): Promise<void>;
+  get(key: string): Promise<any>;
+  list(): Promise<void>;
 }
 ```
 
 **Configuration**:
+
 - Stored in `.agentskills/config.json`
 - Skill directories
 - Custom templates
@@ -381,19 +377,21 @@ interface ConfigCommand {
 ### 3.3 @agentskills/mcp-server Components
 
 #### MCPServerCore Component
+
 ```typescript
 // Main server initialization and lifecycle
 class MCPServerCore {
-  private server: Server
-  private registry: SkillRegistry
-  
-  async start(): Promise<void>
-  async stop(): Promise<void>
-  registerHandlers(): void
+  private server: Server;
+  private registry: SkillRegistry;
+
+  async start(): Promise<void>;
+  async stop(): Promise<void>;
+  registerHandlers(): void;
 }
 ```
 
 **Responsibilities**:
+
 - Initialize MCP SDK Server instance
 - Load configuration
 - Initialize SkillRegistry
@@ -401,16 +399,18 @@ class MCPServerCore {
 - Handle stdio transport
 
 #### ToolHandler Component
+
 ```typescript
 // Handle invoke_skill tool calls
 interface ToolHandler {
-  getToolDefinition(): ToolDefinition
-  handleInvoke(request: InvokeRequest): Promise<InvokeResponse>
-  buildEnumValues(): EnumValue[]
+  getToolDefinition(): ToolDefinition;
+  handleInvoke(request: InvokeRequest): Promise<InvokeResponse>;
+  buildEnumValues(): EnumValue[];
 }
 ```
 
 **Tool Definition**:
+
 ```json
 {
   "name": "invoke_skill",
@@ -435,6 +435,7 @@ interface ToolHandler {
 ```
 
 **Tool Response**:
+
 ```json
 {
   "content": "Processed skill instructions with interpolated arguments",
@@ -449,6 +450,7 @@ interface ToolHandler {
 ```
 
 **Key Logic**:
+
 - Build enum dynamically from SkillRegistry
 - Filter out skills with `disable-model-invocation: true`
 - Mark skills with `user-invocable: true` in descriptions
@@ -457,22 +459,25 @@ interface ToolHandler {
 - Flag dynamic commands (`` !`command` ``) for agent execution
 
 #### ResourceHandler Component
+
 ```typescript
 // Handle resource URIs for supporting files
 interface ResourceHandler {
-  listResources(): Promise<Resource[]>
-  getResource(uri: string): Promise<ResourceContent>
-  parseResourceUri(uri: string): ResourceReference
+  listResources(): Promise<Resource[]>;
+  getResource(uri: string): Promise<ResourceContent>;
+  parseResourceUri(uri: string): ResourceReference;
 }
 ```
 
 **Resource URI Format**:
+
 - `skill://<skill-name>/SKILL.md` (main skill file)
 - `skill://<skill-name>/scripts/<filename>`
 - `skill://<skill-name>/references/<filename>`
 - `skill://<skill-name>/assets/<filename>`
 
 **Resource Response**:
+
 ```json
 {
   "uri": "skill://my-skill/scripts/setup.sh",
@@ -482,22 +487,21 @@ interface ResourceHandler {
 ```
 
 #### ConfigLoader Component
+
 ```typescript
 // Load and validate server configuration
 interface ConfigLoader {
-  load(): Promise<ServerConfig>
-  validate(config: ServerConfig): ValidationResult
-  getDefaults(): ServerConfig
+  load(): Promise<ServerConfig>;
+  validate(config: ServerConfig): ValidationResult;
+  getDefaults(): ServerConfig;
 }
 ```
 
 **Configuration Schema**:
+
 ```json
 {
-  "skillDirectories": [
-    ".claude/skills",
-    "~/.claude/skills"
-  ],
+  "skillDirectories": [".claude/skills", "~/.claude/skills"],
   "watchForChanges": true,
   "maxSkillSize": 5000,
   "logLevel": "info"
@@ -522,11 +526,11 @@ We will expose skills as a single `use_skill` tool that returns raw skill instru
 
 ## Consequences
 
-- + Simple tool interface that's easy to understand and use
-- + Clear separation of concerns: server discovers/parses, client interpolates/executes
-- + Agents can see available skills via tool introspection
-- + No security concerns from server-side execution
-- + Client controls interpolation logic for their specific context
+- - Simple tool interface that's easy to understand and use
+- - Clear separation of concerns: server discovers/parses, client interpolates/executes
+- - Agents can see available skills via tool introspection
+- - No security concerns from server-side execution
+- - Client controls interpolation logic for their specific context
 - - Requires client to understand $ARGUMENTS and $N placeholders
 - - No dynamic enum for skill discovery (tool introspection shows all skills in description)
 
@@ -546,10 +550,10 @@ We will not execute commands or interpolate strings in the MCP server. The serve
 
 ## Consequences
 
-- + Maximum security with no risk from untrusted skills
-- + Simpler implementation without sandboxing or interpolation logic
-- + Clear separation of concerns between server and client
-- + Client has full control over execution context
+- - Maximum security with no risk from untrusted skills
+- - Simpler implementation without sandboxing or interpolation logic
+- - Clear separation of concerns between server and client
+- - Client has full control over execution context
 - - Client must implement interpolation logic
 - - Client must handle dynamic commands responsibly
 
@@ -569,10 +573,10 @@ We will use a pnpm workspaces monorepo with three packages: @codemcp/agentskills
 
 ## Consequences
 
-- + Clean separation of concerns between packages
-- + CLI usable independently of the MCP server
-- + Shared code reduces duplication
-- + Independent versioning possible for each package
+- - Clean separation of concerns between packages
+- - CLI usable independently of the MCP server
+- - Shared code reduces duplication
+- - Independent versioning possible for each package
 - - More complex build setup
 - - Need to manage inter-package dependencies
 
@@ -592,11 +596,11 @@ We will use `package.json` with an `agentskills` field for declarative skill dep
 
 ## Consequences
 
-- + Familiar pattern for developers (similar to npm dependencies)
-- + Battle-tested installation logic (Pacote powers npm)
-- + Supports git, local, tarball, and future npm registry sources
-- + Lock file provides reproducibility
-- + Auto-discovery maintains backwards compatibility
+- - Familiar pattern for developers (similar to npm dependencies)
+- - Battle-tested installation logic (Pacote powers npm)
+- - Supports git, local, tarball, and future npm registry sources
+- - Lock file provides reproducibility
+- - Auto-discovery maintains backwards compatibility
 - - Requires package.json in project (or global config)
 - - Additional dependency on Pacote
 
@@ -616,11 +620,11 @@ We will load all skills on server startup with no file watching or hot reload in
 
 ## Consequences
 
-- + Simpler implementation
-- + No file watcher overhead
-- + Predictable behavior
-- + Faster path to MVP
-- + Can add hot reload in v1.1+ without breaking changes
+- - Simpler implementation
+- - No file watcher overhead
+- - Predictable behavior
+- - Faster path to MVP
+- - Can add hot reload in v1.1+ without breaking changes
 - - Requires server restart for changes
 - - Poorer developer experience during skill development
 
@@ -640,10 +644,10 @@ We will use TypeScript with @modelcontextprotocol/sdk for type safety and ecosys
 
 ## Consequences
 
-- + Type safety for skill schemas and MCP protocol
-- + Official SDK handles protocol details
-- + JavaScript ecosystem compatibility
-- + Easy to distribute as npm packages
+- - Type safety for skill schemas and MCP protocol
+- - Official SDK handles protocol details
+- - JavaScript ecosystem compatibility
+- - Easy to distribute as npm packages
 - - Runtime overhead compared to compiled languages
 - - Node.js dependency
 
@@ -651,42 +655,42 @@ We will use TypeScript with @modelcontextprotocol/sdk for type safety and ecosys
 
 ### Core Stack
 
-| Technology | Purpose | Rationale |
-|------------|---------|-----------|
-| **TypeScript 5.x** | Primary language | Type safety, excellent tooling, npm ecosystem |
-| **pnpm 9.x** | Package manager | Fast, efficient, workspace support |
-| **Turbo 2.x** | Build system | Incremental builds, remote caching |
-| **@modelcontextprotocol/sdk** | MCP protocol | Official SDK, handles protocol complexity |
-| **Node.js 20.x LTS** | Runtime | Stable, widespread, good async I/O |
+| Technology                    | Purpose          | Rationale                                     |
+| ----------------------------- | ---------------- | --------------------------------------------- |
+| **TypeScript 5.x**            | Primary language | Type safety, excellent tooling, npm ecosystem |
+| **pnpm 9.x**                  | Package manager  | Fast, efficient, workspace support            |
+| **Turbo 2.x**                 | Build system     | Incremental builds, remote caching            |
+| **@modelcontextprotocol/sdk** | MCP protocol     | Official SDK, handles protocol complexity     |
+| **Node.js 20.x LTS**          | Runtime          | Stable, widespread, good async I/O            |
 
 ### Core Dependencies
 
-| Package | Purpose | Why This Choice |
-|---------|---------|-----------------|
-| **js-yaml** | YAML parsing | De facto standard, reliable |
+| Package         | Purpose                | Why This Choice                      |
+| --------------- | ---------------------- | ------------------------------------ |
+| **js-yaml**     | YAML parsing           | De facto standard, reliable          |
 | **gray-matter** | Frontmatter extraction | Specialized for markdown frontmatter |
-| **chokidar** | File watching | Cross-platform, battle-tested |
-| **zod** | Schema validation | Type-safe validation, great DX |
+| **chokidar**    | File watching          | Cross-platform, battle-tested        |
+| **zod**         | Schema validation      | Type-safe validation, great DX       |
 
 ### CLI Dependencies
 
-| Package | Purpose | Why This Choice |
-|---------|---------|-----------------|
-| **commander** | CLI framework | Simple, popular, good ergonomics |
-| **chalk** | Terminal colors | Standard for colored output |
-| **ora** | Spinners | Good UX for long operations |
-| **inquirer** | Interactive prompts | Rich prompt types |
-| **cli-table3** | Table formatting | Clean ASCII tables |
+| Package        | Purpose             | Why This Choice                  |
+| -------------- | ------------------- | -------------------------------- |
+| **commander**  | CLI framework       | Simple, popular, good ergonomics |
+| **chalk**      | Terminal colors     | Standard for colored output      |
+| **ora**        | Spinners            | Good UX for long operations      |
+| **inquirer**   | Interactive prompts | Rich prompt types                |
+| **cli-table3** | Table formatting    | Clean ASCII tables               |
 
 ### Development Tools
 
-| Tool | Purpose | Rationale |
-|------|---------|-----------|
-| **Vitest** | Testing | Fast, Vite-powered, great DX |
-| **ESLint** | Linting | Industry standard |
-| **Prettier** | Formatting | Consistent code style |
-| **tsx** | TypeScript execution | Fast dev iteration |
-| **tsup** | Bundling | Simple, fast, zero-config |
+| Tool         | Purpose              | Rationale                    |
+| ------------ | -------------------- | ---------------------------- |
+| **Vitest**   | Testing              | Fast, Vite-powered, great DX |
+| **ESLint**   | Linting              | Industry standard            |
+| **Prettier** | Formatting           | Consistent code style        |
+| **tsx**      | TypeScript execution | Fast dev iteration           |
+| **tsup**     | Bundling             | Simple, fast, zero-config    |
 
 ### Rejected Alternatives
 
@@ -700,18 +704,21 @@ We will use TypeScript with @modelcontextprotocol/sdk for type safety and ecosys
 ### Performance
 
 **Requirements**:
+
 - Skill discovery: < 1 second for 100 skills
 - Tool invocation: < 100ms for string interpolation
 - Resource access: < 50ms for file read
 - Hot reload: < 500ms to detect and reload changes
 
 **Strategies**:
+
 - In-memory skill registry (avoid disk I/O)
 - Lazy loading of supporting files
 - Efficient file watching (debounced events)
 - Caching of parsed skill objects
 
 **Monitoring**:
+
 - Log timing for all operations
 - Track registry size and reload frequency
 - Monitor file watcher event rates
@@ -719,12 +726,14 @@ We will use TypeScript with @modelcontextprotocol/sdk for type safety and ecosys
 ### Security
 
 **Threat Model**:
+
 - **Malicious Skills**: Untrusted SKILL.md files with harmful commands
 - **Path Traversal**: Skills accessing files outside skill directory
 - **Command Injection**: Dynamic commands with unsafe interpolation
 - **Resource Exhaustion**: Large files or infinite loops
 
 **Mitigations**:
+
 1. **No Execution**: Server never executes commands (agent responsibility)
 2. **Path Validation**: Restrict file access to skill directories
 3. **Size Limits**: Enforce max file sizes (5000 tokens for SKILL.md)
@@ -733,6 +742,7 @@ We will use TypeScript with @modelcontextprotocol/sdk for type safety and ecosys
 6. **Configuration**: Allow administrators to disable dynamic commands
 
 **Security Boundaries**:
+
 ```
 ┌─────────────────────────────────────┐
 │  Agent (Trusted)                    │
@@ -757,18 +767,21 @@ We will use TypeScript with @modelcontextprotocol/sdk for type safety and ecosys
 ### Reliability
 
 **Fault Tolerance**:
+
 - Graceful degradation if skill directories missing
 - Continue operation if individual skills fail to parse
 - Handle file system errors (permissions, disk full)
 - Recover from file watcher failures
 
 **Error Handling**:
+
 - All file I/O wrapped in try-catch
 - Detailed error messages with context
 - Log errors without crashing server
 - Return meaningful errors to agents
 
 **Availability**:
+
 - Server runs continuously (stdio transport)
 - No external dependencies (database, network)
 - Automatic recovery from transient errors
@@ -777,18 +790,21 @@ We will use TypeScript with @modelcontextprotocol/sdk for type safety and ecosys
 ### Maintainability
 
 **Code Quality**:
+
 - TypeScript strict mode
 - ESLint rules enforced
 - 80%+ test coverage target
 - API documentation with TSDoc
 
 **Testing Strategy**:
+
 - Unit tests: Core parsing and validation logic
 - Integration tests: Registry and file operations
 - End-to-end tests: MCP protocol interactions
 - Example skills for manual testing
 
 **Versioning**:
+
 - Semantic versioning (semver)
 - Changelog maintained
 - Breaking changes documented
@@ -797,18 +813,21 @@ We will use TypeScript with @modelcontextprotocol/sdk for type safety and ecosys
 ### Observability
 
 **Logging Levels**:
+
 - **ERROR**: Parse failures, file system errors
 - **WARN**: Missing optional fields, deprecated features
 - **INFO**: Skill loading, tool invocations
 - **DEBUG**: Detailed parsing, registry operations
 
 **Metrics** (Future):
+
 - Skill count by directory
 - Invocation frequency per skill
 - Parse success/failure rates
 - Hot reload event counts
 
 **Debugging**:
+
 - Verbose mode for troubleshooting
 - Dump parsed skills to JSON
 - Validate mode to test parsing
@@ -903,4 +922,4 @@ We will use TypeScript with @modelcontextprotocol/sdk for type safety and ecosys
 
 ---
 
-*This architecture documentation follows the C4 model and will evolve as implementation progresses. Last updated: 2026-02-19*
+_This architecture documentation follows the C4 model and will evolve as implementation progresses. Last updated: 2026-02-19_

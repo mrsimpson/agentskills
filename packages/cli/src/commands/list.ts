@@ -1,4 +1,5 @@
 import { PackageConfigManager } from '@codemcp/agentskills-core';
+import { Command } from 'commander';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import chalk from 'chalk';
@@ -32,7 +33,7 @@ export async function listCommand(): Promise<string> {
   return lines.join('\n');
 }
 
-export function registerListCommand(program: any): void {
+export function registerListCommand(program: Command): void {
   program
     .command('list')
     .description('List configured skills')

@@ -115,13 +115,20 @@ export class MCPServer {
       }
     );
 
+    // Access underlying server for resource capabilities
+    // Using type assertion as the SDK doesn't expose these methods directly
+    const underlyingServer = (this.mcpServer as unknown as Record<string, unknown>).server as {
+      registerCapabilities: (caps: Record<string, unknown>) => void;
+      setRequestHandler: (schema: unknown, handler: (request: Record<string, unknown>) => unknown) => void;
+    };
+
     // Register resource capabilities via the underlying server
-    (this.mcpServer as any).server.registerCapabilities({
+    underlyingServer.registerCapabilities({
       resources: {}
     });
 
     // Register resources/list handler (concrete resources)
-    (this.mcpServer as any).server.setRequestHandler(
+    underlyingServer.setRequestHandler(
       ListResourcesRequestSchema,
       async () => ({
         resources: this.getResourcesList()
@@ -129,7 +136,7 @@ export class MCPServer {
     );
 
     // Register resources/templates/list handler via the underlying server
-    (this.mcpServer as any).server.setRequestHandler(
+    underlyingServer.setRequestHandler(
       ListResourceTemplatesRequestSchema,
       async () => ({
         resourceTemplates: this.getResourceTemplatesList()
@@ -137,10 +144,10 @@ export class MCPServer {
     );
 
     // Register resources/read handler via the underlying server
-    (this.mcpServer as any).server.setRequestHandler(
+    underlyingServer.setRequestHandler(
       ReadResourceRequestSchema,
-      async (request: any) => {
-        return this.handleReadResource(request.params.uri);
+      async (request: Record<string, unknown>) => {
+        return this.handleReadResource((request.params as Record<string, unknown>).uri as string);
       }
     );
   }
@@ -375,7 +382,7 @@ ${skillList}`;
     uri: string
   ): Promise<{ contents: Array<{ uri: string; mimeType: string; text: string }> }> {
     // Parse URI: skill://<name> or skill://<name>/SKILL.md
-    const match = uri.match(/^skill:\/\/([^\/]+)/);
+    const match = uri.match(/^skill:\/\/([^/]+)/);
     if (!match) {
       throw new Error(`Invalid skill URI: ${uri}`);
     }

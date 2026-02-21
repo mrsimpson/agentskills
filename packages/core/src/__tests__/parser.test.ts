@@ -8,8 +8,7 @@ import { parseSkill, parseSkillContent } from "../parser.js";
  * Helper type for accessing unknown metadata in tests
  * Using index signature to allow nested property access
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type MetadataRecord = { [key: string]: any };
+type MetadataRecord = Record<string, any>;
 
 /**
  * Comprehensive test suite for SkillParser component

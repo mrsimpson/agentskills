@@ -51,7 +51,7 @@ export class PackageConfigManager {
   async loadConfig(): Promise<PackageConfig> {
     try {
       const content = await fs.readFile(this.packageJsonPath, "utf-8");
-      let packageJson: any;
+      let packageJson: Record<string, unknown>;
 
       try {
         packageJson = JSON.parse(content);
@@ -77,14 +77,14 @@ export class PackageConfigManager {
           path: this.packageJsonPath,
         },
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Return defaults if file doesn't exist
-      if (error.code === "ENOENT") {
+      if ((error as { code?: string }).code === "ENOENT") {
         return this.getDefaultConfig();
       }
 
       // Handle permission errors
-      if (error.code === "EACCES") {
+      if ((error as { code?: string }).code === "EACCES") {
         throw new Error(
           `Permission denied reading package.json at ${this.packageJsonPath}`
         );
@@ -98,7 +98,7 @@ export class PackageConfigManager {
   /**
    * Validate and extract skills from package.json
    */
-  private validateAndExtractSkills(packageJson: any): Record<string, string> {
+  private validateAndExtractSkills(packageJson: Record<string, unknown>): Record<string, string> {
     if (!packageJson.agentskills) {
       return {};
     }
@@ -115,19 +115,19 @@ export class PackageConfigManager {
     }
 
     // Validate all values are strings
-    for (const [key, value] of Object.entries(agentskills)) {
+    for (const value of Object.values(agentskills)) {
       if (typeof value !== "string") {
         throw new Error("agentskills values must be strings");
       }
     }
 
-    return agentskills;
+    return agentskills as Record<string, string>;
   }
 
   /**
    * Validate and extract config from package.json
    */
-  private validateAndExtractConfig(packageJson: any): PackageConfig["config"] {
+  private validateAndExtractConfig(packageJson: Record<string, unknown>): PackageConfig["config"] {
     const defaultConfig = this.getDefaultConfig().config;
 
     if (!packageJson.agentskillsConfig) {
@@ -145,56 +145,59 @@ export class PackageConfigManager {
       throw new Error("agentskillsConfig must be an object");
     }
 
+    // Type assertion after validation
+    const configObj = agentskillsConfig as Record<string, unknown>;
+
     // Start with defaults and merge
     const config = { ...defaultConfig };
 
     // Validate and merge skillsDirectory
-    if (agentskillsConfig.skillsDirectory !== undefined) {
-      if (typeof agentskillsConfig.skillsDirectory !== "string") {
+    if (configObj.skillsDirectory !== undefined) {
+      if (typeof configObj.skillsDirectory !== "string") {
         throw new Error("skillsDirectory must be a string");
       }
-      if (agentskillsConfig.skillsDirectory === "") {
+      if (configObj.skillsDirectory === "") {
         throw new Error("skillsDirectory cannot be empty");
       }
-      config.skillsDirectory = agentskillsConfig.skillsDirectory;
+      config.skillsDirectory = configObj.skillsDirectory;
     }
 
     // Validate and merge autoDiscover
-    if (agentskillsConfig.autoDiscover !== undefined) {
-      if (!Array.isArray(agentskillsConfig.autoDiscover)) {
+    if (configObj.autoDiscover !== undefined) {
+      if (!Array.isArray(configObj.autoDiscover)) {
         throw new Error("autoDiscover must be an array");
       }
-      for (const item of agentskillsConfig.autoDiscover) {
+      for (const item of configObj.autoDiscover) {
         if (typeof item !== "string") {
           throw new Error("autoDiscover must contain only strings");
         }
       }
-      config.autoDiscover = agentskillsConfig.autoDiscover;
+      config.autoDiscover = configObj.autoDiscover;
     }
 
     // Validate and merge maxSkillSize
-    if (agentskillsConfig.maxSkillSize !== undefined) {
-      if (typeof agentskillsConfig.maxSkillSize !== "number") {
+    if (configObj.maxSkillSize !== undefined) {
+      if (typeof configObj.maxSkillSize !== "number") {
         throw new Error("maxSkillSize must be a number");
       }
-      if (agentskillsConfig.maxSkillSize <= 0) {
+      if (configObj.maxSkillSize <= 0) {
         throw new Error("maxSkillSize must be a positive number");
       }
-      config.maxSkillSize = agentskillsConfig.maxSkillSize;
+      config.maxSkillSize = configObj.maxSkillSize;
     }
 
     // Validate and merge logLevel
-    if (agentskillsConfig.logLevel !== undefined) {
-      if (typeof agentskillsConfig.logLevel !== "string") {
+    if (configObj.logLevel !== undefined) {
+      if (typeof configObj.logLevel !== "string") {
         throw new Error("logLevel must be a string");
       }
       const validLogLevels = ["error", "warn", "info", "debug"];
-      if (!validLogLevels.includes(agentskillsConfig.logLevel)) {
+      if (!validLogLevels.includes(configObj.logLevel)) {
         throw new Error(
-          `Invalid logLevel '${agentskillsConfig.logLevel}'. Must be one of: error, warn, info, debug`
+          `Invalid logLevel '${configObj.logLevel}'. Must be one of: error, warn, info, debug`
         );
       }
-      config.logLevel = agentskillsConfig.logLevel;
+      config.logLevel = configObj.logLevel as "error" | "warn" | "info" | "debug";
     }
 
     return config;
@@ -206,13 +209,13 @@ export class PackageConfigManager {
    * Preserves other fields
    */
   async saveSkills(skills: Record<string, string>): Promise<void> {
-    let packageJson: any;
+    let packageJson: Record<string, unknown>;
 
     try {
       const content = await fs.readFile(this.packageJsonPath, "utf-8");
       packageJson = JSON.parse(content);
-    } catch (error: any) {
-      if (error.code === "ENOENT") {
+    } catch (error: unknown) {
+      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
         // Create minimal package.json
         packageJson = {
           name: "agentskills-project",
@@ -245,13 +248,13 @@ export class PackageConfigManager {
       throw new Error("Skill spec cannot be empty");
     }
 
-    let packageJson: any;
+    let packageJson: Record<string, unknown>;
 
     try {
       const content = await fs.readFile(this.packageJsonPath, "utf-8");
       packageJson = JSON.parse(content);
-    } catch (error: any) {
-      if (error.code === "ENOENT") {
+    } catch (error: unknown) {
+      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
         // Create minimal package.json
         packageJson = {
           name: "agentskills-project",
@@ -266,8 +269,9 @@ export class PackageConfigManager {
       packageJson.agentskills = {};
     }
 
-    // Add or update skill
-    packageJson.agentskills[name] = spec;
+    // Add or update skill - use type assertion after validation
+    const agentskills = packageJson.agentskills as Record<string, string>;
+    agentskills[name] = spec;
 
     // Write back to file with proper formatting
     await fs.writeFile(
@@ -304,9 +308,9 @@ export class PackageConfigManager {
         JSON.stringify(packageJson, null, 2),
         "utf-8"
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       // If file doesn't exist, nothing to remove
-      if (error.code === "ENOENT") {
+      if ((error as { code?: string }).code === "ENOENT") {
         return;
       }
       throw error;

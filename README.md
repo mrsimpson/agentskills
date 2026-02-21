@@ -10,11 +10,13 @@ An MCP server that makes [Agent Skills](https://agentskills.io) available to any
 ## Why This Exists
 
 **Agent Skills are powerful context engineering tools:**
+
 - Break down long system prompts into reusable, parameterized components
 - Follow an [open standard](https://agentskills.io) for portability across agents
 - More powerful than prompts alone when bundled with tools and workflows
 
 **But current implementations have pain points:**
+
 - ❌ **Filesystem-based discovery**: Each agent uses different directories (`.claude/skills`, etc.)
 - ❌ **No configuration control**: All skills always loaded, no filtering or organization
 - ❌ **Unclear security model**: Dynamic tool calling and scripts are significant threats without proper sandboxing
@@ -23,6 +25,7 @@ An MCP server that makes [Agent Skills](https://agentskills.io) available to any
 **The MCP Gateway Solution:**
 
 MCP has already solved these problems for tools. By providing an MCP server as a "gateway" for Agent Skills:
+
 - ✅ Address all pain points **client-independently** through a standardized interface
 - ✅ Declarative configuration via `package.json` that teams can version and share
 - ✅ Clear security model: server doesn't execute code, agents remain in control
@@ -31,6 +34,7 @@ MCP has already solved these problems for tools. By providing an MCP server as a
 ## What It Does
 
 This project provides:
+
 1. **CLI** for installing and managing Agent Skills from multiple sources (GitHub, local, tarball URLs)
 2. **MCP Server** that exposes installed skills as MCP tools to any compatible agent
 3. **Core library** for parsing, validating, and working with Agent Skills
@@ -89,6 +93,7 @@ Point your MCP client (Claude Desktop, Cline, Continue, etc.) to the server:
 ### 5. Use Skills
 
 Your agent can now:
+
 - Call the `use_skill` tool to execute skill instructions
 - Browse available skills via `skill://` resources
 
@@ -129,12 +134,12 @@ Skills are declared in the `agentskills` field of `package.json`:
 
 ### Source Specifiers
 
-| Source Type | Example | Description |
-|------------|---------|-------------|
-| GitHub shorthand | `github:user/repo/path/to/skill` | Direct GitHub path |
-| Git URL | `git+https://github.com/org/repo.git#v1.0.0` | Full git URL with version tag |
-| Local path | `file:./skills/custom-skill` | Relative or absolute local path |
-| Tarball URL | `https://example.com/skill.tgz` | Remote tarball |
+| Source Type      | Example                                      | Description                     |
+| ---------------- | -------------------------------------------- | ------------------------------- |
+| GitHub shorthand | `github:user/repo/path/to/skill`             | Direct GitHub path              |
+| Git URL          | `git+https://github.com/org/repo.git#v1.0.0` | Full git URL with version tag   |
+| Local path       | `file:./skills/custom-skill`                 | Relative or absolute local path |
+| Tarball URL      | `https://example.com/skill.tgz`              | Remote tarball                  |
 
 ### Example Team Configuration
 
@@ -155,21 +160,25 @@ Commit this to your repo, and your entire team uses the same skills configuratio
 ## CLI Commands
 
 ### Install all configured skills
+
 ```bash
 agentskills install
 ```
 
 ### Add a new skill
+
 ```bash
 agentskills add my-skill github:user/repo/path/to/skill
 ```
 
 ### List configured skills
+
 ```bash
 agentskills list
 ```
 
 ### Validate a skill file
+
 ```bash
 agentskills validate path/to/SKILL.md
 ```
@@ -212,10 +221,8 @@ See the [Agent Skills standard](https://agentskills.io) for full specification.
 This is a monorepo containing three packages:
 
 - **[@codemcp/agentskills-core](./packages/core)** - Core parsing, validation, and installation logic
-- **[@codemcp/agentskills-cli](./packages/cli)** - Command-line interface for skill management  
+- **[@codemcp/agentskills-cli](./packages/cli)** - Command-line interface for skill management
 - **[@codemcp/agentskills-mcp-server](./packages/mcp-server)** - MCP protocol server implementation
-
-All packages are independently published to npm and can be used separately.
 
 ## Development
 
@@ -242,7 +249,7 @@ Pull requests for bug fixes, new features, or documentation improvements are app
 
 ## License
 
-MIT © Luke Baker, Oliver Jägle
+MIT, Oliver Jägle
 
 ## Links
 

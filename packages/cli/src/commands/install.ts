@@ -43,8 +43,9 @@ export async function installCommand(options?: { cwd?: string }): Promise<void> 
     const skillsDir = join(cwd, config.config.skillsDirectory);
     try {
       await fs.mkdir(skillsDir, { recursive: true });
-    } catch (error: any) {
-      console.error(chalk.red(`✗ Failed to create directory: ${error.message}`));
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(chalk.red(`✗ Failed to create directory: ${errorMessage}`));
       process.exit(1);
       return;
     }
@@ -112,28 +113,31 @@ export async function installCommand(options?: { cwd?: string }): Promise<void> 
       console.error(chalk.red(`\n✗ All skill installations failed`));
       process.exit(1);
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle configuration errors
-    if (error.message?.includes('package.json not found') || error.code === 'ENOENT') {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorCode = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+
+    if (errorMessage.includes('package.json not found') || errorCode === 'ENOENT') {
       console.error(chalk.red(`✗ Error: package.json not found in ${cwd}`));
       process.exit(1);
       return;
     }
 
-    if (error.message?.includes('Failed to parse')) {
+    if (errorMessage.includes('Failed to parse')) {
       console.error(chalk.red(`✗ Error: Failed to parse package.json - Invalid JSON`));
       process.exit(1);
       return;
     }
 
-    if (error.message?.includes('Permission denied') || error.code === 'EACCES') {
-      console.error(chalk.red(`✗ Error: Permission error - ${error.message}`));
+    if (errorMessage.includes('Permission denied') || errorCode === 'EACCES') {
+      console.error(chalk.red(`✗ Error: Permission error - ${errorMessage}`));
       process.exit(1);
       return;
     }
 
     // Unknown error
-    console.error(chalk.red(`✗ Error: ${error.message}`));
+    console.error(chalk.red(`✗ Error: ${errorMessage}`));
     process.exit(1);
   }
 }

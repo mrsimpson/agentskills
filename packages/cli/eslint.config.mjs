@@ -12,13 +12,27 @@ export default [
     languageOptions: {
       parser,
       parserOptions: {
-        project: ["./tsconfig.json", "./tsconfig.vitest.json"]
+        project: ["./tsconfig.json"]
       }
+    }
+  },
+  {
+    // Relaxed rules for test files
+    files: ["**/__tests__/**/*.{ts,tsx}", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-unused-vars": "off"
     }
   },
   {
     // Config for JavaScript files - no TypeScript parsing
     files: ["**/*.{js,jsx}"],
+    languageOptions: {
+      globals: {
+        console: "readonly",
+        process: "readonly"
+      }
+    },
     ...js.configs.recommended
   },
   {
@@ -26,7 +40,11 @@ export default [
       "**/node_modules/**",
       "**/dist/**",
       ".pnpm-store/**",
-      "pnpm-lock.yaml"
+      "pnpm-lock.yaml",
+      "**/*.d.ts",
+      "test-*.js",
+      "fix-*.js",
+      "**/vitest.config.ts"
     ]
   }
 ];

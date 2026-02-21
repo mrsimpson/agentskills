@@ -57,7 +57,9 @@ describe("SkillInstaller", () => {
   afterEach(async () => {
     try {
       await fs.rm(tempDir, { recursive: true, force: true });
-    } catch {}
+    } catch {
+      // Ignore cleanup errors
+    }
   });
 
   describe("Constructor", () => {

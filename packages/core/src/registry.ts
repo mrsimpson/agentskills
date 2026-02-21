@@ -51,7 +51,7 @@ export class SkillRegistry {
     let stat;
     try {
       stat = await fs.stat(skillsDir);
-    } catch (error) {
+    } catch {
       throw new Error(`Skills directory does not exist: ${skillsDir}`);
     }
 
@@ -84,7 +84,7 @@ export class SkillRegistry {
       let skillStat;
       try {
         skillStat = await fs.stat(skillPath);
-      } catch (error) {
+      } catch {
         throw new Error(`Missing SKILL.md in: ${skillDir}`);
       }
 

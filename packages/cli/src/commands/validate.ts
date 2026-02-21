@@ -85,9 +85,10 @@ export async function validateCommand(
     // Exit with appropriate code
     process.exit(hasErrors ? 1 : 0);
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle unexpected errors
-    console.error(chalk.red(`Error: ${error.message}`));
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error(chalk.red(`Error: ${errorMessage}`));
     process.exit(1);
   }
 }
@@ -135,10 +136,11 @@ async function resolvePaths(path: string | undefined): Promise<string[]> {
         return skills;
       }
     }
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
+  } catch (error: unknown) {
+    const errorCode = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+    if (errorCode === 'ENOENT') {
       throw new Error(`Path not found: ${path}`);
-    } else if (error.code === 'EACCES') {
+    } else if (errorCode === 'EACCES') {
       throw new Error(`Permission denied: ${path}`);
     }
     throw error;
@@ -167,8 +169,9 @@ async function findAllSkills(dir: string): Promise<string[]> {
           skills.push(fullPath);
         }
       }
-    } catch (error: any) {
-      if (error.code === 'EACCES') {
+    } catch (error: unknown) {
+      const errorCode = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+      if (errorCode === 'EACCES') {
         throw new Error(`Permission denied: ${currentDir}`);
       }
       throw error;
@@ -230,10 +233,11 @@ async function validateSingleSkill(
       warnings
     };
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return {
       success: false,
-      errors: [error.message],
+      errors: [errorMessage],
       warnings: []
     };
   }
