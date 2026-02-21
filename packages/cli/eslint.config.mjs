@@ -36,15 +36,15 @@ export default [
     ...js.configs.recommended
   },
   {
+    // Ignored files
     ignores: [
       "**/node_modules/**",
       "**/dist/**",
       ".pnpm-store/**",
       "pnpm-lock.yaml",
-      "**/*.d.ts",
-      "test-*.js",
-      "fix-*.js",
-      "**/vitest.config.ts"
+      "**/*.d.ts",  // Type definition files don't need runtime linting
+      "test-*.js",  // Test helper scripts
+      "fix-*.js"    // Fix scripts
     ]
   }
 ];

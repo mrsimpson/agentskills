@@ -6,5 +6,5 @@
       "@mme/typescript-example-2": ["../typescript-example-2/src/index.ts"]
     }
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "vitest.config.ts"]
 }
