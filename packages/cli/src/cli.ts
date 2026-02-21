@@ -10,12 +10,15 @@ export function createCLI(): Command {
   // Create main program
   const program = new Command();
 
-  // Set program metadata
+  // Set program metadata and configure help behavior
   program
     .name("agentskills")
     .version("0.1.0")
     .description("Agent Skills CLI for managing skills")
-    .option("-h, --help", "Display help for command");
+    .configureHelp({
+      sortSubcommands: true,
+      sortOptions: true
+    });
 
   // Create "list" command
   const listCommandDef = new Command("list")
@@ -59,6 +62,7 @@ export function createCLI(): Command {
     .description("Add a skill to package.json and install it")
     .argument("<name>", "Skill name (used as the install directory)")
     .argument("<spec>", "Skill source specifier (see supported formats below)")
+    .showHelpAfterError("(add --help for additional information)")
     .option(
       "--skip-install",
       "Only update package.json without installing",

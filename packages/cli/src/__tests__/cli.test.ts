@@ -183,11 +183,11 @@ describe("CLI Framework", () => {
 
   describe("Global Options", () => {
     it("should support --help option", () => {
-      const options = program.options;
-      const helpOption = options.find(
-        (opt) => opt.long === "--help" || opt.short === "-h"
-      );
-      expect(helpOption).toBeDefined();
+      // Commander.js provides --help automatically
+      // Verify it's available by checking help output
+      const helpText = program.helpInformation();
+      expect(helpText).toContain("--help");
+      expect(helpText).toContain("display help for command");
     });
 
     it("should support --version option", () => {

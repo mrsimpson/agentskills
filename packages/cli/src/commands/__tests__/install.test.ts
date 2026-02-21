@@ -782,5 +782,62 @@ describe("install command", () => {
       await installCommand({ cwd: testDir });
       expect(processExitSpy).toHaveBeenCalledWith(0);
     });
+
+    it("should create .gitignore in .agentskills directory on first install", async () => {
+      // Arrange
+      await createPackageJson({
+        "test-skill": "github:user/test-skill"
+      });
+
+      skillInstallerInstallSpy.mockResolvedValue(
+        createSuccessResult("test-skill", "github:user/test-skill")
+      );
+      skillInstallerGenerateLockFileSpy.mockResolvedValue(undefined);
+
+      // Act
+      await installCommand({ cwd: testDir });
+
+      // Assert
+      const gitignorePath = join(testDir, ".agentskills", ".gitignore");
+      const gitignoreExists = await fs
+        .access(gitignorePath)
+        .then(() => true)
+        .catch(() => false);
+      expect(gitignoreExists).toBe(true);
+
+      const gitignoreContent = await fs.readFile(gitignorePath, "utf-8");
+      expect(gitignoreContent).toContain("skills/");
+      expect(gitignoreContent).toContain(
+        "Ignore installed skills - they should be installed via package.json"
+      );
+      expect(processExitSpy).toHaveBeenCalledWith(0);
+    });
+
+    it("should not overwrite existing .gitignore in .agentskills directory", async () => {
+      // Arrange
+      await createPackageJson({
+        "test-skill": "github:user/test-skill"
+      });
+
+      // Pre-create .agentskills/.gitignore with custom content
+      const agentskillsDir = join(testDir, ".agentskills");
+      await fs.mkdir(agentskillsDir, { recursive: true });
+      const customContent = "# Custom gitignore\nmy-custom-ignore/\n";
+      const gitignorePath = join(agentskillsDir, ".gitignore");
+      await fs.writeFile(gitignorePath, customContent, "utf-8");
+
+      skillInstallerInstallSpy.mockResolvedValue(
+        createSuccessResult("test-skill", "github:user/test-skill")
+      );
+      skillInstallerGenerateLockFileSpy.mockResolvedValue(undefined);
+
+      // Act
+      await installCommand({ cwd: testDir });
+
+      // Assert
+      const gitignoreContent = await fs.readFile(gitignorePath, "utf-8");
+      expect(gitignoreContent).toBe(customContent); // Should remain unchanged
+      expect(processExitSpy).toHaveBeenCalledWith(0);
+    });
   });
 });
