@@ -57,15 +57,51 @@ export function createCLI(): Command {
   // Create "add" command
   const addCommandDef = new Command("add")
     .description("Add a skill to package.json and install it")
-    .argument("<name>", "Skill name")
-    .argument(
-      "<spec>",
-      "Skill spec (github:user/repo, git+https://..., file:...)"
-    )
+    .argument("<name>", "Skill name (used as the install directory)")
+    .argument("<spec>", "Skill source specifier (see supported formats below)")
     .option(
       "--skip-install",
       "Only update package.json without installing",
       false
+    )
+    .addHelpText(
+      "after",
+      `
+Supported spec formats:
+
+  GitHub shorthand (subdirectory):
+    github:user/repo/path/to/skill           install from subdirectory
+    github:user/repo/path/to/skill#v1.0.0    with tag or branch
+
+  GitHub with path: attribute (npm standard):
+    github:user/repo#path:skills/my-skill
+    github:user/repo#v1.0.0::path:skills/my-skill
+
+  Git URL:
+    git+https://github.com/org/repo.git#v1.0.0
+    git+https://github.com/org/repo.git#v1.0.0::path:skills/my-skill
+    git+ssh://git@github.com/org/repo.git#v1.0.0
+
+  npm package:
+    @org/my-skill
+    my-skill@1.2.0
+
+  npm package with subdirectory path:
+    @org/monorepo::path:skills/my-skill
+    @org/monorepo@1.0.0::path:skills/my-skill
+    my-package::path:skills/my-skill
+
+  Local path:
+    file:./skills/custom-skill
+    file:/absolute/path/to/skill
+
+  Tarball URL:
+    https://example.com/skill.tgz
+
+Examples:
+  $ agentskills add git-workflow github:anthropics/agent-skills/skills/git-workflow
+  $ agentskills add my-skill git+https://github.com/org/repo.git#v2.0.0::path:skills/my-skill
+  $ agentskills add local file:./team-skills/custom`
     )
     .action(async (name, spec, options) => {
       try {

@@ -94,12 +94,18 @@ export class SkillInstaller {
         opts.cache = this.cacheDir;
       }
 
+      // Parse the spec for an optional subdirectory path component
+      const { baseSpec, subdir } = this.parseSpecWithPath(spec);
+
       // Handle local directory differently - use direct copy instead of pacote
       if (spec.startsWith("file:")) {
         await this.copyLocalDirectory(spec, installPath);
+      } else if (subdir) {
+        // Extract the full repo to a temp directory, then copy the subdirectory
+        await this.extractSubdirectory(baseSpec, subdir, installPath, opts);
       } else {
         // Use pacote.extract to download and extract the package
-        await pacote.extract(spec, installPath, opts);
+        await pacote.extract(baseSpec, installPath, opts);
       }
 
       // Verify SKILL.md exists
@@ -152,9 +158,9 @@ export class SkillInstaller {
           // package.json is optional for local files
         }
       } else {
-        const metadata = await pacote.manifest(spec, opts);
+        const metadata = await pacote.manifest(baseSpec, opts);
         resolvedVersion = this.extractVersion(
-          spec,
+          baseSpec,
           metadata as unknown as Record<string, unknown>
         );
         integrity = metadata._integrity || metadata.dist?.integrity || "";
@@ -332,15 +338,21 @@ export class SkillInstaller {
     try {
       await fs.mkdir(tempDir, { recursive: true });
 
+      const opts: pacote.Options = {};
+      if (this.cacheDir) {
+        opts.cache = this.cacheDir;
+      }
+
+      // Parse the spec for an optional subdirectory path component
+      const { baseSpec, subdir } = this.parseSpecWithPath(spec);
+
       // Extract to temp directory
       if (spec.startsWith("file:")) {
         await this.copyLocalDirectory(spec, tempDir);
+      } else if (subdir) {
+        await this.extractSubdirectory(baseSpec, subdir, tempDir, opts);
       } else {
-        const opts: pacote.Options = {};
-        if (this.cacheDir) {
-          opts.cache = this.cacheDir;
-        }
-        await pacote.extract(spec, tempDir, opts);
+        await pacote.extract(baseSpec, tempDir, opts);
       }
 
       // Verify SKILL.md exists
@@ -362,6 +374,57 @@ export class SkillInstaller {
       // Clean up temp directory
       try {
         await fs.rm(tempDir, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+  }
+
+  /**
+   * Extract a subdirectory from a git repository into the destination.
+   *
+   * Downloads the full repository to a temporary directory, then copies
+   * only the specified subdirectory into destPath.
+   */
+  private async extractSubdirectory(
+    baseSpec: string,
+    subdir: string,
+    destPath: string,
+    opts: pacote.Options
+  ): Promise<void> {
+    const tempRepo = join(
+      this.cacheDir || this.skillsDir,
+      `.repo-${Date.now()}`
+    );
+
+    try {
+      await fs.mkdir(tempRepo, { recursive: true });
+      await pacote.extract(baseSpec, tempRepo, opts);
+
+      const subdirPath = join(tempRepo, subdir);
+
+      // Verify the subdirectory exists
+      let stat: Awaited<ReturnType<typeof fs.stat>>;
+      try {
+        stat = await fs.stat(subdirPath);
+      } catch {
+        throw new Error(
+          `Path '${subdir}' not found in repository '${baseSpec}'`
+        );
+      }
+
+      if (!stat.isDirectory()) {
+        throw new Error(
+          `Path '${subdir}' in repository '${baseSpec}' is not a directory`
+        );
+      }
+
+      // Copy the subdirectory contents into the destination
+      await fs.mkdir(destPath, { recursive: true });
+      await this.copyDir(subdirPath, destPath);
+    } finally {
+      try {
+        await fs.rm(tempRepo, { recursive: true, force: true });
       } catch {
         // Ignore cleanup errors
       }
@@ -511,6 +574,130 @@ export class SkillInstaller {
   }
 
   /**
+   * Parse the git fragment (everything after `#`) into its committish and
+   * optional subdirectory path, following the npm/pacote convention of
+   * `::` as a separator between fragment attributes:
+   *
+   *   `ref`                      → committish=ref, subdir=undefined
+   *   `ref::path:subdir`         → committish=ref, subdir=subdir
+   *   `path:subdir`              → committish=undefined, subdir=subdir
+   *   `semver:^1.0::path:sub`   → committish=undefined, subdir=sub
+   */
+  private parseFragment(fragment: string): {
+    committish?: string;
+    subdir?: string;
+  } {
+    const parts = fragment.split("::");
+    let committish: string | undefined;
+    let subdir: string | undefined;
+
+    for (const part of parts) {
+      if (part.startsWith("path:")) {
+        subdir = part.substring("path:".length);
+      } else if (part.startsWith("semver:")) {
+        // semver: ranges are a pacote concept; ignore for our purposes
+      } else if (part.length > 0) {
+        // bare value is the git committish (branch, tag, SHA)
+        committish = part;
+      }
+    }
+
+    return { committish, subdir };
+  }
+
+  /**
+   * Parse a spec that may contain a subdirectory path component.
+   *
+   * Supported formats (aligned with the npm/pacote `path:` convention):
+   *
+   * Standard (recommended):
+   * - `github:user/repo#path:skills/my-skill`
+   * - `github:user/repo#v1.0.0::path:skills/my-skill`
+   * - `git+https://...#v1.0.0::path:skills/my-skill`
+   * - `git+ssh://...#v1.0.0::path:skills/my-skill`
+   *
+   * Convenience shorthand (github: only):
+   * - `github:user/repo/skills/my-skill`
+   * - `github:user/repo/skills/my-skill#v1.0.0`
+   *
+   * npm packages (scoped or unscoped) with a subdirectory:
+   * - `@org/monorepo::path:skills/my-skill`
+   * - `@org/monorepo@1.0.0::path:skills/my-skill`
+   * - `my-package::path:skills/my-skill`
+   * - `my-package@1.0.0::path:skills/my-skill`
+   *
+   * All other specs are returned as-is with no subdir.
+   */
+  private parseSpecWithPath(spec: string): {
+    baseSpec: string;
+    subdir?: string;
+  } {
+    // Handle github: shorthand
+    if (spec.startsWith("github:")) {
+      const withoutPrefix = spec.substring("github:".length);
+      const hashIndex = withoutPrefix.indexOf("#");
+      const urlPart =
+        hashIndex !== -1
+          ? withoutPrefix.substring(0, hashIndex)
+          : withoutPrefix;
+      const fragment =
+        hashIndex !== -1 ? withoutPrefix.substring(hashIndex + 1) : undefined;
+
+      // Standard format: github:user/repo#[ref::]path:subdir
+      if (fragment) {
+        const { committish, subdir } = this.parseFragment(fragment);
+        if (subdir) {
+          const [user, repo] = urlPart.split("/");
+          const baseSpec = committish
+            ? `github:${user}/${repo}#${committish}`
+            : `github:${user}/${repo}`;
+          return { baseSpec, subdir };
+        }
+      }
+
+      // Convenience shorthand: github:user/repo/path/to/skill[#ref]
+      const parts = urlPart.split("/");
+      if (parts.length > 2) {
+        const user = parts[0];
+        const repo = parts[1];
+        const subdir = parts.slice(2).join("/");
+        const baseSpec = fragment
+          ? `github:${user}/${repo}#${fragment}`
+          : `github:${user}/${repo}`;
+        return { baseSpec, subdir };
+      }
+
+      return { baseSpec: spec };
+    }
+
+    // Handle git+https:// and git+ssh:// with standard path: attribute
+    if (spec.startsWith("git+https://") || spec.startsWith("git+ssh://")) {
+      const hashIndex = spec.indexOf("#");
+      if (hashIndex !== -1) {
+        const fragment = spec.substring(hashIndex + 1);
+        const { committish, subdir } = this.parseFragment(fragment);
+        if (subdir) {
+          const base = spec.substring(0, hashIndex);
+          const baseSpec = committish ? `${base}#${committish}` : base;
+          return { baseSpec, subdir };
+        }
+      }
+    }
+
+    // Handle ::path: suffix for npm packages and any remaining spec types
+    const colonColonIndex = spec.indexOf("::");
+    if (colonColonIndex !== -1) {
+      const afterColonColon = spec.substring(colonColonIndex + 2);
+      if (afterColonColon.startsWith("path:")) {
+        const subdir = afterColonColon.substring("path:".length);
+        return { baseSpec: spec.substring(0, colonColonIndex), subdir };
+      }
+    }
+
+    return { baseSpec: spec };
+  }
+
+  /**
    * Validate if spec is in a supported format
    */
   private isValidSpec(spec: string): boolean {
@@ -534,12 +721,18 @@ export class SkillInstaller {
       spec.startsWith(prefix)
     );
 
+    // Strip ::path: suffix before npm package name validation so that
+    // specs like `@org/monorepo::path:sub` and `pkg@1.0::path:sub` are accepted.
+    const colonColonIndex = spec.indexOf("::");
+    const specBase =
+      colonColonIndex !== -1 ? spec.substring(0, colonColonIndex) : spec;
+
     // Also allow npm package names (with or without version)
     // Must start with @scope/ or be a valid package name with optional @version
     // Npm packages cannot contain "format" or similar non-package words
-    const isScopedPackage = /^@[a-z0-9-]+\/[a-z0-9-]+(@.+)?$/.test(spec);
+    const isScopedPackage = /^@[a-z0-9-]+\/[a-z0-9-]+(@.+)?$/.test(specBase);
     // Valid npm package: no spaces, starts with letter or @, contains only valid chars
-    const isNpmPackage = /^[a-z][a-z0-9-]*(@[\w.-~]+)?$/.test(spec);
+    const isNpmPackage = /^[a-z][a-z0-9-]*(@[\w.-~]+)?$/.test(specBase);
 
     // Reject obvious non-packages (containing spaces, invalid keywords, etc.)
     if (spec.includes(" ") || spec.includes("invalid")) {
@@ -579,6 +772,14 @@ export class SkillInstaller {
   ): InstallResult {
     const err = error as Error & { code?: string; statusCode?: number };
     const message = err.message || "Unknown error";
+
+    // Subdirectory path not found in git repository
+    if (
+      message.includes("not found in repository") ||
+      message.includes("is not a directory")
+    ) {
+      return this.createFailure(name, spec, "INSTALL_FAILED", message);
+    }
 
     // Network errors
     if (

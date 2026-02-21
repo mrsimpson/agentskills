@@ -41,9 +41,20 @@ describe("SkillInstaller", () => {
             /skill-\w+|test-skill|cached-skill|existing-skill|nested-skill/
           )?.[0] || "test-skill";
 
+        // Simulate a repo with subdirectories for path-based specs
+        // Always write SKILL.md at root AND inside a `skills/` subdirectory
         await fs.writeFile(
           join(dest, "SKILL.md"),
           `---\nname: ${skillName}\ndescription: Test skill\n---\n\n# ${skillName}`,
+          "utf-8"
+        );
+
+        // Create a nested skill directory so subdirectory tests can find SKILL.md
+        const nestedSkillDir = join(dest, "skills", "nested-skill");
+        await fs.mkdir(nestedSkillDir, { recursive: true });
+        await fs.writeFile(
+          join(nestedSkillDir, "SKILL.md"),
+          `---\nname: nested-skill\ndescription: Nested skill\n---\n\n# nested-skill`,
           "utf-8"
         );
 
@@ -87,7 +98,10 @@ describe("SkillInstaller", () => {
       ["github:user/test-skill#v1.0.0"],
       ["git+https://github.com/user/test-skill.git#v1.0.0"],
       ["git+ssh://git@github.com/user/test-skill.git#v1.0.0"],
-      ["https://example.com/skills/test-skill.tgz"]
+      ["https://example.com/skills/test-skill.tgz"],
+      ["@org/test-skill"],
+      ["@org/test-skill@1.0.0"],
+      ["test-skill@1.0.0"]
     ])("should install skill from spec %s", async (spec) => {
       const result = await installer.install("test-skill", spec);
       expect(result.success).toBe(true);
@@ -115,6 +129,126 @@ describe("SkillInstaller", () => {
 
       const result = await installer.install("local-skill", `file:${localDir}`);
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe("install - Git path specs (subdirectory)", () => {
+    it("should install from github: shorthand with subdirectory path", async () => {
+      // github:user/repo/skills/nested-skill → baseSpec=github:user/repo, subdir=skills/nested-skill
+      const spec = "github:user/repo/skills/nested-skill";
+      const result = await installer.install("nested-skill", spec);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.name).toBe("nested-skill");
+        expect(result.spec).toBe(spec);
+        // The installed SKILL.md should come from the subdirectory
+        const skillMdContent = await fs.readFile(
+          join(skillsDir, "nested-skill", "SKILL.md"),
+          "utf-8"
+        );
+        expect(skillMdContent).toContain("nested-skill");
+      }
+    });
+
+    it("should install from github: shorthand with subdirectory and ref", async () => {
+      const spec = "github:user/repo/skills/nested-skill#v1.0.0";
+      const result = await installer.install("nested-skill", spec);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.spec).toBe(spec);
+        // resolvedVersion comes from the baseSpec ref
+        expect(result.resolvedVersion).toBe("v1.0.0");
+      }
+    });
+
+    it("should install from git+https:// URL with standard path: attribute", async () => {
+      const spec =
+        "git+https://github.com/user/repo.git#v1.0.0::path:skills/nested-skill";
+      const result = await installer.install("nested-skill", spec);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.spec).toBe(spec);
+        const skillMdContent = await fs.readFile(
+          join(skillsDir, "nested-skill", "SKILL.md"),
+          "utf-8"
+        );
+        expect(skillMdContent).toContain("nested-skill");
+      }
+    });
+
+    it("should install from git+ssh:// URL with standard path: attribute", async () => {
+      const spec =
+        "git+ssh://git@github.com/user/repo.git#v1.0.0::path:skills/nested-skill";
+      const result = await installer.install("nested-skill", spec);
+      expect(result.success).toBe(true);
+    });
+
+    it("should install from scoped npm package with ::path: suffix", async () => {
+      const spec = "@org/monorepo::path:skills/nested-skill";
+      const result = await installer.install("nested-skill", spec);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const skillMdContent = await fs.readFile(
+          join(skillsDir, "nested-skill", "SKILL.md"),
+          "utf-8"
+        );
+        expect(skillMdContent).toContain("nested-skill");
+      }
+    });
+
+    it("should install from versioned scoped npm package with ::path: suffix", async () => {
+      const spec = "@org/monorepo@1.0.0::path:skills/nested-skill";
+      const result = await installer.install("nested-skill", spec);
+      expect(result.success).toBe(true);
+    });
+
+    it("should install from unscoped npm package with ::path: suffix", async () => {
+      const spec = "my-package::path:skills/nested-skill";
+      const result = await installer.install("nested-skill", spec);
+      expect(result.success).toBe(true);
+    });
+
+    it("should pass baseSpec (without ::path:) to pacote for npm package with path", async () => {
+      const spec = "@org/monorepo@2.0.0::path:skills/nested-skill";
+      await installer.install("nested-skill", spec);
+      expect(vi.mocked(pacote.extract)).toHaveBeenCalledWith(
+        "@org/monorepo@2.0.0",
+        expect.any(String),
+        expect.any(Object)
+      );
+    });
+
+    it("should fail when subdirectory does not exist in repository", async () => {
+      const spec = "github:user/repo/nonexistent/path";
+      const result = await installer.install("no-such-skill", spec);
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error?.code).toBe("INSTALL_FAILED");
+        // The error message is preserved from extractSubdirectory
+        expect(result.error?.message).toContain("not found in repository");
+      }
+    });
+
+    it("should pass baseSpec (without path) to pacote for github: with path", async () => {
+      const spec = "github:user/myrepo/skills/nested-skill#main";
+      await installer.install("nested-skill", spec);
+      // pacote.extract should have been called with github:user/myrepo#main, not the full path
+      expect(vi.mocked(pacote.extract)).toHaveBeenCalledWith(
+        "github:user/myrepo#main",
+        expect.any(String),
+        expect.any(Object)
+      );
+    });
+
+    it("should pass baseSpec (without path: attribute) to pacote for git+https specs", async () => {
+      const spec =
+        "git+https://github.com/user/repo.git#v2.0.0::path:skills/nested-skill";
+      await installer.install("nested-skill", spec);
+      expect(vi.mocked(pacote.extract)).toHaveBeenCalledWith(
+        "git+https://github.com/user/repo.git#v2.0.0",
+        expect.any(String),
+        expect.any(Object)
+      );
     });
   });
 
