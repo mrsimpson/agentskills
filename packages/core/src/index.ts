@@ -40,3 +40,4 @@ export { SkillRegistry } from "./registry.js";
 export { SkillInstaller } from "./installer.js";
 export { PackageConfigManager } from "./package-config.js";
 export { MCPConfigManager } from "./mcp-config-manager.js";
+export { MCPDependencyChecker } from "./mcp-dependency-checker.js";
