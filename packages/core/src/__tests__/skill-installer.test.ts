@@ -98,7 +98,10 @@ describe("SkillInstaller", () => {
       ["github:user/test-skill#v1.0.0"],
       ["git+https://github.com/user/test-skill.git#v1.0.0"],
       ["git+ssh://git@github.com/user/test-skill.git#v1.0.0"],
-      ["https://example.com/skills/test-skill.tgz"]
+      ["https://example.com/skills/test-skill.tgz"],
+      ["@org/test-skill"],
+      ["@org/test-skill@1.0.0"],
+      ["test-skill@1.0.0"]
     ])("should install skill from spec %s", async (spec) => {
       const result = await installer.install("test-skill", spec);
       expect(result.success).toBe(true);

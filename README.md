@@ -181,6 +181,7 @@ Skills are declared in the `agentskills` field of `package.json`:
 | GitHub with `path:` attr  | `github:user/repo#v1.0.0::path:skills/my-skill`                 | Standard npm format with subdirectory            |
 | Git URL                   | `git+https://github.com/org/repo.git#v1.0.0`                    | Full git URL with version tag                    |
 | Git URL with `path:` attr | `git+https://github.com/org/repo.git#v1.0.0::path:skills/skill` | Git URL with subdirectory (npm standard)         |
+| npm package               | `@org/my-skill` or `my-skill@1.2.0`                             | Published npm package                            |
 | Local path                | `file:./skills/custom-skill`                                    | Relative or absolute local path                  |
 | Tarball URL               | `https://example.com/skill.tgz`                                 | Remote tarball                                   |
 
