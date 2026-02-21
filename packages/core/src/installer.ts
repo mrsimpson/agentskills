@@ -574,53 +574,107 @@ export class SkillInstaller {
   }
 
   /**
+   * Parse the git fragment (everything after `#`) into its committish and
+   * optional subdirectory path, following the npm/pacote convention of
+   * `::` as a separator between fragment attributes:
+   *
+   *   `ref`                      → committish=ref, subdir=undefined
+   *   `ref::path:subdir`         → committish=ref, subdir=subdir
+   *   `path:subdir`              → committish=undefined, subdir=subdir
+   *   `semver:^1.0::path:sub`   → committish=undefined, subdir=sub
+   */
+  private parseFragment(fragment: string): {
+    committish?: string;
+    subdir?: string;
+  } {
+    const parts = fragment.split("::");
+    let committish: string | undefined;
+    let subdir: string | undefined;
+
+    for (const part of parts) {
+      if (part.startsWith("path:")) {
+        subdir = part.substring("path:".length);
+      } else if (part.startsWith("semver:")) {
+        // semver: ranges are a pacote concept; ignore for our purposes
+      } else if (part.length > 0) {
+        // bare value is the git committish (branch, tag, SHA)
+        committish = part;
+      }
+    }
+
+    return { committish, subdir };
+  }
+
+  /**
    * Parse a spec that may contain a subdirectory path component.
    *
-   * Supported formats:
-   * - `github:user/repo/path/to/skill#ref` → baseSpec=`github:user/repo#ref`, subdir=`path/to/skill`
-   * - `github:user/repo/path/to/skill` → baseSpec=`github:user/repo`, subdir=`path/to/skill`
-   * - `git+https://...#ref::path/to/skill` → baseSpec=`git+https://...#ref`, subdir=`path/to/skill`
-   * - `git+ssh://...#ref::path/to/skill` → baseSpec=`git+ssh://...#ref`, subdir=`path/to/skill`
-   * - All other specs are returned as-is with no subdir.
+   * Supported formats (aligned with the npm/pacote `path:` convention):
+   *
+   * Standard (recommended):
+   * - `github:user/repo#path:skills/my-skill`
+   * - `github:user/repo#v1.0.0::path:skills/my-skill`
+   * - `git+https://...#v1.0.0::path:skills/my-skill`
+   * - `git+ssh://...#v1.0.0::path:skills/my-skill`
+   *
+   * Convenience shorthand (github: only):
+   * - `github:user/repo/skills/my-skill`
+   * - `github:user/repo/skills/my-skill#v1.0.0`
+   *
+   * All other specs are returned as-is with no subdir.
    */
   private parseSpecWithPath(spec: string): {
     baseSpec: string;
     subdir?: string;
   } {
-    // Handle github: shorthand with embedded path: github:user/repo/path/to/skill#ref
+    // Handle github: shorthand
     if (spec.startsWith("github:")) {
       const withoutPrefix = spec.substring("github:".length);
       const hashIndex = withoutPrefix.indexOf("#");
-      const pathPart =
+      const urlPart =
         hashIndex !== -1
           ? withoutPrefix.substring(0, hashIndex)
           : withoutPrefix;
-      const ref =
+      const fragment =
         hashIndex !== -1 ? withoutPrefix.substring(hashIndex + 1) : undefined;
 
-      const parts = pathPart.split("/");
+      // Standard format: github:user/repo#[ref::]path:subdir
+      if (fragment) {
+        const { committish, subdir } = this.parseFragment(fragment);
+        if (subdir) {
+          const [user, repo] = urlPart.split("/");
+          const baseSpec = committish
+            ? `github:${user}/${repo}#${committish}`
+            : `github:${user}/${repo}`;
+          return { baseSpec, subdir };
+        }
+      }
+
+      // Convenience shorthand: github:user/repo/path/to/skill[#ref]
+      const parts = urlPart.split("/");
       if (parts.length > 2) {
-        // github:user/repo/path/to/skill[#ref]
         const user = parts[0];
         const repo = parts[1];
         const subdir = parts.slice(2).join("/");
-        const baseSpec = ref
-          ? `github:${user}/${repo}#${ref}`
+        const baseSpec = fragment
+          ? `github:${user}/${repo}#${fragment}`
           : `github:${user}/${repo}`;
         return { baseSpec, subdir };
       }
+
       return { baseSpec: spec };
     }
 
-    // Handle git+https:// and git+ssh:// with :: path separator:
-    // git+https://github.com/user/repo.git#ref::path/to/skill
+    // Handle git+https:// and git+ssh:// with standard path: attribute
     if (spec.startsWith("git+https://") || spec.startsWith("git+ssh://")) {
-      const colonColonIndex = spec.indexOf("::");
-      if (colonColonIndex !== -1) {
-        return {
-          baseSpec: spec.substring(0, colonColonIndex),
-          subdir: spec.substring(colonColonIndex + 2)
-        };
+      const hashIndex = spec.indexOf("#");
+      if (hashIndex !== -1) {
+        const fragment = spec.substring(hashIndex + 1);
+        const { committish, subdir } = this.parseFragment(fragment);
+        if (subdir) {
+          const base = spec.substring(0, hashIndex);
+          const baseSpec = committish ? `${base}#${committish}` : base;
+          return { baseSpec, subdir };
+        }
       }
     }
 

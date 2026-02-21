@@ -174,12 +174,17 @@ Skills are declared in the `agentskills` field of `package.json`:
 
 ### Source Specifiers
 
-| Source Type      | Example                                      | Description                     |
-| ---------------- | -------------------------------------------- | ------------------------------- |
-| GitHub shorthand | `github:user/repo/path/to/skill`             | Direct GitHub path              |
-| Git URL          | `git+https://github.com/org/repo.git#v1.0.0` | Full git URL with version tag   |
-| Local path       | `file:./skills/custom-skill`                 | Relative or absolute local path |
-| Tarball URL      | `https://example.com/skill.tgz`              | Remote tarball                  |
+| Source Type               | Example                                                         | Description                                      |
+| ------------------------- | --------------------------------------------------------------- | ------------------------------------------------ |
+| GitHub shorthand          | `github:user/repo/path/to/skill`                                | GitHub repo with subdirectory (convenience form) |
+| GitHub shorthand with ref | `github:user/repo/path/to/skill#v1.0.0`                         | GitHub repo with subdirectory and tag/branch     |
+| GitHub with `path:` attr  | `github:user/repo#v1.0.0::path:skills/my-skill`                 | Standard npm format with subdirectory            |
+| Git URL                   | `git+https://github.com/org/repo.git#v1.0.0`                    | Full git URL with version tag                    |
+| Git URL with `path:` attr | `git+https://github.com/org/repo.git#v1.0.0::path:skills/skill` | Git URL with subdirectory (npm standard)         |
+| Local path                | `file:./skills/custom-skill`                                    | Relative or absolute local path                  |
+| Tarball URL               | `https://example.com/skill.tgz`                                 | Remote tarball                                   |
+
+The `path:` attribute syntax (`#ref::path:subdir`) follows the [npm/pacote standard](https://github.com/npm/npm-package-arg) for git subdirectory specifications. The GitHub shorthand form (`github:user/repo/subdir`) is a convenience alias for `github:user/repo#path:subdir`.
 
 ### Example Team Configuration
 

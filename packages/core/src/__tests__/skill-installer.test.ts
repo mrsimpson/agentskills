@@ -158,9 +158,9 @@ describe("SkillInstaller", () => {
       }
     });
 
-    it("should install from git+https:// URL with :: path separator", async () => {
+    it("should install from git+https:// URL with standard path: attribute", async () => {
       const spec =
-        "git+https://github.com/user/repo.git#v1.0.0::skills/nested-skill";
+        "git+https://github.com/user/repo.git#v1.0.0::path:skills/nested-skill";
       const result = await installer.install("nested-skill", spec);
       expect(result.success).toBe(true);
       if (result.success) {
@@ -173,9 +173,9 @@ describe("SkillInstaller", () => {
       }
     });
 
-    it("should install from git+ssh:// URL with :: path separator", async () => {
+    it("should install from git+ssh:// URL with standard path: attribute", async () => {
       const spec =
-        "git+ssh://git@github.com/user/repo.git#v1.0.0::skills/nested-skill";
+        "git+ssh://git@github.com/user/repo.git#v1.0.0::path:skills/nested-skill";
       const result = await installer.install("nested-skill", spec);
       expect(result.success).toBe(true);
     });
@@ -202,9 +202,9 @@ describe("SkillInstaller", () => {
       );
     });
 
-    it("should pass baseSpec (without :: path) to pacote for git+https:: specs", async () => {
+    it("should pass baseSpec (without path: attribute) to pacote for git+https specs", async () => {
       const spec =
-        "git+https://github.com/user/repo.git#v2.0.0::skills/nested-skill";
+        "git+https://github.com/user/repo.git#v2.0.0::path:skills/nested-skill";
       await installer.install("nested-skill", spec);
       expect(vi.mocked(pacote.extract)).toHaveBeenCalledWith(
         "git+https://github.com/user/repo.git#v2.0.0",
