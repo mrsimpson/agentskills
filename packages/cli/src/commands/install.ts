@@ -49,6 +49,7 @@ export async function installCommand(options?: {
     continue: "continue",
     cursor: "cursor",
     junie: "junie",
+    kiro: "kiro",
     zed: "zed",
     vscode: "cline" // cline runs in vscode
   };
@@ -94,7 +95,7 @@ export async function installCommand(options?: {
 
     // 2. Auto-install agentskills-mcp server (only if agent specified/detected)
     if (clientType) {
-      await ensureAgentskillsMCPServer(mcpConfigManager, clientType);
+      await ensureAgentskillsMCPServer(mcpConfigManager, clientType, cwd);
     }
 
     // 3. Check if any skills to install
@@ -196,7 +197,8 @@ export async function installCommand(options?: {
         const hasError = await installMCPServers(
           installer,
           clientType,
-          mcpConfigManager
+          mcpConfigManager,
+          cwd
         );
         if (hasError) {
           process.exit(1);
@@ -351,12 +353,14 @@ async function validateMCPDependencies(
  * @param installer - SkillInstaller instance
  * @param clientType - The MCP client type (already validated to not be null)
  * @param mcpConfigManager - MCP config manager
+ * @param projectCwd - The project directory (where package.json is)
  * @returns True if there are errors, false otherwise
  */
 async function installMCPServers(
   installer: SkillInstaller,
   clientType: McpClientType | null,
-  mcpConfigManager: MCPConfigManager
+  mcpConfigManager: MCPConfigManager,
+  projectCwd: string
 ): Promise<boolean> {
   try {
     // clientType should never be null here as we validate earlier
@@ -412,7 +416,13 @@ async function installMCPServers(
         const parameters = await promptForParameters(dep);
 
         // Install the server
-        await installMCPServer(clientType, dep, parameters, mcpConfigManager);
+        await installMCPServer(
+          clientType,
+          dep,
+          parameters,
+          mcpConfigManager,
+          projectCwd
+        );
 
         console.log(
           chalk.green(`✓ ${dep.serverName} configured successfully\n`)
@@ -522,12 +532,14 @@ async function promptForParameters(
  * @param dependency - MCP dependency info
  * @param parameters - Parameter values from user
  * @param configManager - MCP config manager
+ * @param projectCwd - The project directory (where package.json is)
  */
 async function installMCPServer(
   clientType: McpClientType,
   dependency: McpDependencyInfo,
   parameters: ParameterValues,
-  configManager: MCPConfigManager
+  configManager: MCPConfigManager,
+  projectCwd: string
 ): Promise<void> {
   const spec = dependency.spec;
 
@@ -545,7 +557,8 @@ async function installMCPServer(
   const serverConfig = {
     command: spec.command,
     args: substitutedArgs,
-    env: substitutedEnv
+    env: substitutedEnv,
+    cwd: projectCwd
   };
 
   // Add server to config
@@ -565,10 +578,12 @@ async function installMCPServer(
  *
  * @param configManager - MCP config manager
  * @param clientType - The MCP client type to configure
+ * @param projectCwd - The project directory (where package.json is)
  */
 async function ensureAgentskillsMCPServer(
   configManager: MCPConfigManager,
-  clientType: McpClientType
+  clientType: McpClientType,
+  projectCwd: string
 ): Promise<void> {
   try {
     // 1. Check if agentskills server is already configured
@@ -587,7 +602,7 @@ async function ensureAgentskillsMCPServer(
       command: "npx",
       args: ["-y", "@codemcp/agentskills-mcp"],
       env: {},
-      cwd: process.cwd()
+      cwd: projectCwd
     };
 
     await configManager.addServer(clientType, "agentskills", serverConfig);

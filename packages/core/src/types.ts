@@ -271,6 +271,7 @@ export type McpClientType =
   | "continue"
   | "cursor"
   | "junie"
+  | "kiro"
   | "zed";
 
 /**
@@ -305,6 +306,7 @@ export interface McpServerConfig {
   command: string;
   args?: string[];
   env?: Record<string, string>;
+  cwd?: string;
 }
 
 /**
