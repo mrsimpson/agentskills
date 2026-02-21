@@ -2,12 +2,21 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import * as os from "os";
-import { MCPConfigManager } from "../mcp-config-manager.js";
 import type { McpClientType } from "../types.js";
 
+// Mock the os module at the module level for ESM compatibility
+let tempDir: string;
+vi.mock("os", async () => {
+  const actual = await vi.importActual<typeof import("os")>("os");
+  return {
+    ...actual,
+    homedir: () => tempDir
+  };
+});
+
+import { MCPConfigManager } from "../mcp-config-manager.js";
+
 describe("MCPConfigManager", () => {
-  let tempDir: string;
   let originalPlatform: string;
   let originalEnv: NodeJS.ProcessEnv;
 
@@ -18,9 +27,6 @@ describe("MCPConfigManager", () => {
     // Store original values
     originalPlatform = process.platform;
     originalEnv = { ...process.env };
-
-    // Mock homedir to use temp directory
-    vi.spyOn(os, "homedir").mockReturnValue(tempDir);
   });
 
   afterEach(async () => {

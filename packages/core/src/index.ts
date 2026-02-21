@@ -23,7 +23,15 @@ export type {
   SkillManifest,
   SkillLockFile,
   SkillLockEntry,
-  PackageConfig
+  PackageConfig,
+  McpClientType,
+  McpConfig,
+  McpServerConfig,
+  McpServerDependency,
+  McpParameterSpec,
+  McpDependencyCheckResult,
+  McpDependencyInfo,
+  ParameterValues
 } from "./types.js";
 
 export { parseSkill, parseSkillContent } from "./parser.js";
@@ -31,3 +39,4 @@ export { validateSkill } from "./validator.js";
 export { SkillRegistry } from "./registry.js";
 export { SkillInstaller } from "./installer.js";
 export { PackageConfigManager } from "./package-config.js";
+export { MCPConfigManager } from "./mcp-config-manager.js";
