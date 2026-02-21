@@ -133,9 +133,7 @@ jobs:
         run: |
           # Publish all packages in workspace
           # pnpm -r publishes packages in topological order (dependencies first)
-          pnpm -r publish --access public --no-git-checks
-
-          # Publish main package
-          pnpm publish --access public --no-git-checks
+          # Root package is private and will be skipped automatically
+          pnpm -r publish --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
