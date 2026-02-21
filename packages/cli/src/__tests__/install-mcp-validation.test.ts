@@ -523,7 +523,8 @@ describe("Install Command - MCP Dependency Validation", () => {
       expect(mockMCPDependencyChecker.checkDependencies).toHaveBeenCalledWith(
         "claude-desktop",
         dependencies,
-        expect.any(Object) // MCPConfigManager instance
+        expect.any(Object), // MCPConfigManager instance
+        "/test"
       );
       expect(processExitSpy).toHaveBeenCalledWith(0);
     });

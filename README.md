@@ -77,7 +77,7 @@ This downloads skills to `.agentskills/skills/` directory.
 
 ### 4. Configure MCP Client
 
-Point your MCP client (Claude Desktop, Cline, Continue, etc.) to the server:
+Point your MCP client (Claude Desktop, Cline, Continue, Cursor, Junie, Kiro, Zed, etc.) to the server:
 
 ```json
 {
@@ -112,7 +112,7 @@ Agent ← MCP Protocol ← agentskills-mcp (server) ← skill registry
 
 ## Features
 
-- 🔌 **MCP Protocol Support** - Works with Claude Desktop, Cline, Continue, and other MCP clients
+- 🔌 **MCP Protocol Support** - Works with Claude Desktop, Cline, Continue, Cursor, Junie, Kiro, Zed, and other MCP clients
 - 📦 **Package Manager Integration** - Declare skills in `package.json`, version control your configuration
 - 🚀 **Multiple Sources** - Install from GitHub repos, local paths, or tarball URLs
 - ✅ **Validation** - Built-in parsing and validation for Agent Skills format

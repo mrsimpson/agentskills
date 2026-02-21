@@ -523,7 +523,8 @@ describe("MCPDependencyChecker", () => {
 
         expect(mockConfigManager.isServerConfigured).toHaveBeenCalledWith(
           clientType,
-          "filesystem"
+          "filesystem",
+          undefined
         );
       }
     });

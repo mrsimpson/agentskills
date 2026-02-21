@@ -1092,7 +1092,8 @@ describe("Install Command - --with-mcp Flag", () => {
             "@modelcontextprotocol/server-filesystem",
             "/home/user/files"
           ])
-        })
+        }),
+        "/test"
       );
     });
 
@@ -1187,7 +1188,8 @@ describe("Install Command - --with-mcp Flag", () => {
           env: expect.objectContaining({
             GITHUB_TOKEN: "ghp_secret_token"
           })
-        })
+        }),
+        "/test"
       );
     });
   });
@@ -1429,7 +1431,8 @@ describe("Install Command - --with-mcp Flag", () => {
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
         "claude-desktop",
         "github",
-        expect.any(Object)
+        expect.any(Object),
+        "/test"
       );
     });
   });
@@ -1570,17 +1573,20 @@ describe("Install Command - --with-mcp Flag", () => {
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
         "claude-desktop",
         "filesystem",
-        expect.any(Object)
+        expect.any(Object),
+        "/test"
       );
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
         "claude-desktop",
         "github",
-        expect.any(Object)
+        expect.any(Object),
+        "/test"
       );
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
         "claude-desktop",
         "slack",
-        expect.any(Object)
+        expect.any(Object),
+        "/test"
       );
     });
 
@@ -2469,7 +2475,8 @@ describe("Install Command - --with-mcp Flag", () => {
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
         "claude-desktop",
         "filesystem",
-        expect.any(Object)
+        expect.any(Object),
+        "/test"
       );
     });
 

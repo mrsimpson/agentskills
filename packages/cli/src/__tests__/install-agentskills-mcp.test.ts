@@ -184,7 +184,8 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       // Verify agentskills server was added
       expect(mockMCPConfigManager.isServerConfigured).toHaveBeenCalledWith(
         "claude-desktop",
-        "agentskills"
+        "agentskills",
+        "/test/project"
       );
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
         "claude-desktop",
@@ -194,7 +195,8 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
           args: ["-y", "@codemcp/agentskills-mcp"],
           env: {},
           cwd: "/test/project"
-        }
+        },
+        "/test/project"
       );
       expect(processExitSpy).toHaveBeenCalledWith(0);
     });
@@ -311,7 +313,8 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
         "agentskills",
         expect.objectContaining({
           cwd: "/custom/working/directory"
-        })
+        }),
+        "/custom/working/directory"
       );
     });
 
@@ -372,7 +375,8 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
         expect.objectContaining({
           command: "npx",
           args: ["-y", "@codemcp/agentskills-mcp"]
-        })
+        }),
+        "/test/project"
       );
     });
   });
@@ -425,10 +429,10 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       await installCommand({ cwd: "/test/project", agent: "claude" });
 
       // Verify agentskills server was NOT added
-      expect(mockMCPConfigManager.isServerConfigured).toHaveBeenCalledWith(
-        "claude-desktop",
-        "agentskills"
-      );
+      expect(
+        mockMCPConfigManager.isServerConfigured,
+        "/test/project"
+      ).toHaveBeenCalledWith("claude-desktop", "agentskills", "/test/project");
       expect(mockMCPConfigManager.addServer).not.toHaveBeenCalled();
       expect(processExitSpy).toHaveBeenCalledWith(0);
     });
@@ -549,7 +553,8 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
         "claude-desktop",
         "agentskills",
-        expect.any(Object)
+        expect.any(Object),
+        "/test/project"
       );
     });
 
@@ -603,7 +608,8 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
         "cline",
         "agentskills",
-        expect.any(Object)
+        expect.any(Object),
+        "/test/project"
       );
     });
 
@@ -657,7 +663,8 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
         "zed",
         "agentskills",
-        expect.any(Object)
+        expect.any(Object),
+        "/test/project"
       );
     });
   });
@@ -878,10 +885,10 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       await installCommand({ cwd: "/test/project", agent: "claude" });
 
       // Verify agentskills server was added even though no skills
-      expect(mockMCPConfigManager.isServerConfigured).toHaveBeenCalledWith(
-        "claude-desktop",
-        "agentskills"
-      );
+      expect(
+        mockMCPConfigManager.isServerConfigured,
+        "/test/project"
+      ).toHaveBeenCalledWith("claude-desktop", "agentskills", "/test/project");
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
         "claude-desktop",
         "agentskills",
@@ -890,7 +897,8 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
           args: ["-y", "@codemcp/agentskills-mcp"],
           env: {},
           cwd: "/test/project"
-        }
+        },
+        "/test/project"
       );
       // Should exit with 0 (no skills to install message, but still success)
       expect(processExitSpy).toHaveBeenCalledWith(0);
@@ -951,7 +959,8 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
           args: ["-y", "@codemcp/agentskills-mcp"],
           env: {},
           cwd: "/test/project"
-        }
+        },
+        "/test/project"
       );
     });
 
@@ -1007,7 +1016,8 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
         "agentskills",
         expect.objectContaining({
           env: {}
-        })
+        }),
+        "/test/project"
       );
     });
   });

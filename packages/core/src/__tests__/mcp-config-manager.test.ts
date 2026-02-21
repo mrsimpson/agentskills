@@ -4,29 +4,14 @@ import { join } from "path";
 import { tmpdir } from "os";
 import type { McpClientType } from "../types.js";
 
-// Mock the os module at the module level for ESM compatibility
-let tempDir: string;
-vi.mock("os", async () => {
-  const actual = await vi.importActual<typeof import("os")>("os");
-  return {
-    ...actual,
-    homedir: () => tempDir
-  };
-});
-
 import { MCPConfigManager } from "../mcp-config-manager.js";
 
 describe("MCPConfigManager", () => {
-  let originalPlatform: string;
-  let originalEnv: NodeJS.ProcessEnv;
+  let tempDir: string;
 
   beforeEach(async () => {
     tempDir = join(tmpdir(), `mcp-config-test-${Date.now()}`);
     await fs.mkdir(tempDir, { recursive: true });
-
-    // Store original values
-    originalPlatform = process.platform;
-    originalEnv = { ...process.env };
   });
 
   afterEach(async () => {
@@ -35,107 +20,65 @@ describe("MCPConfigManager", () => {
     } catch {
       // Ignore cleanup errors
     }
-
-    // Restore original values
-    Object.defineProperty(process, "platform", {
-      value: originalPlatform,
-      writable: true
-    });
-    process.env = originalEnv;
     vi.restoreAllMocks();
   });
 
   describe("getConfigPath", () => {
-    describe("claude-desktop paths", () => {
-      it("should return macOS path for darwin platform", () => {
-        Object.defineProperty(process, "platform", {
-          value: "darwin",
-          writable: true
-        });
+    describe("project-relative paths", () => {
+      it("should return project-relative path for claude-desktop", () => {
         const manager = new MCPConfigManager();
-        const path = manager.getConfigPath("claude-desktop");
-        expect(path).toBe(
-          join(
-            tempDir,
-            "Library/Application Support/Claude/claude_desktop_config.json"
-          )
-        );
+        const path = manager.getConfigPath("claude-desktop", tempDir);
+        expect(path).toBe(join(tempDir, ".claude/mcp_settings.json"));
       });
 
-      it("should return Linux path for linux platform", () => {
-        Object.defineProperty(process, "platform", {
-          value: "linux",
-          writable: true
-        });
+      it("should return project-relative path for cline", () => {
         const manager = new MCPConfigManager();
-        const path = manager.getConfigPath("claude-desktop");
-        expect(path).toBe(
-          join(tempDir, ".config/Claude/claude_desktop_config.json")
-        );
-      });
-
-      it("should return Windows path for win32 platform", () => {
-        Object.defineProperty(process, "platform", {
-          value: "win32",
-          writable: true
-        });
-        process.env.APPDATA = join(tempDir, "AppData", "Roaming");
-        const manager = new MCPConfigManager();
-        const path = manager.getConfigPath("claude-desktop");
-        expect(path).toBe(
-          join(tempDir, "AppData/Roaming/Claude/claude_desktop_config.json")
-        );
-      });
-
-      it("should throw error on unsupported platform for claude-desktop", () => {
-        Object.defineProperty(process, "platform", {
-          value: "freebsd",
-          writable: true
-        });
-        const manager = new MCPConfigManager();
-        expect(() => manager.getConfigPath("claude-desktop")).toThrow(
-          "Unsupported platform"
-        );
-      });
-    });
-
-    describe("cline paths", () => {
-      it("should return cline config path for all platforms", () => {
-        const manager = new MCPConfigManager();
-        const path = manager.getConfigPath("cline");
+        const path = manager.getConfigPath("cline", tempDir);
         expect(path).toBe(join(tempDir, ".cline/mcp_settings.json"));
       });
-    });
 
-    describe("continue paths", () => {
-      it("should return continue config path for all platforms", () => {
+      it("should return project-relative path for continue", () => {
         const manager = new MCPConfigManager();
-        const path = manager.getConfigPath("continue");
+        const path = manager.getConfigPath("continue", tempDir);
         expect(path).toBe(join(tempDir, ".continue/config.json"));
       });
-    });
 
-    describe("cursor paths", () => {
-      it("should return cursor config path for all platforms", () => {
+      it("should return project-relative path for cursor", () => {
         const manager = new MCPConfigManager();
-        const path = manager.getConfigPath("cursor");
+        const path = manager.getConfigPath("cursor", tempDir);
         expect(path).toBe(join(tempDir, ".cursor/mcp_settings.json"));
       });
-    });
 
-    describe("junie paths", () => {
-      it("should return junie config path for all platforms", () => {
+      it("should return project-relative path for junie", () => {
         const manager = new MCPConfigManager();
-        const path = manager.getConfigPath("junie");
+        const path = manager.getConfigPath("junie", tempDir);
         expect(path).toBe(join(tempDir, ".junie/mcp_settings.json"));
+      });
+
+      it("should return project-relative path for kiro", () => {
+        const manager = new MCPConfigManager();
+        const path = manager.getConfigPath("kiro", tempDir);
+        expect(path).toBe(join(tempDir, ".kiro/settings/mcp.json"));
+      });
+
+      it("should return project-relative path for zed", () => {
+        const manager = new MCPConfigManager();
+        const path = manager.getConfigPath("zed", tempDir);
+        expect(path).toBe(join(tempDir, ".zed/mcp_settings.json"));
+      });
+
+      it("should use process.cwd() when projectRoot is not provided", () => {
+        const manager = new MCPConfigManager();
+        const path = manager.getConfigPath("cline");
+        expect(path).toBe(join(process.cwd(), ".cline/mcp_settings.json"));
       });
     });
 
     it("should throw error for unknown client type", () => {
       const manager = new MCPConfigManager();
-      expect(() => manager.getConfigPath("unknown" as McpClientType)).toThrow(
-        "Unknown client type"
-      );
+      expect(() =>
+        manager.getConfigPath("unknown" as McpClientType, tempDir)
+      ).toThrow("Unknown client type");
     });
   });
 
@@ -157,14 +100,14 @@ describe("MCPConfigManager", () => {
       await fs.writeFile(configPath, JSON.stringify(config, null, 2));
 
       const manager = new MCPConfigManager();
-      const result = await manager.readConfig("cline");
+      const result = await manager.readConfig("cline", tempDir);
 
       expect(result).toEqual(config);
     });
 
     it("should return empty config when file does not exist", async () => {
       const manager = new MCPConfigManager();
-      const result = await manager.readConfig("cline");
+      const result = await manager.readConfig("cline", tempDir);
 
       expect(result).toEqual({ mcpServers: {} });
     });
@@ -175,7 +118,7 @@ describe("MCPConfigManager", () => {
       await fs.writeFile(configPath, "{ invalid json }");
 
       const manager = new MCPConfigManager();
-      await expect(manager.readConfig("cline")).rejects.toThrow();
+      await expect(manager.readConfig("cline", tempDir)).rejects.toThrow();
     });
 
     it("should create mcpServers object if missing from config", async () => {
@@ -184,7 +127,7 @@ describe("MCPConfigManager", () => {
       await fs.writeFile(configPath, JSON.stringify({ otherField: "value" }));
 
       const manager = new MCPConfigManager();
-      const result = await manager.readConfig("cline");
+      const result = await manager.readConfig("cline", tempDir);
 
       expect(result).toEqual({
         otherField: "value",
@@ -198,7 +141,7 @@ describe("MCPConfigManager", () => {
       await fs.writeFile(configPath, "");
 
       const manager = new MCPConfigManager();
-      await expect(manager.readConfig("cline")).rejects.toThrow();
+      await expect(manager.readConfig("cline", tempDir)).rejects.toThrow();
     });
   });
 
@@ -221,7 +164,8 @@ describe("MCPConfigManager", () => {
       const manager = new MCPConfigManager();
       const result = await manager.isServerConfigured(
         "cline",
-        "existing-server"
+        "existing-server",
+        tempDir
       );
 
       expect(result).toBe(true);
@@ -245,7 +189,8 @@ describe("MCPConfigManager", () => {
       const manager = new MCPConfigManager();
       const result = await manager.isServerConfigured(
         "cline",
-        "missing-server"
+        "missing-server",
+        tempDir
       );
 
       expect(result).toBe(false);
@@ -253,7 +198,11 @@ describe("MCPConfigManager", () => {
 
     it("should return false when config file does not exist", async () => {
       const manager = new MCPConfigManager();
-      const result = await manager.isServerConfigured("cline", "any-server");
+      const result = await manager.isServerConfigured(
+        "cline",
+        "any-server",
+        tempDir
+      );
 
       expect(result).toBe(false);
     });
@@ -264,7 +213,11 @@ describe("MCPConfigManager", () => {
       await fs.writeFile(configPath, JSON.stringify({ mcpServers: {} }));
 
       const manager = new MCPConfigManager();
-      const result = await manager.isServerConfigured("cline", "any-server");
+      const result = await manager.isServerConfigured(
+        "cline",
+        "any-server",
+        tempDir
+      );
 
       expect(result).toBe(false);
     });
@@ -283,7 +236,7 @@ describe("MCPConfigManager", () => {
       };
 
       const manager = new MCPConfigManager();
-      await manager.addServer("cline", "agent-skills", serverConfig);
+      await manager.addServer("cline", "agent-skills", serverConfig, tempDir);
 
       const fileContent = await fs.readFile(configPath, "utf-8");
       const config = JSON.parse(fileContent);
@@ -312,7 +265,12 @@ describe("MCPConfigManager", () => {
       };
 
       const manager = new MCPConfigManager();
-      await manager.addServer("cline", "agent-skills", newServerConfig);
+      await manager.addServer(
+        "cline",
+        "agent-skills",
+        newServerConfig,
+        tempDir
+      );
 
       const fileContent = await fs.readFile(configPath, "utf-8");
       const config = JSON.parse(fileContent);
@@ -340,10 +298,15 @@ describe("MCPConfigManager", () => {
 
       const manager = new MCPConfigManager();
       await expect(
-        manager.addServer("cline", "agent-skills", {
-          command: "node",
-          args: ["server.js"]
-        })
+        manager.addServer(
+          "cline",
+          "agent-skills",
+          {
+            command: "node",
+            args: ["server.js"]
+          },
+          tempDir
+        )
       ).rejects.toThrow("Server agent-skills already exists");
     });
 
@@ -354,7 +317,7 @@ describe("MCPConfigManager", () => {
       };
 
       const manager = new MCPConfigManager();
-      await manager.addServer("cline", "agent-skills", serverConfig);
+      await manager.addServer("cline", "agent-skills", serverConfig, tempDir);
 
       const configPath = join(tempDir, ".cline/mcp_settings.json");
       const fileContent = await fs.readFile(configPath, "utf-8");
@@ -381,7 +344,7 @@ describe("MCPConfigManager", () => {
       };
 
       const manager = new MCPConfigManager();
-      await manager.addServer("cline", "agent-skills", serverConfig);
+      await manager.addServer("cline", "agent-skills", serverConfig, tempDir);
 
       const fileContent = await fs.readFile(configPath, "utf-8");
       const config = JSON.parse(fileContent);
@@ -401,7 +364,7 @@ describe("MCPConfigManager", () => {
       };
 
       const manager = new MCPConfigManager();
-      await manager.addServer("cline", "agent-skills", serverConfig);
+      await manager.addServer("cline", "agent-skills", serverConfig, tempDir);
 
       const fileContent = await fs.readFile(configPath, "utf-8");
 
@@ -432,7 +395,7 @@ describe("MCPConfigManager", () => {
       await fs.writeFile(configPath, JSON.stringify(config));
 
       const manager = new MCPConfigManager();
-      await manager.removeServer("cline", "server-1");
+      await manager.removeServer("cline", "server-1", tempDir);
 
       const fileContent = await fs.readFile(configPath, "utf-8");
       const updatedConfig = JSON.parse(fileContent);
@@ -460,14 +423,14 @@ describe("MCPConfigManager", () => {
 
       const manager = new MCPConfigManager();
       await expect(
-        manager.removeServer("cline", "non-existent-server")
+        manager.removeServer("cline", "non-existent-server", tempDir)
       ).rejects.toThrow("Server non-existent-server not found");
     });
 
     it("should throw error when config file does not exist", async () => {
       const manager = new MCPConfigManager();
       await expect(
-        manager.removeServer("cline", "any-server")
+        manager.removeServer("cline", "any-server", tempDir)
       ).rejects.toThrow();
     });
 
@@ -489,7 +452,7 @@ describe("MCPConfigManager", () => {
       await fs.writeFile(configPath, JSON.stringify(config));
 
       const manager = new MCPConfigManager();
-      await manager.removeServer("cline", "server-1");
+      await manager.removeServer("cline", "server-1", tempDir);
 
       const fileContent = await fs.readFile(configPath, "utf-8");
       const updatedConfig = JSON.parse(fileContent);
@@ -515,7 +478,7 @@ describe("MCPConfigManager", () => {
       await fs.writeFile(configPath, JSON.stringify(config));
 
       const manager = new MCPConfigManager();
-      await manager.removeServer("cline", "only-server");
+      await manager.removeServer("cline", "only-server", tempDir);
 
       const fileContent = await fs.readFile(configPath, "utf-8");
       const updatedConfig = JSON.parse(fileContent);
@@ -543,7 +506,7 @@ describe("MCPConfigManager", () => {
       await fs.writeFile(configPath, JSON.stringify(config));
 
       const manager = new MCPConfigManager();
-      await manager.removeServer("cline", "server-1");
+      await manager.removeServer("cline", "server-1", tempDir);
 
       const fileContent = await fs.readFile(configPath, "utf-8");
 
@@ -554,13 +517,8 @@ describe("MCPConfigManager", () => {
   });
 
   describe("Cross-platform integration tests", () => {
-    it("should work with claude-desktop on macOS", async () => {
-      Object.defineProperty(process, "platform", {
-        value: "darwin",
-        writable: true
-      });
-
-      const configDir = join(tempDir, "Library/Application Support/Claude");
+    it("should work with claude-desktop using project directory", async () => {
+      const configDir = join(tempDir, ".claude");
       await fs.mkdir(configDir, { recursive: true });
 
       const serverConfig = {
@@ -569,21 +527,28 @@ describe("MCPConfigManager", () => {
       };
 
       const manager = new MCPConfigManager();
-      await manager.addServer("claude-desktop", "agent-skills", serverConfig);
+      await manager.addServer(
+        "claude-desktop",
+        "agent-skills",
+        serverConfig,
+        tempDir
+      );
 
       const isConfigured = await manager.isServerConfigured(
         "claude-desktop",
-        "agent-skills"
+        "agent-skills",
+        tempDir
       );
       expect(isConfigured).toBe(true);
 
-      const config = await manager.readConfig("claude-desktop");
+      const config = await manager.readConfig("claude-desktop", tempDir);
       expect(config.mcpServers["agent-skills"]).toEqual(serverConfig);
 
-      await manager.removeServer("claude-desktop", "agent-skills");
+      await manager.removeServer("claude-desktop", "agent-skills", tempDir);
       const isConfiguredAfterRemoval = await manager.isServerConfigured(
         "claude-desktop",
-        "agent-skills"
+        "agent-skills",
+        tempDir
       );
       expect(isConfiguredAfterRemoval).toBe(false);
     });
@@ -600,23 +565,25 @@ describe("MCPConfigManager", () => {
       };
 
       const manager = new MCPConfigManager();
-      await manager.addServer("cline", "agent-skills", clineConfig);
-      await manager.addServer("cursor", "agent-skills", cursorConfig);
+      await manager.addServer("cline", "agent-skills", clineConfig, tempDir);
+      await manager.addServer("cursor", "agent-skills", cursorConfig, tempDir);
 
       const clineConfigured = await manager.isServerConfigured(
         "cline",
-        "agent-skills"
+        "agent-skills",
+        tempDir
       );
       const cursorConfigured = await manager.isServerConfigured(
         "cursor",
-        "agent-skills"
+        "agent-skills",
+        tempDir
       );
 
       expect(clineConfigured).toBe(true);
       expect(cursorConfigured).toBe(true);
 
-      const clineReadConfig = await manager.readConfig("cline");
-      const cursorReadConfig = await manager.readConfig("cursor");
+      const clineReadConfig = await manager.readConfig("cline", tempDir);
+      const cursorReadConfig = await manager.readConfig("cursor", tempDir);
 
       expect(clineReadConfig.mcpServers["agent-skills"]).toEqual(clineConfig);
       expect(cursorReadConfig.mcpServers["agent-skills"]).toEqual(cursorConfig);

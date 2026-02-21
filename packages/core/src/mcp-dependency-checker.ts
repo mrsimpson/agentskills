@@ -56,12 +56,14 @@ export class MCPDependencyChecker {
    * @param clientType - Type of MCP client (claude-desktop, cline, etc.)
    * @param dependencies - Array of dependencies to check
    * @param configManager - MCPConfigManager instance to check configuration
+   * @param projectRoot - Optional project root directory (defaults to process.cwd())
    * @returns McpDependencyCheckResult with configured/missing breakdown
    */
   async checkDependencies(
     clientType: McpClientType,
     dependencies: McpDependencyInfo[],
-    configManager: MCPConfigManager
+    configManager: MCPConfigManager,
+    projectRoot?: string
   ): Promise<McpDependencyCheckResult> {
     const configured: string[] = [];
     const missing: McpDependencyInfo[] = [];
@@ -69,7 +71,8 @@ export class MCPDependencyChecker {
     for (const dependency of dependencies) {
       const isConfigured = await configManager.isServerConfigured(
         clientType,
-        dependency.serverName
+        dependency.serverName,
+        projectRoot
       );
 
       if (isConfigured) {
