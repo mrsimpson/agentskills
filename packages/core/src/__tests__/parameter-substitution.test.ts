@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { substituteParameters } from "../parameter-substitution.js";
 
 describe("Parameter Substitution", () => {
@@ -327,7 +327,7 @@ describe("Parameter Substitution", () => {
       const result = substituteParameters("{{PARAM}}/{{ENV:HOME}}", {
         PARAM: "value"
       });
-      expect(result).toBe("value/home/testuser");
+      expect(result).toBe("value//home/testuser");
     });
   });
 
