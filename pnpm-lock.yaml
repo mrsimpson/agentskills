@@ -118,6 +118,18 @@ importers:
       '@types/node':
         specifier: ^22.10.7
         version: 22.19.11
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^8.21.0
+        version: 8.56.0(@typescript-eslint/parser@8.56.0(eslint@9.39.2)(typescript@5.9.3))(eslint@9.39.2)(typescript@5.9.3)
+      '@typescript-eslint/parser':
+        specifier: ^8.21.0
+        version: 8.56.0(eslint@9.39.2)(typescript@5.9.3)
+      eslint:
+        specifier: ^9.18.0
+        version: 9.39.2
+      eslint-config-prettier:
+        specifier: ^10.0.1
+        version: 10.1.8(eslint@9.39.2)
       prettier:
         specifier: ^3.4.2
         version: 3.8.1
@@ -127,6 +139,9 @@ importers:
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
+      typescript-eslint:
+        specifier: 8.21.0
+        version: 8.21.0(eslint@9.39.2)(typescript@5.9.3)
       vitest:
         specifier: ^3.0.3
         version: 3.2.4(@types/node@22.19.11)(yaml@2.8.2)
@@ -152,6 +167,18 @@ importers:
       '@types/pacote':
         specifier: 11.1.8
         version: 11.1.8
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^8.21.0
+        version: 8.56.0(@typescript-eslint/parser@8.56.0(eslint@9.39.2)(typescript@5.9.3))(eslint@9.39.2)(typescript@5.9.3)
+      '@typescript-eslint/parser':
+        specifier: ^8.21.0
+        version: 8.56.0(eslint@9.39.2)(typescript@5.9.3)
+      eslint:
+        specifier: ^9.18.0
+        version: 9.39.2
+      eslint-config-prettier:
+        specifier: ^10.0.1
+        version: 10.1.8(eslint@9.39.2)
       prettier:
         specifier: ^3.4.2
         version: 3.8.1
@@ -161,6 +188,9 @@ importers:
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
+      typescript-eslint:
+        specifier: 8.21.0
+        version: 8.21.0(eslint@9.39.2)(typescript@5.9.3)
       vitest:
         specifier: ^3.0.3
         version: 3.2.4(@types/node@22.19.11)(yaml@2.8.2)
@@ -182,6 +212,18 @@ importers:
       '@types/node':
         specifier: ^22.10.7
         version: 22.19.11
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^8.21.0
+        version: 8.56.0(@typescript-eslint/parser@8.56.0(eslint@9.39.2)(typescript@5.9.3))(eslint@9.39.2)(typescript@5.9.3)
+      '@typescript-eslint/parser':
+        specifier: ^8.21.0
+        version: 8.56.0(eslint@9.39.2)(typescript@5.9.3)
+      eslint:
+        specifier: ^9.18.0
+        version: 9.39.2
+      eslint-config-prettier:
+        specifier: ^10.0.1
+        version: 10.1.8(eslint@9.39.2)
       prettier:
         specifier: ^3.4.2
         version: 3.8.1
@@ -191,6 +233,9 @@ importers:
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
+      typescript-eslint:
+        specifier: 8.21.0
+        version: 8.21.0(eslint@9.39.2)(typescript@5.9.3)
       vitest:
         specifier: ^3.0.3
         version: 3.2.4(@types/node@22.19.11)(yaml@2.8.2)
