@@ -131,6 +131,19 @@ describe("CLI Framework", () => {
       const helpText = addCommand.helpInformation();
       expect(helpText).toContain("add");
     });
+
+    it("should include spec format examples in add command help", () => {
+      const addCommand = program.commands.find((cmd) => cmd.name() === "add")!;
+      // addHelpText content is emitted via events; capture via configureOutput
+      let helpText = "";
+      addCommand.configureOutput({ writeOut: (str) => (helpText += str) });
+      addCommand.outputHelp();
+      expect(helpText).toContain("github:");
+      expect(helpText).toContain("git+https://");
+      expect(helpText).toContain("path:");
+      expect(helpText).toContain("file:");
+      expect(helpText).toContain("@org/my-skill");
+    });
   });
 
   describe("Version Command", () => {
