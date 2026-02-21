@@ -366,6 +366,18 @@ describe("SkillValidator", () => {
   });
 
   describe("requiresMcpServers Validation", () => {
+    it("should pass validation when requires-mcp-servers is not present", () => {
+      const result = validateSkill({
+        metadata: {
+          name: "test-skill",
+          description: "A test skill without MCP server dependencies"
+        },
+        body: "# Skill content"
+      });
+      expect(result.valid).toBe(true);
+      expect(result.errors.length).toBe(0);
+    });
+
     it("should validate empty requiresMcpServers array", () => {
       const result = validateSkill({
         metadata: {
