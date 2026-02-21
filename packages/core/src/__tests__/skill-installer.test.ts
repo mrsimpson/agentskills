@@ -183,6 +183,41 @@ describe("SkillInstaller", () => {
       expect(result.success).toBe(true);
     });
 
+    it("should install from scoped npm package with ::path: suffix", async () => {
+      const spec = "@org/monorepo::path:skills/nested-skill";
+      const result = await installer.install("nested-skill", spec);
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const skillMdContent = await fs.readFile(
+          join(skillsDir, "nested-skill", "SKILL.md"),
+          "utf-8"
+        );
+        expect(skillMdContent).toContain("nested-skill");
+      }
+    });
+
+    it("should install from versioned scoped npm package with ::path: suffix", async () => {
+      const spec = "@org/monorepo@1.0.0::path:skills/nested-skill";
+      const result = await installer.install("nested-skill", spec);
+      expect(result.success).toBe(true);
+    });
+
+    it("should install from unscoped npm package with ::path: suffix", async () => {
+      const spec = "my-package::path:skills/nested-skill";
+      const result = await installer.install("nested-skill", spec);
+      expect(result.success).toBe(true);
+    });
+
+    it("should pass baseSpec (without ::path:) to pacote for npm package with path", async () => {
+      const spec = "@org/monorepo@2.0.0::path:skills/nested-skill";
+      await installer.install("nested-skill", spec);
+      expect(vi.mocked(pacote.extract)).toHaveBeenCalledWith(
+        "@org/monorepo@2.0.0",
+        expect.any(String),
+        expect.any(Object)
+      );
+    });
+
     it("should fail when subdirectory does not exist in repository", async () => {
       const spec = "github:user/repo/nonexistent/path";
       const result = await installer.install("no-such-skill", spec);

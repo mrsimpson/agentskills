@@ -143,6 +143,7 @@ describe("CLI Framework", () => {
       expect(helpText).toContain("path:");
       expect(helpText).toContain("file:");
       expect(helpText).toContain("@org/my-skill");
+      expect(helpText).toContain("@org/monorepo::path:");
     });
   });
 

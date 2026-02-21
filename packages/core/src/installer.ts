@@ -620,6 +620,12 @@ export class SkillInstaller {
    * - `github:user/repo/skills/my-skill`
    * - `github:user/repo/skills/my-skill#v1.0.0`
    *
+   * npm packages (scoped or unscoped) with a subdirectory:
+   * - `@org/monorepo::path:skills/my-skill`
+   * - `@org/monorepo@1.0.0::path:skills/my-skill`
+   * - `my-package::path:skills/my-skill`
+   * - `my-package@1.0.0::path:skills/my-skill`
+   *
    * All other specs are returned as-is with no subdir.
    */
   private parseSpecWithPath(spec: string): {
@@ -678,6 +684,16 @@ export class SkillInstaller {
       }
     }
 
+    // Handle ::path: suffix for npm packages and any remaining spec types
+    const colonColonIndex = spec.indexOf("::");
+    if (colonColonIndex !== -1) {
+      const afterColonColon = spec.substring(colonColonIndex + 2);
+      if (afterColonColon.startsWith("path:")) {
+        const subdir = afterColonColon.substring("path:".length);
+        return { baseSpec: spec.substring(0, colonColonIndex), subdir };
+      }
+    }
+
     return { baseSpec: spec };
   }
 
@@ -705,12 +721,18 @@ export class SkillInstaller {
       spec.startsWith(prefix)
     );
 
+    // Strip ::path: suffix before npm package name validation so that
+    // specs like `@org/monorepo::path:sub` and `pkg@1.0::path:sub` are accepted.
+    const colonColonIndex = spec.indexOf("::");
+    const specBase =
+      colonColonIndex !== -1 ? spec.substring(0, colonColonIndex) : spec;
+
     // Also allow npm package names (with or without version)
     // Must start with @scope/ or be a valid package name with optional @version
     // Npm packages cannot contain "format" or similar non-package words
-    const isScopedPackage = /^@[a-z0-9-]+\/[a-z0-9-]+(@.+)?$/.test(spec);
+    const isScopedPackage = /^@[a-z0-9-]+\/[a-z0-9-]+(@.+)?$/.test(specBase);
     // Valid npm package: no spaces, starts with letter or @, contains only valid chars
-    const isNpmPackage = /^[a-z][a-z0-9-]*(@[\w.-~]+)?$/.test(spec);
+    const isNpmPackage = /^[a-z][a-z0-9-]*(@[\w.-~]+)?$/.test(specBase);
 
     // Reject obvious non-packages (containing spaces, invalid keywords, etc.)
     if (spec.includes(" ") || spec.includes("invalid")) {

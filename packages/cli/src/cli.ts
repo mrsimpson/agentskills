@@ -86,6 +86,11 @@ Supported spec formats:
     @org/my-skill
     my-skill@1.2.0
 
+  npm package with subdirectory path:
+    @org/monorepo::path:skills/my-skill
+    @org/monorepo@1.0.0::path:skills/my-skill
+    my-package::path:skills/my-skill
+
   Local path:
     file:./skills/custom-skill
     file:/absolute/path/to/skill
