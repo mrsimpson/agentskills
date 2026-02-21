@@ -114,6 +114,21 @@ export async function installCommand(options?: {
     const skillsDir = join(cwd, config.config.skillsDirectory);
     try {
       await fs.mkdir(skillsDir, { recursive: true });
+
+      // Create .gitignore in .agentskills directory to ignore skills subdirectory
+      const agentskillsDir = join(cwd, ".agentskills");
+      const gitignorePath = join(agentskillsDir, ".gitignore");
+
+      // Only create .gitignore if it doesn't exist
+      try {
+        await fs.access(gitignorePath);
+      } catch {
+        // .gitignore doesn't exist, create it
+        const gitignoreContent = `# Ignore installed skills - they should be installed via package.json
+skills/
+`;
+        await fs.writeFile(gitignorePath, gitignoreContent, "utf-8");
+      }
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";

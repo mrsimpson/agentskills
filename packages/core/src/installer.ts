@@ -10,7 +10,7 @@
 
 import { promises as fs } from "fs";
 import { join, dirname, resolve } from "path";
-import * as pacote from "pacote";
+import pacote from "pacote";
 import type {
   InstallResult,
   InstallAllResult,
@@ -67,12 +67,22 @@ export class SkillInstaller {
 
     // Validate spec format
     if (!this.isValidSpec(spec)) {
-      return this.createFailure(
-        name,
-        spec,
-        "INVALID_SPEC",
-        "invalid package spec format"
-      );
+      // Provide helpful error messages for common mistakes
+      let helpfulMessage = `Invalid spec format: "${spec}"`;
+
+      if (spec.startsWith("github://")) {
+        const corrected = spec
+          .replace(/^github:\/\//, "")
+          .replace(/\.git$/, "");
+        helpfulMessage += `\nDid you mean: github:${corrected}`;
+      } else if (spec.startsWith("git://")) {
+        const corrected = spec.replace(/^git:\/\//, "");
+        helpfulMessage += `\nDid you mean: git+https://${corrected}`;
+      }
+
+      helpfulMessage += `\n\nRun 'agentskills add --help' to see supported spec formats`;
+
+      return this.createFailure(name, spec, "INVALID_SPEC", helpfulMessage);
     }
 
     const installPath = join(this.skillsDir, name);
@@ -88,6 +98,9 @@ export class SkillInstaller {
       // Ensure parent directory exists
       await fs.mkdir(this.skillsDir, { recursive: true });
 
+      // Ensure .gitignore exists in .agentskills directory
+      await this.ensureGitignore();
+
       // Extract package using pacote
       const opts: pacote.Options = {};
       if (this.cacheDir) {
@@ -98,6 +111,8 @@ export class SkillInstaller {
       const { baseSpec, subdir } = this.parseSpecWithPath(spec);
 
       // Handle local directory differently - use direct copy instead of pacote
+      let gitFallbackData: { version: string; integrity: string } | null = null;
+
       if (spec.startsWith("file:")) {
         await this.copyLocalDirectory(spec, installPath);
       } else if (subdir) {
@@ -105,7 +120,31 @@ export class SkillInstaller {
         await this.extractSubdirectory(baseSpec, subdir, installPath, opts);
       } else {
         // Use pacote.extract to download and extract the package
-        await pacote.extract(baseSpec, installPath, opts);
+        // For git repos without package.json, fall back to git clone
+        try {
+          await pacote.extract(baseSpec, installPath, opts);
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+
+          // If pacote fails because of missing package.json, try git clone for git repos
+          if (errorMessage.includes("Could not read package.json")) {
+            const isGitRepo =
+              spec.startsWith("github:") ||
+              spec.startsWith("git+") ||
+              spec.includes("github.com") ||
+              spec.includes("gitlab.com") ||
+              spec.includes("bitbucket.org");
+
+            if (isGitRepo) {
+              gitFallbackData = await this.gitCloneFallback(spec, installPath);
+            } else {
+              throw error;
+            }
+          } else {
+            throw error;
+          }
+        }
       }
 
       // Verify SKILL.md exists
@@ -138,7 +177,11 @@ export class SkillInstaller {
       let resolvedVersion: string;
       let integrity: string;
 
-      if (spec.startsWith("file:")) {
+      if (gitFallbackData) {
+        // Use data from git clone fallback
+        resolvedVersion = gitFallbackData.version;
+        integrity = gitFallbackData.integrity;
+      } else if (spec.startsWith("file:")) {
         // For local files, use a hash of the path or timestamp
         resolvedVersion = "local";
         integrity = `file:${installPath}`;
@@ -158,12 +201,23 @@ export class SkillInstaller {
           // package.json is optional for local files
         }
       } else {
-        const metadata = await pacote.manifest(baseSpec, opts);
-        resolvedVersion = this.extractVersion(
-          baseSpec,
-          metadata as unknown as Record<string, unknown>
-        );
-        integrity = metadata._integrity || metadata.dist?.integrity || "";
+        // Try to get metadata from package.json, but it's optional for git repos
+        try {
+          const metadata = await pacote.manifest(baseSpec, opts);
+          resolvedVersion = this.extractVersion(
+            baseSpec,
+            metadata as unknown as Record<string, unknown>
+          );
+          integrity = metadata._integrity || metadata.dist?.integrity || "";
+        } catch {
+          // package.json is optional for git repos and other non-npm sources
+          // Extract version from spec if possible (e.g., #v1.0.0)
+          const versionMatch = spec.match(/#([v]?[\d.]+)/);
+          resolvedVersion = versionMatch
+            ? versionMatch[1].replace(/^v/, "")
+            : "unknown";
+          integrity = `${spec}`;
+        }
       }
 
       return {
@@ -468,6 +522,93 @@ export class SkillInstaller {
     // Copy directory recursively
     await fs.mkdir(installPath, { recursive: true });
     await this.copyDir(sourcePath, installPath);
+  }
+
+  /**
+   * Fallback to git clone for repositories without package.json
+   */
+  private async gitCloneFallback(
+    spec: string,
+    installPath: string
+  ): Promise<{ version: string; integrity: string }> {
+    const { execFile } = await import("child_process");
+    const { promisify } = await import("util");
+    const execFileAsync = promisify(execFile);
+
+    // Convert spec to git URL
+    let gitUrl: string;
+    let ref = "HEAD";
+
+    if (spec.startsWith("github:")) {
+      // Convert github:user/repo to git URL
+      const parts = spec.substring(7).split("#");
+      const repoPath = parts[0];
+      if (parts[1]) ref = parts[1];
+      gitUrl = `https://github.com/${repoPath}.git`;
+    } else if (
+      spec.startsWith("git+https://") ||
+      spec.startsWith("git+ssh://")
+    ) {
+      // Remove git+ prefix and extract ref
+      const parts = spec.substring(4).split("#");
+      gitUrl = parts[0];
+      if (parts[1]) ref = parts[1];
+    } else if (spec.startsWith("https://") || spec.startsWith("http://")) {
+      // Direct URL - extract ref if present
+      const parts = spec.split("#");
+      gitUrl = parts[0];
+      if (parts[1]) ref = parts[1];
+
+      // Ensure .git suffix for GitHub URLs
+      if (gitUrl.includes("github.com") && !gitUrl.endsWith(".git")) {
+        gitUrl += ".git";
+      }
+    } else {
+      throw new Error(`Unsupported git spec format: ${spec}`);
+    }
+
+    // Clone the repository
+    try {
+      await execFileAsync("git", [
+        "clone",
+        "--depth",
+        "1",
+        "--branch",
+        ref,
+        gitUrl,
+        installPath
+      ]);
+    } catch {
+      // If branch doesn't exist, try without --branch (will clone default branch)
+      await execFileAsync("git", [
+        "clone",
+        "--depth",
+        "1",
+        gitUrl,
+        installPath
+      ]);
+      if (ref !== "HEAD") {
+        // Try to checkout the specific ref
+        await execFileAsync("git", ["-C", installPath, "checkout", ref]);
+      }
+    }
+
+    // Get commit hash
+    const { stdout } = await execFileAsync("git", [
+      "-C",
+      installPath,
+      "rev-parse",
+      "HEAD"
+    ]);
+    const commitHash = stdout.trim();
+
+    // Remove .git directory to save space
+    await fs.rm(join(installPath, ".git"), { recursive: true, force: true });
+
+    return {
+      version: commitHash.substring(0, 7), // Use short hash as version
+      integrity: `git:${commitHash}`
+    };
   }
 
   /**
@@ -866,5 +1007,33 @@ export class SkillInstaller {
 
     // Generic install failure
     return this.createFailure(name, spec, "INSTALL_FAILED", message);
+  }
+
+  /**
+   * Ensure .gitignore exists in .agentskills directory
+   * Creates the file if it doesn't exist, but won't overwrite existing files
+   */
+  private async ensureGitignore(): Promise<void> {
+    try {
+      // Get the .agentskills directory (parent of skills directory)
+      const agentskillsDir = dirname(this.skillsDir);
+      const gitignorePath = join(agentskillsDir, ".gitignore");
+
+      // Check if .gitignore already exists
+      try {
+        await fs.access(gitignorePath);
+        // File exists, don't overwrite
+        return;
+      } catch {
+        // File doesn't exist, create it
+        const gitignoreContent = `# Ignore installed skills - they should be installed via package.json
+skills/
+`;
+        await fs.writeFile(gitignorePath, gitignoreContent, "utf-8");
+      }
+    } catch {
+      // Silently ignore errors - .gitignore creation is not critical
+      // The installation should proceed even if .gitignore creation fails
+    }
   }
 }

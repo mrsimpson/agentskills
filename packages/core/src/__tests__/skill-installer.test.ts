@@ -4,11 +4,13 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { SkillInstaller } from "../installer.js";
 import type { InstallResult, SkillLockFile } from "../types.js";
-import * as pacote from "pacote";
+import pacote from "pacote";
 
 vi.mock("pacote", () => ({
-  extract: vi.fn(),
-  manifest: vi.fn()
+  default: {
+    extract: vi.fn(),
+    manifest: vi.fn()
+  }
 }));
 
 describe("SkillInstaller", () => {
@@ -437,6 +439,67 @@ describe("SkillInstaller", () => {
       expect(lockFile).not.toBeNull();
       expect(lockFile?.skills["skill-one"]).toBeDefined();
       expect(lockFile?.skills["skill-two"]).toBeDefined();
+    });
+  });
+
+  describe(".gitignore creation", () => {
+    it("should create .gitignore in parent directory on first install", async () => {
+      // Arrange - use a fresh temp directory structure
+      const testDir = join(tmpdir(), `gitignore-test-${Date.now()}`);
+      const agentskillsDir = join(testDir, ".agentskills");
+      const testSkillsDir = join(agentskillsDir, "skills");
+      await fs.mkdir(testSkillsDir, { recursive: true });
+
+      const testInstaller = new SkillInstaller(testSkillsDir);
+
+      // Act
+      const result = await testInstaller.install(
+        "test-skill",
+        "github:user/test-skill"
+      );
+
+      // Assert
+      expect(result.success).toBe(true);
+
+      const gitignorePath = join(agentskillsDir, ".gitignore");
+      const gitignoreExists = await fs
+        .access(gitignorePath)
+        .then(() => true)
+        .catch(() => false);
+
+      expect(gitignoreExists).toBe(true);
+
+      const gitignoreContent = await fs.readFile(gitignorePath, "utf-8");
+      expect(gitignoreContent).toContain("skills/");
+      expect(gitignoreContent).toContain("Ignore installed skills");
+
+      // Cleanup
+      await fs.rm(testDir, { recursive: true, force: true });
+    });
+
+    it("should not overwrite existing .gitignore", async () => {
+      // Arrange
+      const testDir = join(tmpdir(), `gitignore-test-${Date.now()}`);
+      const agentskillsDir = join(testDir, ".agentskills");
+      const testSkillsDir = join(agentskillsDir, "skills");
+      await fs.mkdir(testSkillsDir, { recursive: true });
+
+      // Create custom .gitignore
+      const customContent = "# Custom gitignore\nmy-custom-pattern/\n";
+      const gitignorePath = join(agentskillsDir, ".gitignore");
+      await fs.writeFile(gitignorePath, customContent, "utf-8");
+
+      const testInstaller = new SkillInstaller(testSkillsDir);
+
+      // Act
+      await testInstaller.install("test-skill", "github:user/test-skill");
+
+      // Assert
+      const gitignoreContent = await fs.readFile(gitignorePath, "utf-8");
+      expect(gitignoreContent).toBe(customContent); // Should remain unchanged
+
+      // Cleanup
+      await fs.rm(testDir, { recursive: true, force: true });
     });
   });
 });
