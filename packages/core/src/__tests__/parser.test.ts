@@ -447,7 +447,10 @@ Testing parseSkill function with real file.
       await fs.writeFile(restrictedPath, "test content", "utf-8");
 
       // Make file unreadable (skip on Windows where chmod doesn't work the same)
-      if (process.platform !== "win32") {
+      // Also skip when running as root since chmod doesn't restrict root access
+      const isRoot =
+        typeof process.getuid === "function" && process.getuid() === 0;
+      if (process.platform !== "win32" && !isRoot) {
         await fs.chmod(restrictedPath, 0o000);
 
         // Act
