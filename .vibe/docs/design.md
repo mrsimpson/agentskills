@@ -41,10 +41,11 @@ See [Architecture Document](./architecture.md) for high-level system context and
 ### Core Philosophy
 
 1. **Fail-Fast Validation**: Detect invalid configurations and skills at load time, not during runtime
-2. **Immutability After Load**: Skills become immutable once loaded until explicit reload
-3. **Declarative Configuration**: Follow patterns from tools like agentic-knowledge and package managers
+2. **Immutability After Load**: Skills become immutable once loaded (restart to refresh in MVP)
+3. **Declarative Configuration**: Follow package manager patterns (npm, yarn) for skill dependencies
 4. **Clear Boundaries**: Configuration loading, parsing, and registry management are independent concerns
-5. **Progressive Enhancement**: Start with local sources; design for future remote sources
+5. **Progressive Enhancement**: Start with local sources; designed for future remote sources
+6. **Client Responsibility**: Server provides raw data; client handles interpolation and execution
 
 ### Error Handling
 
@@ -62,7 +63,7 @@ See [Architecture Document](./architecture.md) for high-level system context and
 **Timing**:
 - Configuration: At load time before operations
 - Skills: During discovery and parsing
-- Arguments: At invocation by consuming agent (not server responsibility)
+- Arguments: At invocation by consuming agent (NOT server responsibility)
 
 **Layers**:
 1. Schema validation (types, required fields, formats)
@@ -74,7 +75,7 @@ See [Architecture Document](./architecture.md) for high-level system context and
 ### Performance Strategy
 
 **MVP Approach**:
-- Load-on-startup only (no file watching)
+- Load-on-startup only (no file watching in MVP)
 - Single-pass directory traversal
 - In-memory caching for instant access
 - Read-once configuration
@@ -92,12 +93,12 @@ See [Architecture Document](./architecture.md) for high-level system context and
 
 ### Rationale
 
-**MAJOR REVISION (2026-02-20)**: Configuration redesigned to use `package.json` with declarative skill dependencies (like npm packages), not path scanning.
+**Philosophy**: Use familiar package manager patterns. Skills are dependencies, not ad-hoc file paths.
 
 **Key Decisions**:
 1. Use `package.json` with `agentskills` field (familiar to developers)
 2. Skills are **declared dependencies**, not paths to scan
-3. Use npm's Pacote library for downloading (battle-tested, supports git/local/registry)
+3. Use Pacote library for installation (battle-tested, supports git/local/tarball/npm)
 4. Skills installed to `.agentskills/skills/` (like node_modules)
 5. Generate lock file for reproducibility (`.agentskills/skills-lock.json`)
 6. Support auto-discovery for backwards compatibility (`.claude/skills`)
@@ -138,11 +139,11 @@ agentskills install
 # Add a new skill (updates package.json + installs)
 agentskills add github:anthropic/api-skill
 
-# Update skills
-agentskills update [skill-name]
+# List installed and discovered skills
+agentskills list
 
-# Remove skill
-agentskills remove <skill-name>
+# Validate skills
+agentskills validate [path]
 ```
 
 **Directory Structure**:
@@ -198,27 +199,6 @@ agentskills remove <skill-name>
 }
 ```
 
-### Migration from Old Approach
-
-**Old** (path-based config):
-```yaml
-# .agentskills/config.yaml
-sources:
-  - type: local_directory
-    path: .claude/skills
-```
-
-**New** (declarative skills):
-```json
-{
-  "agentskillsConfig": {
-    "autoDiscover": [".claude/skills"]
-  }
-}
-```
-
-**Migration**: Old path configs become auto-discover paths. Explicit skills get declared in `agentskills` field.
-
 ## SkillRegistry Design
 
 ### Responsibilities
@@ -230,11 +210,12 @@ The SkillRegistry is the **in-memory skill repository** providing the foundation
 2. In-memory storage with efficient access
 3. Skill retrieval by name, metadata, or filters
 4. Conflict resolution across multiple sources
-5. Lifecycle management (init, refresh, cleanup)
+5. Lifecycle management (init, cleanup)
 
 **Out of Scope**:
-- File watching/hot reload (v1.1+)
+- File watching/hot reload (future v1.1+, not in MVP)
 - Skill execution (agent responsibility)
+- String interpolation (agent responsibility)
 - Resource file management (separate ResourceHandler)
 - Configuration management (ConfigLoader handles)
 
@@ -249,7 +230,7 @@ The SkillRegistry is the **in-memory skill repository** providing the foundation
 **Immutability**:
 - Skills frozen after load (no accidental mutation)
 - Return copies, not internal collections
-- Explicit reload required for changes
+- Explicit restart required for changes in MVP
 - Safe concurrent read access
 
 **Storage Strategy**:
@@ -261,27 +242,28 @@ The SkillRegistry is the **in-memory skill repository** providing the foundation
 ### Conflict Resolution
 
 **Rules**:
-1. **First Source Wins**: Configuration order determines priority
+1. **First Source Wins**: Load order determines priority (installed → auto-discovered)
 2. **Log Conflicts**: Warn when duplicate names found
 3. **Track Source**: Metadata records which source provided each skill
 4. **User Control**: Reorder sources in config to change precedence
 
-**Example**: If `project` and `global` both have "api-integration", project version loads and global version logs warning.
+**Example**: If `installed` and `.claude/skills` both have "api-integration", installed version loads and .claude version logs warning.
 
 ### Loading Flow
 
 **Phases**:
-1. Parse and validate configuration
-2. Discover all SKILL.md files per source
-3. Parse each file into skill object
-4. Register skills (apply conflict resolution)
-5. Run semantic validation
-6. Build metadata cache and indexes
+1. Parse and validate configuration from package.json
+2. Discover installed skills in `.agentskills/skills/`
+3. Discover auto-discovered skills in configured paths
+4. Parse each SKILL.md file into skill object
+5. Register skills (apply conflict resolution)
+6. Run semantic validation
+7. Build metadata cache and indexes
 
 **Discovery Rules**:
 - Recursive traversal of source directories
 - Look for exactly `SKILL.md` (case-sensitive)
-- Ignore hidden directories except `.claude/`
+- Ignore hidden directories except `.claude/` and `.agentskills/`
 - Skip symlinks (prevent loops)
 - Note supporting directories but don't parse yet
 
@@ -293,7 +275,7 @@ The SkillRegistry is the **in-memory skill repository** providing the foundation
 
 ### Data Model
 
-**Skill Object**: Full parsed representation with frontmatter fields, content, source tracking, and parse metadata
+**Skill Object**: Full parsed representation with frontmatter fields, raw content (no interpolation), source tracking, and parse metadata
 
 **SkillMetadata**: Lightweight version for discovery/listing without full content
 
@@ -304,6 +286,50 @@ The SkillRegistry is the **in-memory skill repository** providing the foundation
 **State**: Current registry status (count, load time, sources, errors, memory usage)
 
 See [Architecture Document](./architecture.md) for detailed schemas.
+
+## String Interpolation Design
+
+### Server Responsibilities
+
+**IMPORTANT**: The MCP server does NOT perform string interpolation. This is the client's responsibility.
+
+**Server Behavior**:
+- Return raw skill content with placeholders intact ($ARGUMENTS, $1, $2, etc.)
+- Include metadata about detected placeholders
+- Flag skills containing dynamic commands (`` !`command` ``)
+- Document placeholder syntax in tool descriptions
+
+**Client Responsibilities**:
+- Parse placeholder syntax ($ARGUMENTS, $N)
+- Substitute arguments provided by user
+- Handle session variables (${CLAUDE_SESSION_ID})
+- Execute dynamic commands if appropriate
+- Sanitize interpolated values
+
+### Placeholder Syntax
+
+**Standard Placeholders** (client implements):
+- `$ARGUMENTS` → all arguments as space-separated string
+- `$N` (e.g., `$1`, `$2`) → individual argument by index (1-indexed)
+- `$ARGUMENTS[N]` → alternative syntax for individual argument
+- `${CLAUDE_SESSION_ID}` → session identifier (client provides)
+
+**Dynamic Commands** (flagged by server):
+- `` !`command` `` → flag for dynamic execution (server returns raw, client decides if/how to execute)
+
+### Security Considerations
+
+**Why Client-Side**:
+- Server never executes untrusted content
+- Client has full context for safe interpolation
+- Client can sanitize/validate arguments before substitution
+- Clear security boundary
+
+**Client Best Practices**:
+- Validate argument types and formats
+- Escape special characters for target context (shell, SQL, etc.)
+- Limit dynamic command execution to trusted skills
+- Log interpolation actions for audit
 
 ## Integration Patterns
 
@@ -323,9 +349,9 @@ See [Architecture Document](./architecture.md) for detailed schemas.
 - Initialize once at startup
 - Log initialization results for monitoring
 - Use for all tool handler requests
-- Build dynamic tool schemas from metadata
+- Return raw content without interpolation
 - MVP: Restart server to pick up changes
-- Future: Explicit reload mechanism
+- Future (v1.1+): Explicit reload mechanism or file watching
 
 **Where to Look**: `src/mcp/server.ts` for integration, tool handlers use registry
 
@@ -340,14 +366,17 @@ See [Architecture Document](./architecture.md) for detailed schemas.
 - Notify MCP clients of changes
 - Atomic updates (swap registry only after successful reload)
 
+**Not in MVP**: Requires file watching infrastructure, reload coordination, and client notification protocol.
+
 ### Remote Sources (v1.2)
 
 **Principles**:
-- Git repositories with local caching
-- npm package sources
-- HTTP endpoint sources
+- Already supported via Pacote (git, npm, tarball)
 - Version management and update checking
 - Cache invalidation strategies
+- Integrity verification with lock file
+
+**Mostly Implemented**: Core installation works, need update commands and cache management.
 
 ### Advanced Filtering (v1.3)
 

@@ -506,120 +506,146 @@ interface ConfigLoader {
 
 ## 4. Architecture Decisions (ADRs)
 
-### ADR-001: Tool-First Architecture with Enum Parameters
+### ADR-001: Tool-First Architecture with use_skill Tool
 
-**Status**: Accepted
+## Status
 
-**Context**: 
-MCP supports both tools and resources. Resources require active scanning, while tools with enum parameters provide auto-discovery.
+Accepted
 
-**Decision**: 
-Expose skills primarily as a single `invoke_skill` tool with skill names as enum parameter values.
+## Context
 
-**Consequences**:
-- ✅ Better UX - agents discover all skills in single tool introspection
-- ✅ Descriptions embedded in enum values
-- ✅ Single interaction for discovery + invocation
-- ✅ Still use resources for on-demand file access
-- ⚠️ Enum must be rebuilt when skills change (hot reload needed)
-- ⚠️ Large skill libraries may have large enum lists
+MCP supports both tools and resources. We need a simple discovery and invocation pattern for exposing Agent Skills to MCP-compatible clients. The challenge is providing an intuitive interface that allows agents to discover and use skills efficiently without requiring complex schema updates or active scanning.
 
-**Alternatives Considered**:
-- Resource-only approach (requires active scanning, poor UX)
-- Multiple tools (one per skill) (not scalable, clutters tool list)
-- Prompts instead of tools (loses structured invocation)
+## Decision
 
-### ADR-002: No Server-Side Execution
+We will expose skills as a single `use_skill` tool that returns raw skill instructions without server-side interpolation.
 
-**Status**: Accepted
+## Consequences
 
-**Context**: 
-Skills may contain executable commands (`` !`command` `` syntax) for dynamic context injection.
+- + Simple tool interface that's easy to understand and use
+- + Clear separation of concerns: server discovers/parses, client interpolates/executes
+- + Agents can see available skills via tool introspection
+- + No security concerns from server-side execution
+- + Client controls interpolation logic for their specific context
+- - Requires client to understand $ARGUMENTS and $N placeholders
+- - No dynamic enum for skill discovery (tool introspection shows all skills in description)
 
-**Decision**: 
-MCP server does NOT execute any commands. It only returns raw instructions to the agent, who decides what to execute.
+### ADR-002: No Server-Side Execution or Interpolation
 
-**Consequences**:
-- ✅ Maximum security - no risk from untrusted skills
-- ✅ Simpler implementation - no sandboxing needed
-- ✅ Clear separation of concerns
-- ✅ Follows agentic-knowledge pattern
-- ⚠️ Dynamic context requires agent cooperation
-- ⚠️ No server-side validation of command execution
+## Status
 
-**Alternatives Considered**:
-- Sandboxed execution (complex, security risks remain)
-- Allow/deny lists (maintenance burden, user friction)
-- Disable dynamic commands entirely (loses Agent Skills feature)
+Accepted
+
+## Context
+
+Skills contain placeholders ($ARGUMENTS, $N) and executable commands (`` !`command` `` syntax). The server must decide whether to process these elements or pass them through to clients. This decision has significant implications for security, complexity, and separation of concerns.
+
+## Decision
+
+We will not execute commands or interpolate strings in the MCP server. The server returns raw skill content, and clients are responsible for both interpolation and execution.
+
+## Consequences
+
+- + Maximum security with no risk from untrusted skills
+- + Simpler implementation without sandboxing or interpolation logic
+- + Clear separation of concerns between server and client
+- + Client has full control over execution context
+- - Client must implement interpolation logic
+- - Client must handle dynamic commands responsibly
 
 ### ADR-003: Monorepo with Separate Packages
 
-**Status**: Accepted
+## Status
 
-**Context**: 
-Need both CLI tool for developers and MCP server for agents. Both share parsing/validation logic.
+Accepted
 
-**Decision**: 
-Use pnpm workspaces monorepo with three packages: @agentskills/core (shared), @agentskills/cli, @agentskills/mcp-server.
+## Context
 
-**Consequences**:
-- ✅ Clean separation of concerns
-- ✅ CLI usable independently
-- ✅ Shared code reduces duplication
-- ✅ Independent versioning possible
-- ✅ Follows agentic-knowledge pattern
-- ⚠️ More complex build setup
-- ⚠️ Need to manage inter-package dependencies
+We need both a CLI tool for developers and an MCP server for agents. Both require skill parsing and validation logic. The question is how to organize the codebase to maximize code reuse while maintaining clear boundaries and independent deployability.
 
-**Alternatives Considered**:
-- Single package (coupling, less modular)
-- Separate repositories (code duplication, sync issues)
+## Decision
 
-### ADR-004: In-Memory Registry with Hot Reload
+We will use a pnpm workspaces monorepo with three packages: @codemcp/agentskills-core (shared), @codemcp/agentskills-cli, and @codemcp/agentskills-mcp-server.
 
-**Status**: Accepted
+## Consequences
 
-**Context**: 
-Skills may change during development. Restarting server is poor UX.
+- + Clean separation of concerns between packages
+- + CLI usable independently of the MCP server
+- + Shared code reduces duplication
+- + Independent versioning possible for each package
+- - More complex build setup
+- - Need to manage inter-package dependencies
 
-**Decision**: 
-Load all skills into memory on startup, watch for file changes with `chokidar`, reload automatically.
+### ADR-004: Package.json Configuration with Pacote
 
-**Consequences**:
-- ✅ Fast skill access (no disk I/O per invocation)
-- ✅ Changes reflected immediately
-- ✅ Better developer experience
-- ⚠️ Memory usage scales with skill count
-- ⚠️ File watching has overhead
-- ⚠️ Need to handle concurrent modifications
+## Status
 
-**Alternatives Considered**:
-- On-demand loading (slower, but less memory)
-- Manual reload command (poor UX)
-- No hot reload (requires server restart)
+Accepted
 
-### ADR-005: TypeScript with @modelcontextprotocol/sdk
+## Context
 
-**Status**: Accepted
+We need to support multiple skill sources including git repositories, local paths, and future npm registry sources. Users need a familiar, declarative way to manage skill dependencies with version control and reproducibility.
 
-**Context**: 
-Need to implement MCP protocol. Official SDK available in TypeScript and Python.
+## Decision
 
-**Decision**: 
-Use TypeScript with @modelcontextprotocol/sdk for type safety and ecosystem compatibility.
+We will use `package.json` with an `agentskills` field for declarative skill dependencies and use the Pacote library for installation.
 
-**Consequences**:
-- ✅ Type safety for skill schemas and MCP protocol
-- ✅ Official SDK handles protocol details
-- ✅ JavaScript ecosystem compatibility
-- ✅ Easy to distribute as npm packages
-- ⚠️ Runtime overhead vs compiled languages
-- ⚠️ Node.js dependency
+## Consequences
 
-**Alternatives Considered**:
-- Python SDK (smaller ecosystem for MCP servers)
-- Rust (harder to distribute, overkill for I/O-bound task)
-- Go (no official MCP SDK)
+- + Familiar pattern for developers (similar to npm dependencies)
+- + Battle-tested installation logic (Pacote powers npm)
+- + Supports git, local, tarball, and future npm registry sources
+- + Lock file provides reproducibility
+- + Auto-discovery maintains backwards compatibility
+- - Requires package.json in project (or global config)
+- - Additional dependency on Pacote
+
+### ADR-005: Load-on-Startup (No Hot Reload in MVP)
+
+## Status
+
+Accepted
+
+## Context
+
+Hot reload adds complexity through file watching, change detection, and state management. The MVP needs to balance developer experience with implementation complexity and time to market.
+
+## Decision
+
+We will load all skills on server startup with no file watching or hot reload in the MVP. Users must restart the server to pick up changes.
+
+## Consequences
+
+- + Simpler implementation
+- + No file watcher overhead
+- + Predictable behavior
+- + Faster path to MVP
+- + Can add hot reload in v1.1+ without breaking changes
+- - Requires server restart for changes
+- - Poorer developer experience during skill development
+
+### ADR-006: TypeScript with @modelcontextprotocol/sdk
+
+## Status
+
+Accepted
+
+## Context
+
+We need to implement the MCP protocol. Official SDKs are available in TypeScript and Python. The choice of language affects type safety, ecosystem compatibility, distribution, and development velocity.
+
+## Decision
+
+We will use TypeScript with @modelcontextprotocol/sdk for type safety and ecosystem compatibility.
+
+## Consequences
+
+- + Type safety for skill schemas and MCP protocol
+- + Official SDK handles protocol details
+- + JavaScript ecosystem compatibility
+- + Easy to distribute as npm packages
+- - Runtime overhead compared to compiled languages
+- - Node.js dependency
 
 ## 5. Technology Choices
 
