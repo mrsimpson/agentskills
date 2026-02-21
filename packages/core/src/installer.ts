@@ -94,12 +94,18 @@ export class SkillInstaller {
         opts.cache = this.cacheDir;
       }
 
+      // Parse the spec for an optional subdirectory path component
+      const { baseSpec, subdir } = this.parseSpecWithPath(spec);
+
       // Handle local directory differently - use direct copy instead of pacote
       if (spec.startsWith("file:")) {
         await this.copyLocalDirectory(spec, installPath);
+      } else if (subdir) {
+        // Extract the full repo to a temp directory, then copy the subdirectory
+        await this.extractSubdirectory(baseSpec, subdir, installPath, opts);
       } else {
         // Use pacote.extract to download and extract the package
-        await pacote.extract(spec, installPath, opts);
+        await pacote.extract(baseSpec, installPath, opts);
       }
 
       // Verify SKILL.md exists
@@ -152,9 +158,9 @@ export class SkillInstaller {
           // package.json is optional for local files
         }
       } else {
-        const metadata = await pacote.manifest(spec, opts);
+        const metadata = await pacote.manifest(baseSpec, opts);
         resolvedVersion = this.extractVersion(
-          spec,
+          baseSpec,
           metadata as unknown as Record<string, unknown>
         );
         integrity = metadata._integrity || metadata.dist?.integrity || "";
@@ -332,15 +338,21 @@ export class SkillInstaller {
     try {
       await fs.mkdir(tempDir, { recursive: true });
 
+      const opts: pacote.Options = {};
+      if (this.cacheDir) {
+        opts.cache = this.cacheDir;
+      }
+
+      // Parse the spec for an optional subdirectory path component
+      const { baseSpec, subdir } = this.parseSpecWithPath(spec);
+
       // Extract to temp directory
       if (spec.startsWith("file:")) {
         await this.copyLocalDirectory(spec, tempDir);
+      } else if (subdir) {
+        await this.extractSubdirectory(baseSpec, subdir, tempDir, opts);
       } else {
-        const opts: pacote.Options = {};
-        if (this.cacheDir) {
-          opts.cache = this.cacheDir;
-        }
-        await pacote.extract(spec, tempDir, opts);
+        await pacote.extract(baseSpec, tempDir, opts);
       }
 
       // Verify SKILL.md exists
@@ -362,6 +374,57 @@ export class SkillInstaller {
       // Clean up temp directory
       try {
         await fs.rm(tempDir, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+  }
+
+  /**
+   * Extract a subdirectory from a git repository into the destination.
+   *
+   * Downloads the full repository to a temporary directory, then copies
+   * only the specified subdirectory into destPath.
+   */
+  private async extractSubdirectory(
+    baseSpec: string,
+    subdir: string,
+    destPath: string,
+    opts: pacote.Options
+  ): Promise<void> {
+    const tempRepo = join(
+      this.cacheDir || this.skillsDir,
+      `.repo-${Date.now()}`
+    );
+
+    try {
+      await fs.mkdir(tempRepo, { recursive: true });
+      await pacote.extract(baseSpec, tempRepo, opts);
+
+      const subdirPath = join(tempRepo, subdir);
+
+      // Verify the subdirectory exists
+      let stat: Awaited<ReturnType<typeof fs.stat>>;
+      try {
+        stat = await fs.stat(subdirPath);
+      } catch {
+        throw new Error(
+          `Path '${subdir}' not found in repository '${baseSpec}'`
+        );
+      }
+
+      if (!stat.isDirectory()) {
+        throw new Error(
+          `Path '${subdir}' in repository '${baseSpec}' is not a directory`
+        );
+      }
+
+      // Copy the subdirectory contents into the destination
+      await fs.mkdir(destPath, { recursive: true });
+      await this.copyDir(subdirPath, destPath);
+    } finally {
+      try {
+        await fs.rm(tempRepo, { recursive: true, force: true });
       } catch {
         // Ignore cleanup errors
       }
@@ -511,6 +574,60 @@ export class SkillInstaller {
   }
 
   /**
+   * Parse a spec that may contain a subdirectory path component.
+   *
+   * Supported formats:
+   * - `github:user/repo/path/to/skill#ref` → baseSpec=`github:user/repo#ref`, subdir=`path/to/skill`
+   * - `github:user/repo/path/to/skill` → baseSpec=`github:user/repo`, subdir=`path/to/skill`
+   * - `git+https://...#ref::path/to/skill` → baseSpec=`git+https://...#ref`, subdir=`path/to/skill`
+   * - `git+ssh://...#ref::path/to/skill` → baseSpec=`git+ssh://...#ref`, subdir=`path/to/skill`
+   * - All other specs are returned as-is with no subdir.
+   */
+  private parseSpecWithPath(spec: string): {
+    baseSpec: string;
+    subdir?: string;
+  } {
+    // Handle github: shorthand with embedded path: github:user/repo/path/to/skill#ref
+    if (spec.startsWith("github:")) {
+      const withoutPrefix = spec.substring("github:".length);
+      const hashIndex = withoutPrefix.indexOf("#");
+      const pathPart =
+        hashIndex !== -1
+          ? withoutPrefix.substring(0, hashIndex)
+          : withoutPrefix;
+      const ref =
+        hashIndex !== -1 ? withoutPrefix.substring(hashIndex + 1) : undefined;
+
+      const parts = pathPart.split("/");
+      if (parts.length > 2) {
+        // github:user/repo/path/to/skill[#ref]
+        const user = parts[0];
+        const repo = parts[1];
+        const subdir = parts.slice(2).join("/");
+        const baseSpec = ref
+          ? `github:${user}/${repo}#${ref}`
+          : `github:${user}/${repo}`;
+        return { baseSpec, subdir };
+      }
+      return { baseSpec: spec };
+    }
+
+    // Handle git+https:// and git+ssh:// with :: path separator:
+    // git+https://github.com/user/repo.git#ref::path/to/skill
+    if (spec.startsWith("git+https://") || spec.startsWith("git+ssh://")) {
+      const colonColonIndex = spec.indexOf("::");
+      if (colonColonIndex !== -1) {
+        return {
+          baseSpec: spec.substring(0, colonColonIndex),
+          subdir: spec.substring(colonColonIndex + 2)
+        };
+      }
+    }
+
+    return { baseSpec: spec };
+  }
+
+  /**
    * Validate if spec is in a supported format
    */
   private isValidSpec(spec: string): boolean {
@@ -579,6 +696,14 @@ export class SkillInstaller {
   ): InstallResult {
     const err = error as Error & { code?: string; statusCode?: number };
     const message = err.message || "Unknown error";
+
+    // Subdirectory path not found in git repository
+    if (
+      message.includes("not found in repository") ||
+      message.includes("is not a directory")
+    ) {
+      return this.createFailure(name, spec, "INSTALL_FAILED", message);
+    }
 
     // Network errors
     if (
