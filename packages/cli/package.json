@@ -21,7 +21,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && chmod +x dist/index.js",
     "dev": "tsc -p tsconfig.build.json --watch",
     "clean:build": "rimraf dist",
     "lint": "eslint .",
