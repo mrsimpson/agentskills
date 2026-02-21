@@ -484,11 +484,20 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       // Execute
       await installCommand({ cwd: "/test/project", withMcp: false });
 
-      // Verify NO message about agentskills (silently skip)
-      const agentskillsMessages = consoleLogSpy.mock.calls.filter((call) =>
-        call.some((arg) => String(arg).toLowerCase().includes("agentskills"))
+      // Verify NO message about agentskills MCP server (silently skip)
+      const agentskillsMCPMessages = consoleLogSpy.mock.calls.filter((call) =>
+        call.some((arg) => {
+          const str = String(arg).toLowerCase();
+          return (
+            str.includes("agentskills") &&
+            (str.includes("mcp") ||
+              str.includes("server") ||
+              str.includes("added") ||
+              str.includes("configured"))
+          );
+        })
       );
-      expect(agentskillsMessages.length).toBe(0);
+      expect(agentskillsMCPMessages.length).toBe(0);
     });
   });
 

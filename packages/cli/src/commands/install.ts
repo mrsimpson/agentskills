@@ -159,6 +159,10 @@ export async function installCommand(options?: {
         }
       }
 
+      // 11. Auto-install agentskills-mcp server
+      const mcpConfigManager = new MCPConfigManager();
+      await ensureAgentskillsMCPServer(mcpConfigManager);
+
       process.exit(0);
     } else {
       // All installs failed
@@ -483,4 +487,64 @@ async function installMCPServer(
     dependency.serverName,
     serverConfig
   );
+}
+
+/**
+ * Ensure agentskills-mcp server is configured in MCP client
+ *
+ * This function automatically adds the @codemcp/agentskills-mcp server
+ * to the detected MCP client configuration if it's not already configured.
+ * This provides seamless integration with the agentskills ecosystem.
+ *
+ * @param configManager - MCP config manager
+ */
+async function ensureAgentskillsMCPServer(
+  configManager: MCPConfigManager
+): Promise<void> {
+  try {
+    // 1. Detect MCP client
+    const clientType = configManager.detectClient();
+
+    // If no MCP client detected, skip gracefully
+    if (!clientType) {
+      return;
+    }
+
+    // 2. Check if agentskills server is already configured
+    const isConfigured = configManager.isServerConfigured(
+      clientType,
+      "agentskills"
+    );
+
+    // If already configured, skip silently
+    if (isConfigured) {
+      return;
+    }
+
+    // 3. Add agentskills server to configuration
+    const serverConfig = {
+      command: "npx",
+      args: ["-y", "@codemcp/agentskills-mcp"],
+      env: {},
+      cwd: process.cwd()
+    };
+
+    await configManager.addServer(clientType, "agentskills", serverConfig);
+
+    // 4. Show success message
+    console.log(
+      chalk.green(
+        `✓ Added agentskills MCP server to ${clientType} configuration`
+      )
+    );
+  } catch (error: unknown) {
+    // Handle errors gracefully - don't fail the installation
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    console.log(
+      chalk.yellow(
+        `⚠ Warning: Could not add agentskills MCP server: ${errorMessage}`
+      )
+    );
+  }
 }
