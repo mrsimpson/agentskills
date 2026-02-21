@@ -3,7 +3,6 @@
   "version": "0.0.1",
   "description": "MCP server that exposes Claude Code Agent Skills to any MCP-compatible agent",
   "authors": [
-    "Luke Baker <luke.baker@live.com>",
     "Oliver Jägle <github@beimir.net>"
   ],
   "license": "MIT",
