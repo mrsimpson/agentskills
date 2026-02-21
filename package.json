@@ -1,6 +1,6 @@
 {
   "name": "@codemcp/agentskills",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "MCP server that exposes Claude Code Agent Skills to any MCP-compatible agent",
   "authors": [
