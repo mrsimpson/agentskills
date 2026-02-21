@@ -33,9 +33,21 @@ export function createCLI(): Command {
   // Create "install" command
   const installCommandDef = new Command("install")
     .description("Install skills from package.json")
-    .action(async () => {
+    .option(
+      "--with-mcp",
+      "Automatically install missing MCP server dependencies"
+    )
+    .option(
+      "--agent <name>",
+      "Specify MCP agent to configure (claude, cline, cursor, continue, junie, zed, vscode)"
+    )
+    .action(async (options) => {
       try {
-        await installCommand({ cwd: process.cwd() });
+        await installCommand({
+          cwd: process.cwd(),
+          withMcp: options.withMcp,
+          agent: options.agent
+        });
       } catch (error) {
         console.error(error instanceof Error ? error.message : String(error));
         process.exit(1);
