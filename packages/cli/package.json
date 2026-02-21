@@ -1,6 +1,6 @@
 {
   "name": "@codemcp/agentskills-cli",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Command-line interface for Agent Skills management",
   "type": "module",
   "main": "dist/index.js",
