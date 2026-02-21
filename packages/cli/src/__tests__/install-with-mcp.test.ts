@@ -270,6 +270,7 @@ describe("Install Command - --with-mcp Flag", () => {
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
       mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(true); // agentskills already configured
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "file-manager",
@@ -290,7 +291,7 @@ describe("Install Command - --with-mcp Flag", () => {
       // Verify
       expect(processExitSpy).toHaveBeenCalledWith(0);
       expect(mockInquirer.prompt).not.toHaveBeenCalled(); // No prompting needed
-      expect(mockMCPConfigManager.addServer).not.toHaveBeenCalled();
+      expect(mockMCPConfigManager.addServer).not.toHaveBeenCalled(); // All servers already configured
     });
 
     it("should succeed when no MCP dependencies are required", async () => {
@@ -323,6 +324,7 @@ describe("Install Command - --with-mcp Flag", () => {
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
       mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(true); // agentskills already configured
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "simple-skill",
@@ -340,7 +342,7 @@ describe("Install Command - --with-mcp Flag", () => {
       // Verify
       expect(processExitSpy).toHaveBeenCalledWith(0);
       expect(mockInquirer.prompt).not.toHaveBeenCalled();
-      expect(mockMCPConfigManager.addServer).not.toHaveBeenCalled();
+      expect(mockMCPConfigManager.addServer).not.toHaveBeenCalled(); // agentskills already configured
     });
   });
 
@@ -1293,6 +1295,7 @@ describe("Install Command - --with-mcp Flag", () => {
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
       mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(true); // agentskills already configured
       mockInstaller.install
         .mockResolvedValueOnce({
           success: true,
@@ -1320,6 +1323,7 @@ describe("Install Command - --with-mcp Flag", () => {
       await installCommand({ cwd: "/test", withMcp: true });
 
       // Verify no prompting occurred since server is already configured
+      // and agentskills server is already configured too
       expect(mockInquirer.prompt).not.toHaveBeenCalled();
       expect(mockMCPConfigManager.addServer).not.toHaveBeenCalled();
       expect(processExitSpy).toHaveBeenCalledWith(0);
@@ -1410,6 +1414,7 @@ describe("Install Command - --with-mcp Flag", () => {
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
       mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(false); // agentskills NOT configured
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "devops-tool",
@@ -1432,7 +1437,8 @@ describe("Install Command - --with-mcp Flag", () => {
 
       // Verify only github prompted (not filesystem)
       expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
-      expect(mockMCPConfigManager.addServer).toHaveBeenCalledTimes(1);
+      // addServer called twice: once for github, once for agentskills
+      expect(mockMCPConfigManager.addServer).toHaveBeenCalledTimes(2);
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
         "claude-desktop",
         "github",
@@ -1547,6 +1553,7 @@ describe("Install Command - --with-mcp Flag", () => {
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
       mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(false); // agentskills NOT configured
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "devops-tool",
@@ -1570,9 +1577,10 @@ describe("Install Command - --with-mcp Flag", () => {
       // Execute with --with-mcp flag
       await installCommand({ cwd: "/test", withMcp: true });
 
-      // Verify prompts for all three servers
+      // Verify prompts for all three dependency servers
       expect(mockInquirer.prompt).toHaveBeenCalledTimes(3);
-      expect(mockMCPConfigManager.addServer).toHaveBeenCalledTimes(3);
+      // addServer called 4 times: 3 dependency servers + agentskills
+      expect(mockMCPConfigManager.addServer).toHaveBeenCalledTimes(4);
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
         "claude-desktop",
         "filesystem",
@@ -1674,6 +1682,7 @@ describe("Install Command - --with-mcp Flag", () => {
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
       mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(false); // agentskills NOT configured
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "multi-tool",
@@ -1696,8 +1705,8 @@ describe("Install Command - --with-mcp Flag", () => {
       // Execute with --with-mcp flag
       await installCommand({ cwd: "/test", withMcp: true });
 
-      // Verify both servers were added
-      expect(mockMCPConfigManager.addServer).toHaveBeenCalledTimes(2);
+      // Verify both dependency servers + agentskills server were added
+      expect(mockMCPConfigManager.addServer).toHaveBeenCalledTimes(3);
       expect(processExitSpy).toHaveBeenCalledWith(0);
     });
   });
@@ -2438,6 +2447,7 @@ describe("Install Command - --with-mcp Flag", () => {
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
       mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(false); // agentskills NOT configured
       mockInstaller.install
         .mockResolvedValueOnce({
           success: true,
@@ -2477,7 +2487,8 @@ describe("Install Command - --with-mcp Flag", () => {
 
       // Verify prompted only ONCE despite three skills needing it
       expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
-      expect(mockMCPConfigManager.addServer).toHaveBeenCalledTimes(1);
+      // addServer called twice: once for filesystem, once for agentskills
+      expect(mockMCPConfigManager.addServer).toHaveBeenCalledTimes(2);
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
         "claude-desktop",
         "filesystem",

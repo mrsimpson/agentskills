@@ -49,7 +49,11 @@ export async function installCommand(options?: {
       throw new Error("package.json not found");
     }
 
-    // 2. Check if any skills to install
+    // 2. Auto-install agentskills-mcp server (always run, even if no skills)
+    const mcpConfigManager = new MCPConfigManager();
+    await ensureAgentskillsMCPServer(mcpConfigManager);
+
+    // 3. Check if any skills to install
     const skillEntries = Object.entries(config.skills);
     if (skillEntries.length === 0) {
       console.log(
@@ -61,7 +65,7 @@ export async function installCommand(options?: {
       return;
     }
 
-    // 3. Create skills directory
+    // 4. Create skills directory
     const skillsDir = join(cwd, config.config.skillsDirectory);
     try {
       await fs.mkdir(skillsDir, { recursive: true });
@@ -73,10 +77,10 @@ export async function installCommand(options?: {
       return;
     }
 
-    // 4. Create installer
+    // 5. Create installer
     const installer = new SkillInstaller(skillsDir);
 
-    // 5. Install each skill with spinner
+    // 6. Install each skill with spinner
     const spinner = ora("Installing skills...").start();
     const results = new Map<string, InstallResult>();
 
@@ -90,7 +94,7 @@ export async function installCommand(options?: {
 
     spinner.stop();
 
-    // 6. Categorize results
+    // 7. Categorize results
     const successfulInstalls: Record<string, InstallResult> = {};
     const failedInstalls: Array<{ name: string; result: InstallResult }> = [];
 
@@ -102,21 +106,21 @@ export async function installCommand(options?: {
       }
     }
 
-    // 7. Show individual skill results
+    // 8. Show individual skill results
     for (const [name, result] of results.entries()) {
       if (result.success) {
         console.log(chalk.green(`✓ ${name}`));
       }
     }
 
-    // 8. Show errors for failed installs
+    // 9. Show errors for failed installs
     for (const { name, result } of failedInstalls) {
       if (!result.success && result.error) {
         console.error(chalk.red(`✗ ${name} failed: ${result.error.message}`));
       }
     }
 
-    // 9. Generate lock file if any succeeded
+    // 10. Generate lock file if any succeeded
     const successCount = Object.keys(successfulInstalls).length;
     const failCount = failedInstalls.length;
 
@@ -158,10 +162,6 @@ export async function installCommand(options?: {
           return;
         }
       }
-
-      // 11. Auto-install agentskills-mcp server
-      const mcpConfigManager = new MCPConfigManager();
-      await ensureAgentskillsMCPServer(mcpConfigManager);
 
       process.exit(0);
     } else {
@@ -511,7 +511,7 @@ async function ensureAgentskillsMCPServer(
     }
 
     // 2. Check if agentskills server is already configured
-    const isConfigured = configManager.isServerConfigured(
+    const isConfigured = await configManager.isServerConfigured(
       clientType,
       "agentskills"
     );

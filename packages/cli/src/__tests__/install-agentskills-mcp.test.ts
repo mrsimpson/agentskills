@@ -162,7 +162,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
       mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
-      mockMCPConfigManager.isServerConfigured.mockReturnValue(false); // agentskills NOT configured
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(false); // agentskills NOT configured
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "test-skill",
@@ -227,7 +227,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
       mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
-      mockMCPConfigManager.isServerConfigured.mockReturnValue(false);
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "test-skill",
@@ -285,7 +285,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
       mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
-      mockMCPConfigManager.isServerConfigured.mockReturnValue(false);
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "test-skill",
@@ -345,7 +345,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
       mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
-      mockMCPConfigManager.isServerConfigured.mockReturnValue(false);
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "test-skill",
@@ -405,7 +405,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
       mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
-      mockMCPConfigManager.isServerConfigured.mockReturnValue(true); // ALREADY configured
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(true); // ALREADY configured
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "test-skill",
@@ -461,7 +461,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
       mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
-      mockMCPConfigManager.isServerConfigured.mockReturnValue(true);
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(true);
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "test-skill",
@@ -528,7 +528,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
       mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
-      mockMCPConfigManager.isServerConfigured.mockReturnValue(false);
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "test-skill",
@@ -583,7 +583,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
       mockMCPConfigManager.detectClient.mockReturnValue("cline");
-      mockMCPConfigManager.isServerConfigured.mockReturnValue(false);
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "test-skill",
@@ -638,7 +638,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
       mockMCPConfigManager.detectClient.mockReturnValue("zed");
-      mockMCPConfigManager.isServerConfigured.mockReturnValue(false);
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "test-skill",
@@ -773,7 +773,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
       mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
-      mockMCPConfigManager.isServerConfigured.mockReturnValue(false);
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
       mockMCPConfigManager.addServer.mockRejectedValue(
         new Error("Failed to write config")
       );
@@ -827,7 +827,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
       mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
-      mockMCPConfigManager.isServerConfigured.mockReturnValue(false);
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
       mockMCPConfigManager.addServer.mockRejectedValue(
         new Error("Failed to write config")
       );
@@ -859,6 +859,48 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
   });
 
   describe("Server config format", () => {
+    it("should auto-install even when no skills configured", async () => {
+      // Setup: Config with NO skills
+      const config: PackageConfig = {
+        skills: {}, // Empty skills object
+        config: {
+          skillsDirectory: ".agentskills/skills",
+          autoDiscover: [],
+          maxSkillSize: 5000,
+          logLevel: "info"
+        },
+        source: {
+          type: "file",
+          path: "/test/project/package.json"
+        }
+      };
+
+      mockConfigManager.loadConfig.mockResolvedValue(config);
+      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
+
+      // Execute
+      await installCommand({ cwd: "/test/project", withMcp: false });
+
+      // Verify agentskills server was added even though no skills
+      expect(mockMCPConfigManager.isServerConfigured).toHaveBeenCalledWith(
+        "claude-desktop",
+        "agentskills"
+      );
+      expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
+        "claude-desktop",
+        "agentskills",
+        {
+          command: "npx",
+          args: ["-y", "@codemcp/agentskills-mcp"],
+          env: {},
+          cwd: "/test/project"
+        }
+      );
+      // Should exit with 0 (no skills to install message, but still success)
+      expect(processExitSpy).toHaveBeenCalledWith(0);
+    });
+
     it("should use correct command format with npx", async () => {
       // Setup
       const config: PackageConfig = {
@@ -885,7 +927,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
       mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
-      mockMCPConfigManager.isServerConfigured.mockReturnValue(false);
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "test-skill",
@@ -945,7 +987,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
       mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
-      mockMCPConfigManager.isServerConfigured.mockReturnValue(false);
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "test-skill",
