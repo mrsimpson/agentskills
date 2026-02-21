@@ -53,7 +53,7 @@ export async function installCommand(options?: {
     vscode: "cline" // cline runs in vscode
   };
 
-  // Determine client type: use --agent parameter first, fall back to auto-detection
+  // Determine client type from explicit --agent parameter
   let clientType: McpClientType | null = null;
   const mcpConfigManager = new MCPConfigManager();
 
@@ -68,26 +68,18 @@ export async function installCommand(options?: {
       process.exit(1);
       return;
     }
-    console.log(chalk.blue(`🎯 Configuring for agent: ${clientType}`));
+    console.log(chalk.dim(`🎯 Configuring for agent: ${clientType}`));
   } else {
-    clientType = mcpConfigManager.detectClient();
-    if (clientType) {
-      console.log(chalk.blue(`🔍 Auto-detected agent: ${clientType}`));
+    // No agent specified - skip MCP configuration
+    if (withMcp) {
+      console.error(chalk.red("✗ --with-mcp requires --agent parameter"));
+      console.error(
+        chalk.yellow("  Example: agentskills install --with-mcp --agent claude")
+      );
+      process.exit(1);
+      return;
     }
-  }
-
-  // Validate --with-mcp requires --agent
-  if (withMcp && !options?.agent && !clientType) {
-    console.error(
-      chalk.red(
-        `✗ --with-mcp requires --agent parameter to specify which MCP client to configure`
-      )
-    );
-    console.error(
-      chalk.yellow(`  Example: agentskills install --with-mcp --agent claude`)
-    );
-    process.exit(1);
-    return;
+    // Will skip MCP validation and auto-install
   }
 
   try {
@@ -281,11 +273,6 @@ async function validateMCPDependencies(
   mcpConfigManager: MCPConfigManager
 ): Promise<boolean> {
   try {
-    // If no MCP client detected/specified, skip validation
-    if (!clientType) {
-      return false;
-    }
-
     // 1. Load installed skills
     const installedSkills = await installer.loadInstalledSkills();
 
@@ -296,6 +283,16 @@ async function validateMCPDependencies(
 
     // If no dependencies, nothing to validate
     if (dependencies.length === 0) {
+      return false;
+    }
+
+    // If no MCP client specified, show warning
+    if (!clientType) {
+      console.log(
+        chalk.yellow(
+          "\n⚠ This skill requires MCP servers. Run with --agent <name> to configure."
+        )
+      );
       return false;
     }
 
@@ -352,7 +349,7 @@ async function validateMCPDependencies(
  * Install and configure MCP servers with parameter prompting
  *
  * @param installer - SkillInstaller instance
- * @param clientType - The MCP client type (can be null if no agent specified)
+ * @param clientType - The MCP client type (already validated to not be null)
  * @param mcpConfigManager - MCP config manager
  * @returns True if there are errors, false otherwise
  */
@@ -362,7 +359,7 @@ async function installMCPServers(
   mcpConfigManager: MCPConfigManager
 ): Promise<boolean> {
   try {
-    // If no MCP client detected/specified, error out
+    // clientType should never be null here as we validate earlier
     if (!clientType) {
       console.error(
         chalk.red(

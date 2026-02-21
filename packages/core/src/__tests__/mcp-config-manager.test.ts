@@ -45,56 +45,6 @@ describe("MCPConfigManager", () => {
     vi.restoreAllMocks();
   });
 
-  describe("detectClient", () => {
-    it("should detect claude-desktop from CLAUDE_DESKTOP environment variable", () => {
-      process.env.CLAUDE_DESKTOP = "true";
-      const manager = new MCPConfigManager();
-      expect(manager.detectClient()).toBe("claude-desktop");
-    });
-
-    it("should detect cline from CLINE_MCP environment variable", () => {
-      process.env.CLINE_MCP = "true";
-      const manager = new MCPConfigManager();
-      expect(manager.detectClient()).toBe("cline");
-    });
-
-    it("should detect continue from CONTINUE_MCP environment variable", () => {
-      process.env.CONTINUE_MCP = "true";
-      const manager = new MCPConfigManager();
-      expect(manager.detectClient()).toBe("continue");
-    });
-
-    it("should detect cursor from CURSOR_MCP environment variable", () => {
-      process.env.CURSOR_MCP = "true";
-      const manager = new MCPConfigManager();
-      expect(manager.detectClient()).toBe("cursor");
-    });
-
-    it("should detect junie from JUNIE_MCP environment variable", () => {
-      process.env.JUNIE_MCP = "true";
-      const manager = new MCPConfigManager();
-      expect(manager.detectClient()).toBe("junie");
-    });
-
-    it("should return null when no client is detected", () => {
-      delete process.env.CLAUDE_DESKTOP;
-      delete process.env.CLINE_MCP;
-      delete process.env.CONTINUE_MCP;
-      delete process.env.CURSOR_MCP;
-      delete process.env.JUNIE_MCP;
-
-      const manager = new MCPConfigManager();
-      expect(manager.detectClient()).toBeNull();
-    });
-
-    it("should prioritize CLAUDE_DESKTOP when multiple env vars are set", () => {
-      process.env.CLAUDE_DESKTOP = "true";
-      process.env.CLINE_MCP = "true";
-      const manager = new MCPConfigManager();
-      expect(manager.detectClient()).toBe("claude-desktop");
-    });
-  });
-
   describe("getConfigPath", () => {
     describe("claude-desktop paths", () => {
       it("should return macOS path for darwin platform", () => {

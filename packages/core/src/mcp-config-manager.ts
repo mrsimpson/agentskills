@@ -15,33 +15,6 @@ import type { McpClientType, McpConfig, McpServerConfig } from "./types.js";
  */
 export class MCPConfigManager {
   /**
-   * Detects which MCP client is active based on environment variables
-   * Returns null if no client is detected
-   */
-  detectClient(): McpClientType | null {
-    // Priority order: claude-desktop, cline, continue, cursor, junie, zed
-    if (process.env.CLAUDE_DESKTOP) {
-      return "claude-desktop";
-    }
-    if (process.env.CLINE_MCP) {
-      return "cline";
-    }
-    if (process.env.CONTINUE_MCP) {
-      return "continue";
-    }
-    if (process.env.CURSOR_MCP) {
-      return "cursor";
-    }
-    if (process.env.JUNIE_MCP) {
-      return "junie";
-    }
-    if (process.env.ZED_MCP) {
-      return "zed";
-    }
-    return null;
-  }
-
-  /**
    * Gets the configuration file path for a specific MCP client
    * @param clientType - The MCP client type
    * @returns Absolute path to the config file

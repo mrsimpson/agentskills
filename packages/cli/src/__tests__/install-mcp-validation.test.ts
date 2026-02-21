@@ -57,13 +57,13 @@ vi.mock("ora", () => ({
 }));
 
 describe("Install Command - MCP Dependency Validation", () => {
-  let mockConfigManager: any;  
-  let mockInstaller: any;  
-  let mockMCPConfigManager: any;  
-  let mockMCPDependencyChecker: any;  
+  let mockConfigManager: any;
+  let mockInstaller: any;
+  let mockMCPConfigManager: any;
+  let mockMCPDependencyChecker: any;
   let consoleLogSpy: ReturnType<typeof vi.spyOn>;
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
-  let processExitSpy: any;  
+  let processExitSpy: any;
 
   beforeEach(() => {
     // Setup mocks
@@ -78,7 +78,6 @@ describe("Install Command - MCP Dependency Validation", () => {
     };
 
     mockMCPConfigManager = {
-      detectClient: vi.fn(),
       isServerConfigured: vi.fn()
     };
 
@@ -99,7 +98,7 @@ describe("Install Command - MCP Dependency Validation", () => {
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     processExitSpy = vi
       .spyOn(process, "exit")
-      .mockImplementation((() => {}) as any);  
+      .mockImplementation((() => {}) as any);
 
     // Default mock implementations
     mockConfigManager.loadConfig.mockResolvedValue({
@@ -124,8 +123,8 @@ describe("Install Command - MCP Dependency Validation", () => {
     processExitSpy.mockRestore();
   });
 
-  describe("MCP Client Detection", () => {
-    it("should detect MCP client when environment variable is set", async () => {
+  describe("MCP Agent Parameter", () => {
+    it("should use explicit --agent parameter for MCP validation", async () => {
       // Setup
       const config: PackageConfig = {
         skills: {
@@ -144,7 +143,7 @@ describe("Install Command - MCP Dependency Validation", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
+      mockMCPConfigManager.isServerConfigured.mockResolvedValue(true);
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "test-skill",
@@ -156,14 +155,14 @@ describe("Install Command - MCP Dependency Validation", () => {
       mockInstaller.loadInstalledSkills.mockResolvedValue([]);
       mockMCPDependencyChecker.collectDependencies.mockReturnValue([]);
 
-      // Execute
-      await installCommand({ cwd: "/test" });
+      // Execute with explicit agent
+      await installCommand({ cwd: "/test", agent: "claude" });
 
-      // Verify
-      expect(mockMCPConfigManager.detectClient).toHaveBeenCalled();
+      // Verify - should proceed normally
+      expect(processExitSpy).toHaveBeenCalledWith(0);
     });
 
-    it("should proceed without MCP validation if no client is detected", async () => {
+    it("should proceed without MCP validation if no --agent specified", async () => {
       // Setup
       const config: PackageConfig = {
         skills: {
@@ -182,7 +181,6 @@ describe("Install Command - MCP Dependency Validation", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue(null);
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "test-skill",
@@ -191,28 +189,31 @@ describe("Install Command - MCP Dependency Validation", () => {
         integrity: "sha512-abc123",
         installPath: "/test/.agentskills/skills/test-skill"
       } as InstallResult);
+      mockInstaller.generateLockFile.mockResolvedValue(undefined);
+      mockInstaller.loadInstalledSkills.mockResolvedValue([]);
+      mockMCPDependencyChecker.collectDependencies.mockReturnValue([]);
 
-      // Execute
+      // Execute without agent parameter
       await installCommand({ cwd: "/test" });
 
-      // Verify - should not attempt to check dependencies
-      expect(
-        mockMCPDependencyChecker.collectDependencies
-      ).not.toHaveBeenCalled();
-      expect(mockMCPDependencyChecker.checkDependencies).not.toHaveBeenCalled();
+      // Verify - should not check MCP configuration (no agent specified)
+      expect(mockMCPConfigManager.isServerConfigured).not.toHaveBeenCalled();
       expect(processExitSpy).toHaveBeenCalledWith(0);
     });
 
-    it("should handle all supported MCP client types", async () => {
-      const clientTypes: McpClientType[] = [
-        "claude-desktop",
-        "cline",
-        "continue",
-        "cursor",
-        "junie"
-      ];
+    it("should handle all supported MCP agent types via --agent", async () => {
+      const agentMap: Record<string, McpClientType> = {
+        claude: "claude-desktop",
+        "claude-desktop": "claude-desktop",
+        cline: "cline",
+        continue: "continue",
+        cursor: "cursor",
+        junie: "junie",
+        zed: "zed",
+        vscode: "cline"
+      };
 
-      for (const clientType of clientTypes) {
+      for (const [agentName, clientType] of Object.entries(agentMap)) {
         vi.clearAllMocks();
 
         const config: PackageConfig = {
@@ -232,7 +233,7 @@ describe("Install Command - MCP Dependency Validation", () => {
         };
 
         mockConfigManager.loadConfig.mockResolvedValue(config);
-        mockMCPConfigManager.detectClient.mockReturnValue(clientType);
+        mockMCPConfigManager.isServerConfigured.mockResolvedValue(true);
         mockInstaller.install.mockResolvedValue({
           success: true,
           name: "test-skill",
@@ -244,9 +245,11 @@ describe("Install Command - MCP Dependency Validation", () => {
         mockInstaller.loadInstalledSkills.mockResolvedValue([]);
         mockMCPDependencyChecker.collectDependencies.mockReturnValue([]);
 
-        await installCommand({ cwd: "/test" });
+        // Execute with specific agent
+        await installCommand({ cwd: "/test", agent: agentName });
 
-        expect(mockMCPConfigManager.detectClient).toHaveBeenCalled();
+        // Verify
+        expect(processExitSpy).toHaveBeenCalledWith(0);
       }
     });
   });
@@ -289,7 +292,6 @@ describe("Install Command - MCP Dependency Validation", () => {
       ];
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "file-manager",
@@ -302,7 +304,7 @@ describe("Install Command - MCP Dependency Validation", () => {
       mockMCPDependencyChecker.collectDependencies.mockReturnValue([]);
 
       // Execute
-      await installCommand({ cwd: "/test" });
+      await installCommand({ cwd: "/test", agent: "claude" });
 
       // Verify
       expect(mockMCPDependencyChecker.collectDependencies).toHaveBeenCalledWith(
@@ -339,7 +341,6 @@ describe("Install Command - MCP Dependency Validation", () => {
       ];
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "simple-skill",
@@ -352,7 +353,7 @@ describe("Install Command - MCP Dependency Validation", () => {
       mockMCPDependencyChecker.collectDependencies.mockReturnValue([]);
 
       // Execute
-      await installCommand({ cwd: "/test" });
+      await installCommand({ cwd: "/test", agent: "claude" });
 
       // Verify - should still check but find no dependencies
       expect(mockMCPDependencyChecker.collectDependencies).toHaveBeenCalledWith(
@@ -414,7 +415,6 @@ describe("Install Command - MCP Dependency Validation", () => {
       ];
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install
         .mockResolvedValueOnce({
           success: true,
@@ -436,7 +436,7 @@ describe("Install Command - MCP Dependency Validation", () => {
       mockMCPDependencyChecker.collectDependencies.mockReturnValue([]);
 
       // Execute
-      await installCommand({ cwd: "/test" });
+      await installCommand({ cwd: "/test", agent: "claude" });
 
       // Verify
       expect(mockMCPDependencyChecker.collectDependencies).toHaveBeenCalledWith(
@@ -502,7 +502,6 @@ describe("Install Command - MCP Dependency Validation", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "file-manager",
@@ -518,7 +517,7 @@ describe("Install Command - MCP Dependency Validation", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute
-      await installCommand({ cwd: "/test" });
+      await installCommand({ cwd: "/test", agent: "claude" });
 
       // Verify
       expect(mockMCPDependencyChecker.checkDependencies).toHaveBeenCalledWith(
@@ -558,7 +557,6 @@ describe("Install Command - MCP Dependency Validation", () => {
       ];
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "simple-skill",
@@ -571,7 +569,7 @@ describe("Install Command - MCP Dependency Validation", () => {
       mockMCPDependencyChecker.collectDependencies.mockReturnValue([]);
 
       // Execute
-      await installCommand({ cwd: "/test" });
+      await installCommand({ cwd: "/test", agent: "claude" });
 
       // Verify
       expect(mockMCPDependencyChecker.checkDependencies).not.toHaveBeenCalled();
@@ -636,7 +634,6 @@ describe("Install Command - MCP Dependency Validation", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "file-manager",
@@ -652,7 +649,7 @@ describe("Install Command - MCP Dependency Validation", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute
-      await installCommand({ cwd: "/test" });
+      await installCommand({ cwd: "/test", agent: "claude" });
 
       // Verify
       expect(processExitSpy).toHaveBeenCalledWith(0);
@@ -743,7 +740,6 @@ describe("Install Command - MCP Dependency Validation", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install
         .mockResolvedValueOnce({
           success: true,
@@ -768,7 +764,7 @@ describe("Install Command - MCP Dependency Validation", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute
-      await installCommand({ cwd: "/test" });
+      await installCommand({ cwd: "/test", agent: "claude" });
 
       // Verify
       expect(processExitSpy).toHaveBeenCalledWith(0);
@@ -835,7 +831,6 @@ describe("Install Command - MCP Dependency Validation", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "file-manager",
@@ -851,7 +846,7 @@ describe("Install Command - MCP Dependency Validation", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute
-      await installCommand({ cwd: "/test" });
+      await installCommand({ cwd: "/test", agent: "claude" });
 
       // Verify
       expect(processExitSpy).toHaveBeenCalledWith(1);
@@ -916,7 +911,6 @@ describe("Install Command - MCP Dependency Validation", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "file-manager",
@@ -932,7 +926,7 @@ describe("Install Command - MCP Dependency Validation", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute
-      await installCommand({ cwd: "/test" });
+      await installCommand({ cwd: "/test", agent: "claude" });
 
       // Verify error message contains server name
       expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -1012,7 +1006,6 @@ describe("Install Command - MCP Dependency Validation", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install
         .mockResolvedValueOnce({
           success: true,
@@ -1037,7 +1030,7 @@ describe("Install Command - MCP Dependency Validation", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute
-      await installCommand({ cwd: "/test" });
+      await installCommand({ cwd: "/test", agent: "claude" });
 
       // Verify error message mentions both skills
       expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -1104,7 +1097,6 @@ describe("Install Command - MCP Dependency Validation", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "file-manager",
@@ -1120,7 +1112,7 @@ describe("Install Command - MCP Dependency Validation", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute
-      await installCommand({ cwd: "/test" });
+      await installCommand({ cwd: "/test", agent: "claude" });
 
       // Verify suggestion for --with-mcp flag
       expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -1216,7 +1208,6 @@ describe("Install Command - MCP Dependency Validation", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "devops-tool",
@@ -1232,7 +1223,7 @@ describe("Install Command - MCP Dependency Validation", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute
-      await installCommand({ cwd: "/test" });
+      await installCommand({ cwd: "/test", agent: "claude" });
 
       // Verify
       expect(processExitSpy).toHaveBeenCalledWith(1);
@@ -1330,7 +1321,6 @@ describe("Install Command - MCP Dependency Validation", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install
         .mockResolvedValueOnce({
           success: true,
@@ -1355,7 +1345,7 @@ describe("Install Command - MCP Dependency Validation", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute
-      await installCommand({ cwd: "/test" });
+      await installCommand({ cwd: "/test", agent: "claude" });
 
       // Verify
       expect(processExitSpy).toHaveBeenCalledWith(1);
@@ -1388,7 +1378,6 @@ describe("Install Command - MCP Dependency Validation", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "test-skill",
@@ -1402,7 +1391,7 @@ describe("Install Command - MCP Dependency Validation", () => {
       );
 
       // Execute
-      await installCommand({ cwd: "/test" });
+      await installCommand({ cwd: "/test", agent: "claude" });
 
       // Verify - should handle gracefully
       expect(processExitSpy).toHaveBeenCalledWith(1);
@@ -1459,7 +1448,6 @@ describe("Install Command - MCP Dependency Validation", () => {
       ];
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "test-skill",
@@ -1477,7 +1465,7 @@ describe("Install Command - MCP Dependency Validation", () => {
       );
 
       // Execute
-      await installCommand({ cwd: "/test" });
+      await installCommand({ cwd: "/test", agent: "claude" });
 
       // Verify - should handle gracefully
       expect(processExitSpy).toHaveBeenCalledWith(1);
@@ -1504,7 +1492,6 @@ describe("Install Command - MCP Dependency Validation", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install
         .mockResolvedValueOnce({
           success: false,
@@ -1538,7 +1525,7 @@ describe("Install Command - MCP Dependency Validation", () => {
       mockMCPDependencyChecker.collectDependencies.mockReturnValue([]);
 
       // Execute
-      await installCommand({ cwd: "/test" });
+      await installCommand({ cwd: "/test", agent: "claude" });
 
       // Verify - should still run MCP validation on successful installs
       expect(mockMCPDependencyChecker.collectDependencies).toHaveBeenCalledWith(
@@ -1604,7 +1591,6 @@ describe("Install Command - MCP Dependency Validation", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "file-manager",
@@ -1620,7 +1606,7 @@ describe("Install Command - MCP Dependency Validation", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute
-      await installCommand({ cwd: "/test" });
+      await installCommand({ cwd: "/test", agent: "claude" });
 
       // Verify error message structure
       const errorCalls = consoleErrorSpy.mock.calls.map((call) => call[0]);
@@ -1695,7 +1681,6 @@ describe("Install Command - MCP Dependency Validation", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "file-manager",
@@ -1711,7 +1696,7 @@ describe("Install Command - MCP Dependency Validation", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute
-      await installCommand({ cwd: "/test" });
+      await installCommand({ cwd: "/test", agent: "claude" });
 
       // Verify chalk was used
       expect(consoleErrorSpy).toHaveBeenCalled();

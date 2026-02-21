@@ -86,7 +86,6 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
     };
 
     mockMCPConfigManager = {
-      detectClient: vi.fn(),
       isServerConfigured: vi.fn(),
       addServer: vi.fn()
     };
@@ -161,7 +160,6 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(false); // agentskills NOT configured
       mockInstaller.install.mockResolvedValue({
         success: true,
@@ -181,7 +179,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute
-      await installCommand({ cwd: "/test/project", withMcp: false });
+      await installCommand({ cwd: "/test/project", agent: "claude" });
 
       // Verify agentskills server was added
       expect(mockMCPConfigManager.isServerConfigured).toHaveBeenCalledWith(
@@ -226,7 +224,6 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
       mockInstaller.install.mockResolvedValue({
         success: true,
@@ -246,7 +243,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute
-      await installCommand({ cwd: "/test/project", withMcp: false });
+      await installCommand({ cwd: "/test/project", agent: "claude" });
 
       // Verify success message
       expect(consoleLogSpy).toHaveBeenCalledWith(
@@ -284,7 +281,6 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       processCwdSpy.mockReturnValue("/custom/working/directory");
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
       mockInstaller.install.mockResolvedValue({
         success: true,
@@ -303,10 +299,10 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       mockMCPDependencyChecker.collectDependencies.mockReturnValue([]);
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
-      // Execute
+      // Execute with explicit cwd
       await installCommand({
         cwd: "/custom/working/directory",
-        withMcp: false
+        agent: "claude"
       });
 
       // Verify cwd is from process.cwd()
@@ -344,7 +340,6 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
       mockInstaller.install.mockResolvedValue({
         success: true,
@@ -364,7 +359,11 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute with --with-mcp
-      await installCommand({ cwd: "/test/project", withMcp: true });
+      await installCommand({
+        cwd: "/test/project",
+        withMcp: true,
+        agent: "claude"
+      });
 
       // Verify agentskills server was added
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
@@ -404,7 +403,6 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(true); // ALREADY configured
       mockInstaller.install.mockResolvedValue({
         success: true,
@@ -424,7 +422,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute
-      await installCommand({ cwd: "/test/project", withMcp: false });
+      await installCommand({ cwd: "/test/project", agent: "claude" });
 
       // Verify agentskills server was NOT added
       expect(mockMCPConfigManager.isServerConfigured).toHaveBeenCalledWith(
@@ -460,7 +458,6 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(true);
       mockInstaller.install.mockResolvedValue({
         success: true,
@@ -482,7 +479,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       consoleLogSpy.mockClear(); // Clear previous calls
 
       // Execute
-      await installCommand({ cwd: "/test/project", withMcp: false });
+      await installCommand({ cwd: "/test/project", agent: "claude" });
 
       // Verify NO message about agentskills MCP server (silently skip)
       const agentskillsMCPMessages = consoleLogSpy.mock.calls.filter((call) =>
@@ -527,7 +524,6 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
       mockInstaller.install.mockResolvedValue({
         success: true,
@@ -547,7 +543,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute
-      await installCommand({ cwd: "/test/project", withMcp: false });
+      await installCommand({ cwd: "/test/project", agent: "claude" });
 
       // Verify
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
@@ -582,7 +578,6 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("cline");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
       mockInstaller.install.mockResolvedValue({
         success: true,
@@ -601,8 +596,8 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       mockMCPDependencyChecker.collectDependencies.mockReturnValue([]);
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
-      // Execute
-      await installCommand({ cwd: "/test/project", withMcp: false });
+      // Execute with cline agent
+      await installCommand({ cwd: "/test/project", agent: "cline" });
 
       // Verify
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
@@ -637,7 +632,6 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("zed");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
       mockInstaller.install.mockResolvedValue({
         success: true,
@@ -656,8 +650,8 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       mockMCPDependencyChecker.collectDependencies.mockReturnValue([]);
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
-      // Execute
-      await installCommand({ cwd: "/test/project", withMcp: false });
+      // Execute with zed agent
+      await installCommand({ cwd: "/test/project", agent: "zed" });
 
       // Verify
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
@@ -668,8 +662,8 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
     });
   });
 
-  describe("Handle MCP client not detected", () => {
-    it("should skip gracefully when no MCP client is detected", async () => {
+  describe("Handle no agent specified", () => {
+    it("should skip MCP configuration when no agent is specified", async () => {
       // Setup
       const config: PackageConfig = {
         skills: {
@@ -688,7 +682,6 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue(null); // NO client detected
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "test-skill",
@@ -697,17 +690,20 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
         integrity: "sha512-abc123",
         installPath: "/test/.agentskills/skills/test-skill"
       } as InstallResult);
+      mockInstaller.generateLockFile.mockResolvedValue(undefined);
+      mockInstaller.loadInstalledSkills.mockResolvedValue([]);
+      mockMCPDependencyChecker.collectDependencies.mockReturnValue([]);
 
-      // Execute
-      await installCommand({ cwd: "/test/project", withMcp: false });
+      // Execute without agent parameter
+      await installCommand({ cwd: "/test/project" });
 
-      // Verify graceful skip
+      // Verify graceful skip - no MCP operations
       expect(mockMCPConfigManager.isServerConfigured).not.toHaveBeenCalled();
       expect(mockMCPConfigManager.addServer).not.toHaveBeenCalled();
       expect(processExitSpy).toHaveBeenCalledWith(0); // Still successful
     });
 
-    it("should not show error when MCP client not detected", async () => {
+    it("should not show error when no agent is specified", async () => {
       // Setup
       const config: PackageConfig = {
         skills: {
@@ -726,7 +722,6 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue(null);
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "test-skill",
@@ -735,9 +730,12 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
         integrity: "sha512-abc123",
         installPath: "/test/.agentskills/skills/test-skill"
       } as InstallResult);
+      mockInstaller.generateLockFile.mockResolvedValue(undefined);
+      mockInstaller.loadInstalledSkills.mockResolvedValue([]);
+      mockMCPDependencyChecker.collectDependencies.mockReturnValue([]);
 
-      // Execute
-      await installCommand({ cwd: "/test/project", withMcp: false });
+      // Execute without agent parameter
+      await installCommand({ cwd: "/test/project" });
 
       // Verify no error
       expect(consoleErrorSpy).not.toHaveBeenCalledWith(
@@ -772,7 +770,6 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
       mockMCPConfigManager.addServer.mockRejectedValue(
         new Error("Failed to write config")
@@ -795,7 +792,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute
-      await installCommand({ cwd: "/test/project", withMcp: false });
+      await installCommand({ cwd: "/test/project", agent: "claude" });
 
       // Verify installation still succeeds
       expect(processExitSpy).toHaveBeenCalledWith(0);
@@ -826,7 +823,6 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
       mockMCPConfigManager.addServer.mockRejectedValue(
         new Error("Failed to write config")
@@ -849,7 +845,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute
-      await installCommand({ cwd: "/test/project", withMcp: false });
+      await installCommand({ cwd: "/test/project", agent: "claude" });
 
       // Verify warning was logged
       expect(consoleLogSpy).toHaveBeenCalledWith(
@@ -876,11 +872,10 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
 
       // Execute
-      await installCommand({ cwd: "/test/project", withMcp: false });
+      await installCommand({ cwd: "/test/project", agent: "claude" });
 
       // Verify agentskills server was added even though no skills
       expect(mockMCPConfigManager.isServerConfigured).toHaveBeenCalledWith(
@@ -926,7 +921,6 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
       mockInstaller.install.mockResolvedValue({
         success: true,
@@ -946,7 +940,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute
-      await installCommand({ cwd: "/test/project", withMcp: false });
+      await installCommand({ cwd: "/test/project", agent: "claude" });
 
       // Verify exact format
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
@@ -986,7 +980,6 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(false);
       mockInstaller.install.mockResolvedValue({
         success: true,
@@ -1006,7 +999,7 @@ describe("Install Command - Auto-install agentskills-mcp Server", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute
-      await installCommand({ cwd: "/test/project", withMcp: false });
+      await installCommand({ cwd: "/test/project", agent: "claude" });
 
       // Verify env is empty object
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(

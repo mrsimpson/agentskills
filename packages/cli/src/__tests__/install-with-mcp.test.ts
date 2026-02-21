@@ -91,7 +91,6 @@ describe("Install Command - --with-mcp Flag", () => {
     };
 
     mockMCPConfigManager = {
-      detectClient: vi.fn(),
       isServerConfigured: vi.fn(),
       addServer: vi.fn()
     };
@@ -269,7 +268,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(true); // agentskills already configured
       mockInstaller.install.mockResolvedValue({
         success: true,
@@ -286,7 +284,7 @@ describe("Install Command - --with-mcp Flag", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify
       expect(processExitSpy).toHaveBeenCalledWith(0);
@@ -323,7 +321,6 @@ describe("Install Command - --with-mcp Flag", () => {
       ];
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(true); // agentskills already configured
       mockInstaller.install.mockResolvedValue({
         success: true,
@@ -337,7 +334,7 @@ describe("Install Command - --with-mcp Flag", () => {
       mockMCPDependencyChecker.collectDependencies.mockReturnValue([]);
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify
       expect(processExitSpy).toHaveBeenCalledWith(0);
@@ -425,7 +422,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "file-manager",
@@ -444,7 +440,7 @@ describe("Install Command - --with-mcp Flag", () => {
       mockInquirer.prompt.mockResolvedValue({ ROOT_PATH: "/home/user/files" });
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify prompting occurred
       expect(mockInquirer.prompt).toHaveBeenCalled();
@@ -530,7 +526,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "github-helper",
@@ -549,7 +544,7 @@ describe("Install Command - --with-mcp Flag", () => {
       mockInquirer.prompt.mockResolvedValue({ API_TOKEN: "ghp_secret_token" });
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify prompt contains description
       expect(mockInquirer.prompt).toHaveBeenCalledWith(
@@ -641,7 +636,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "file-manager",
@@ -660,7 +654,7 @@ describe("Install Command - --with-mcp Flag", () => {
       mockInquirer.prompt.mockResolvedValue({ ROOT_PATH: "/tmp" });
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify prompt shows default
       expect(mockInquirer.prompt).toHaveBeenCalledWith(
@@ -752,7 +746,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "file-manager",
@@ -771,7 +764,7 @@ describe("Install Command - --with-mcp Flag", () => {
       mockInquirer.prompt.mockResolvedValue({ ROOT_PATH: "/home/user/files" });
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify substituteParameters was called with user values
       expect(substituteParameters).toHaveBeenCalledWith(
@@ -856,7 +849,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "github-helper",
@@ -875,7 +867,7 @@ describe("Install Command - --with-mcp Flag", () => {
       mockInquirer.prompt.mockResolvedValue({ API_TOKEN: "ghp_secret_token" });
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify substituteParameters was called for env vars
       expect(substituteParameters).toHaveBeenCalledWith(
@@ -968,7 +960,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "database-tool",
@@ -992,7 +983,7 @@ describe("Install Command - --with-mcp Flag", () => {
       });
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify all parameters were substituted
       expect(substituteParameters).toHaveBeenCalledWith(
@@ -1070,7 +1061,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "file-manager",
@@ -1089,7 +1079,7 @@ describe("Install Command - --with-mcp Flag", () => {
       mockInquirer.prompt.mockResolvedValue({ ROOT_PATH: "/home/user/files" });
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify addServer was called with substituted config
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
@@ -1167,7 +1157,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "github-helper",
@@ -1186,7 +1175,7 @@ describe("Install Command - --with-mcp Flag", () => {
       mockInquirer.prompt.mockResolvedValue({ API_TOKEN: "ghp_secret_token" });
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify addServer was called with env vars
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
@@ -1294,7 +1283,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(true); // agentskills already configured
       mockInstaller.install
         .mockResolvedValueOnce({
@@ -1320,7 +1308,7 @@ describe("Install Command - --with-mcp Flag", () => {
       mockMCPDependencyChecker.checkDependencies.mockResolvedValue(checkResult);
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify no prompting occurred since server is already configured
       // and agentskills server is already configured too
@@ -1413,7 +1401,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(false); // agentskills NOT configured
       mockInstaller.install.mockResolvedValue({
         success: true,
@@ -1433,7 +1420,7 @@ describe("Install Command - --with-mcp Flag", () => {
       mockInquirer.prompt.mockResolvedValue({ API_TOKEN: "ghp_token" });
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify only github prompted (not filesystem)
       expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
@@ -1552,7 +1539,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(false); // agentskills NOT configured
       mockInstaller.install.mockResolvedValue({
         success: true,
@@ -1575,7 +1561,7 @@ describe("Install Command - --with-mcp Flag", () => {
         .mockResolvedValueOnce({ SLACK_TOKEN: "xoxb-token" });
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify prompts for all three dependency servers
       expect(mockInquirer.prompt).toHaveBeenCalledTimes(3);
@@ -1681,7 +1667,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(false); // agentskills NOT configured
       mockInstaller.install.mockResolvedValue({
         success: true,
@@ -1703,7 +1688,7 @@ describe("Install Command - --with-mcp Flag", () => {
         .mockResolvedValueOnce({ API_TOKEN: "ghp_token" });
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify both dependency servers + agentskills server were added
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledTimes(3);
@@ -1774,7 +1759,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "file-manager",
@@ -1793,7 +1777,7 @@ describe("Install Command - --with-mcp Flag", () => {
       mockInquirer.prompt.mockRejectedValue(new Error("User cancelled"));
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify graceful handling
       expect(consoleErrorSpy).toHaveBeenCalled();
@@ -1862,7 +1846,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "file-manager",
@@ -1881,7 +1864,7 @@ describe("Install Command - --with-mcp Flag", () => {
       mockInquirer.prompt.mockRejectedValue(new Error("User cancelled"));
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify helpful message
       const errorCalls = consoleErrorSpy.mock.calls
@@ -1954,7 +1937,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "file-manager",
@@ -1973,7 +1955,7 @@ describe("Install Command - --with-mcp Flag", () => {
       mockInquirer.prompt.mockResolvedValue({ ROOT_PATH: "/home/user/files" });
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify required parameter was prompted
       expect(mockInquirer.prompt).toHaveBeenCalledWith(
@@ -2049,7 +2031,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "web-server",
@@ -2068,7 +2049,7 @@ describe("Install Command - --with-mcp Flag", () => {
       mockInquirer.prompt.mockResolvedValue({ PORT: "8080" });
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify optional parameter has default
       expect(mockInquirer.prompt).toHaveBeenCalledWith(
@@ -2142,7 +2123,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "github-helper",
@@ -2161,7 +2141,7 @@ describe("Install Command - --with-mcp Flag", () => {
       mockInquirer.prompt.mockResolvedValue({ API_TOKEN: "ghp_secret_token" });
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify sensitive parameter uses password type
       expect(mockInquirer.prompt).toHaveBeenCalledWith(
@@ -2238,7 +2218,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "file-manager",
@@ -2260,7 +2239,7 @@ describe("Install Command - --with-mcp Flag", () => {
       mockInquirer.prompt.mockResolvedValue({ ROOT_PATH: "/home/testuser" });
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify env var was resolved in default
       expect(mockInquirer.prompt).toHaveBeenCalledWith(
@@ -2337,7 +2316,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install.mockResolvedValue({
         success: true,
         name: "api-tool",
@@ -2356,7 +2334,7 @@ describe("Install Command - --with-mcp Flag", () => {
       mockInquirer.prompt.mockResolvedValue({ API_KEY: "user-provided-key" });
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify graceful handling (no default or warning about missing env var)
       expect(mockInquirer.prompt).toHaveBeenCalled();
@@ -2446,7 +2424,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockMCPConfigManager.isServerConfigured.mockResolvedValue(false); // agentskills NOT configured
       mockInstaller.install
         .mockResolvedValueOnce({
@@ -2483,7 +2460,7 @@ describe("Install Command - --with-mcp Flag", () => {
       mockInquirer.prompt.mockResolvedValue({ ROOT_PATH: "/home/user/files" });
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify prompted only ONCE despite three skills needing it
       expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
@@ -2566,7 +2543,6 @@ describe("Install Command - --with-mcp Flag", () => {
       };
 
       mockConfigManager.loadConfig.mockResolvedValue(config);
-      mockMCPConfigManager.detectClient.mockReturnValue("claude-desktop");
       mockInstaller.install
         .mockResolvedValueOnce({
           success: true,
@@ -2594,7 +2570,7 @@ describe("Install Command - --with-mcp Flag", () => {
       mockInquirer.prompt.mockResolvedValue({ API_TOKEN: "ghp_token" });
 
       // Execute with --with-mcp flag
-      await installCommand({ cwd: "/test", withMcp: true });
+      await installCommand({ cwd: "/test", withMcp: true, agent: "claude" });
 
       // Verify prompt mentions both skills
       // Note: Implementation should show "needed by: skill-a, skill-b"
