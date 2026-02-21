@@ -10,6 +10,7 @@ import { spawn, ChildProcess } from "node:child_process";
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { EventEmitter } from "node:events";
 
 describe("MCP Server Integration - Subprocess Execution", () => {
   let tempDir: string;
@@ -86,9 +87,10 @@ This is another skill body with instructions for the second skill.
       stdio: ["pipe", "pipe", "pipe"]
     });
 
-    // Collect responses
+    // Collect responses using an EventEmitter to avoid setInterval timing issues
     const responses: object[] = [];
     let buffer = "";
+    const responseEmitter = new EventEmitter();
 
     serverProcess.stdout?.on("data", (data) => {
       buffer += data.toString();
@@ -138,6 +140,7 @@ This is another skill body with instructions for the second skill.
             buffer = buffer.substring(jsonEnd).trim();
             const parsed = JSON.parse(jsonStr);
             responses.push(parsed);
+            responseEmitter.emit("response");
           } else {
             // No complete JSON object yet
             break;
@@ -161,24 +164,26 @@ This is another skill body with instructions for the second skill.
       serverProcess?.stdin?.write(json);
     };
 
-    // Helper to wait for a response
-    const waitForResponse = (timeoutMs = 2000): Promise<object> => {
+    // Helper to wait for a response using event-based notification
+    // (avoids setInterval timing issues in test environments)
+    const waitForResponse = (timeoutMs = 5000): Promise<object> => {
       return new Promise((resolve, reject) => {
-        const startTime = Date.now();
-        const checkInterval = setInterval(() => {
-          if (responses.length > 0) {
-            clearInterval(checkInterval);
-            const response = responses.shift()!;
-            resolve(response);
-          } else if (Date.now() - startTime > timeoutMs) {
-            clearInterval(checkInterval);
-            reject(
-              new Error(
-                `Timeout waiting for response. Buffer: "${buffer}". stderr: ${stderrOutput}`
-              )
-            );
-          }
-        }, 50);
+        if (responses.length > 0) {
+          resolve(responses.shift()!);
+          return;
+        }
+        const timer = setTimeout(() => {
+          responseEmitter.removeAllListeners("response");
+          reject(
+            new Error(
+              `Timeout waiting for response. Buffer: "${buffer}". stderr: ${stderrOutput}`
+            )
+          );
+        }, timeoutMs);
+        responseEmitter.once("response", () => {
+          clearTimeout(timer);
+          resolve(responses.shift()!);
+        });
       });
     };
 
@@ -443,5 +448,5 @@ This is another skill body with instructions for the second skill.
     });
 
     serverProcess = null;
-  }, 10000); // 10 second timeout for the entire test
+  }, 30000); // 30 second timeout for the entire test
 });

@@ -681,10 +681,14 @@ This skill has a very short description which should trigger a warning.
         await createValidSkill(restrictedDir);
 
         // Make directory unreadable (Unix-like systems only)
-        if (process.platform !== "win32") {
+        // Also skip when running as root since chmod doesn't restrict root access
+        const isRoot =
+          typeof process.getuid === "function" && process.getuid() === 0;
+        if (process.platform !== "win32" && !isRoot) {
           await fs.chmod(restrictedDir, 0o000);
         } else {
-          // Skip on Windows
+          // Skip on Windows or when running as root
+          await fs.chmod(restrictedDir, 0o755);
           return;
         }
 
