@@ -1,0 +1,153 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agentskills.io/schemas/skill.json",
+  "title": "Agent Skill",
+  "description": "Schema for Agent Skills SKILL.md frontmatter",
+  "type": "object",
+  "required": ["name", "description"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^(?!\\s*$)(?!.*--)(?!-)(?!.*-$)[a-z0-9-]+$",
+      "description": "Skill identifier (lowercase letters, numbers, hyphens; no leading/trailing/consecutive hyphens; not just whitespace)"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^(?!\\s*$)[\\s\\S]+$",
+      "description": "Brief description of what the skill does (not just whitespace, allows special chars and newlines)"
+    },
+    "license": {
+      "type": "string",
+      "description": "License identifier (e.g., MIT, Apache-2.0)"
+    },
+    "compatibility": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Compatibility requirements or constraints"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata key-value pairs"
+    },
+    "allowedTools": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Space-delimited list of pre-approved tools (experimental)"
+    },
+    "disableModelInvocation": {
+      "type": "boolean",
+      "description": "Disable automatic model invocation (Claude Code extension)"
+    },
+    "userInvocable": {
+      "type": "boolean",
+      "description": "Allow user to invoke skill directly (Claude Code extension)"
+    },
+    "argumentHint": {
+      "type": "string",
+      "description": "Hint for skill arguments (Claude Code extension)"
+    },
+    "context": {
+      "type": "string",
+      "description": "Additional context for skill execution (Claude Code extension)"
+    },
+    "agent": {
+      "type": "string",
+      "description": "Preferred agent for skill execution (Claude Code extension)"
+    },
+    "model": {
+      "type": "string",
+      "description": "Preferred model for skill execution (Claude Code extension)"
+    },
+    "hooks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Hook definitions for skill lifecycle (Claude Code extension)"
+    },
+    "requiresMcpServers": {
+      "type": "array",
+      "description": "MCP servers required by this skill",
+      "items": {
+        "type": "object",
+        "required": ["name", "command", "description"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$",
+            "description": "Server identifier for MCP configuration"
+          },
+          "package": {
+            "type": "string",
+            "description": "NPM package name (informational)"
+          },
+          "description": {
+            "type": "string",
+            "description": "Why this server is needed"
+          },
+          "command": {
+            "type": "string",
+            "description": "Executable command (e.g., npx, node, python)"
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Command arguments (may contain {{VARIABLE}} placeholders)"
+          },
+          "env": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Environment variables (may contain {{VARIABLE}} placeholders)"
+          },
+          "cwd": {
+            "type": "string",
+            "description": "Working directory"
+          },
+          "parameters": {
+            "type": "object",
+            "description": "Defines all {{VARIABLE}} placeholders used in command/args/env",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["description", "required"],
+              "properties": {
+                "description": {
+                  "type": "string",
+                  "description": "What this parameter is for"
+                },
+                "required": {
+                  "type": "boolean",
+                  "description": "Whether this parameter must be provided"
+                },
+                "default": {
+                  "type": "string",
+                  "description": "Default value if not provided"
+                },
+                "example": {
+                  "type": "string",
+                  "description": "Example value to guide users"
+                },
+                "sensitive": {
+                  "type": "boolean",
+                  "description": "Mark as secret/credential"
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

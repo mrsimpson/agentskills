@@ -27,6 +27,9 @@ export interface SkillMetadata {
   agent?: string;
   model?: string;
   hooks?: Record<string, string>;
+
+  // MCP server dependencies
+  requiresMcpServers?: McpServerDependency[];
 }
 
 /**
@@ -254,3 +257,81 @@ export interface PackageConfig {
     path?: string;
   };
 }
+
+/**
+ * MCP (Model Context Protocol) related types
+ */
+
+/**
+ * Supported MCP client types
+ */
+export type McpClientType =
+  | "claude-desktop"
+  | "cline"
+  | "continue"
+  | "cursor"
+  | "junie";
+
+/**
+ * Parameter specification for MCP server configuration
+ */
+export interface McpParameterSpec {
+  description: string; // What this parameter is for
+  required: boolean; // Is this parameter required?
+  sensitive?: boolean; // Is this a secret/credential?
+  default?: string; // Default value
+  example?: string; // Example value to guide users
+}
+
+/**
+ * MCP server dependency specification
+ */
+export interface McpServerDependency {
+  name: string; // Server identifier
+  package?: string; // NPM package name (optional)
+  description: string; // Why this server is needed
+  command: string; // Executable command
+  args?: string[]; // Arguments (may contain placeholders)
+  env?: Record<string, string>; // Environment vars
+  cwd?: string; // Working directory
+  parameters?: Record<string, McpParameterSpec>; // Parameter definitions
+}
+
+/**
+ * MCP server configuration structure
+ */
+export interface McpServerConfig {
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+}
+
+/**
+ * MCP client configuration
+ */
+export interface McpConfig {
+  mcpServers: Record<string, McpServerConfig>;
+}
+
+/**
+ * MCP dependency information
+ */
+export interface McpDependencyInfo {
+  serverName: string;
+  neededBy: string[]; // Skills that need this server
+  spec: McpServerDependency;
+}
+
+/**
+ * Result of checking MCP dependencies
+ */
+export interface McpDependencyCheckResult {
+  allConfigured: boolean;
+  missing: McpDependencyInfo[];
+  configured: string[];
+}
+
+/**
+ * Parameter values for substitution
+ */
+export type ParameterValues = Record<string, string>;

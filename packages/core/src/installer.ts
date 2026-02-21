@@ -16,9 +16,10 @@ import type {
   InstallAllResult,
   SkillManifest,
   SkillLockFile,
-  InstallErrorCode
+  InstallErrorCode,
+  Skill
 } from "./types.js";
-import { parseSkillContent } from "./parser.js";
+import { parseSkillContent, parseSkill } from "./parser.js";
 
 /**
  * SkillInstaller class for installing Agent Skills from various sources
@@ -260,6 +261,54 @@ export class SkillInstaller {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Load all installed skills from the skills directory
+   *
+   * @returns Array of parsed Skill objects
+   * @throws Error if skills directory doesn't exist or skills are invalid
+   */
+  async loadInstalledSkills(): Promise<Skill[]> {
+    const skills: Skill[] = [];
+
+    try {
+      // Check if skills directory exists
+      await fs.access(this.skillsDir);
+    } catch {
+      // If directory doesn't exist, return empty array
+      return skills;
+    }
+
+    // Read all subdirectories in skills directory
+    const entries = await fs.readdir(this.skillsDir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      // Skip non-directories and hidden directories
+      if (!entry.isDirectory() || entry.name.startsWith(".")) {
+        continue;
+      }
+
+      const skillDir = join(this.skillsDir, entry.name);
+      const skillPath = join(skillDir, "SKILL.md");
+
+      try {
+        // Check if SKILL.md exists
+        await fs.access(skillPath);
+
+        // Parse the skill
+        const parseResult = await parseSkill(skillPath);
+
+        if (parseResult.success) {
+          skills.push(parseResult.skill);
+        }
+      } catch {
+        // Skip invalid or missing skills
+        continue;
+      }
+    }
+
+    return skills;
   }
 
   /**

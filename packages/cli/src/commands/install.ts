@@ -9,9 +9,15 @@ import { promises as fs } from "fs";
 import { join } from "path";
 import {
   PackageConfigManager,
-  SkillInstaller
+  SkillInstaller,
+  MCPConfigManager,
+  MCPDependencyChecker
 } from "@codemcp/agentskills-core";
-import type { InstallResult } from "@codemcp/agentskills-core";
+import type {
+  InstallResult,
+  McpClientType,
+  McpDependencyInfo
+} from "@codemcp/agentskills-core";
 import ora from "ora";
 import chalk from "chalk";
 
@@ -20,11 +26,14 @@ import chalk from "chalk";
  *
  * @param options - Options for the install command
  * @param options.cwd - Working directory (default: process.cwd())
+ * @param options.withMcp - Skip MCP validation (will be handled by auto-install)
  */
 export async function installCommand(options?: {
   cwd?: string;
+  withMcp?: boolean;
 }): Promise<void> {
   const cwd = options?.cwd ?? process.cwd();
+  const withMcp = options?.withMcp ?? false;
 
   try {
     // 1. Load package.json config
@@ -129,6 +138,15 @@ export async function installCommand(options?: {
         );
       }
 
+      // 10. MCP Dependency Validation (only if not using --with-mcp)
+      if (!withMcp) {
+        const hasError = await validateMCPDependencies(installer);
+        if (hasError) {
+          process.exit(1);
+          return;
+        }
+      }
+
       process.exit(0);
     } else {
       // All installs failed
@@ -170,5 +188,86 @@ export async function installCommand(options?: {
     // Unknown error
     console.error(chalk.red(`✗ Error: ${errorMessage}`));
     process.exit(1);
+  }
+}
+
+/**
+ * Validate MCP server dependencies for installed skills
+ *
+ * @param installer - SkillInstaller instance
+ * @returns True if there are missing dependencies (error), false otherwise
+ */
+async function validateMCPDependencies(
+  installer: SkillInstaller
+): Promise<boolean> {
+  try {
+    // 1. Detect MCP client
+    const mcpConfigManager = new MCPConfigManager();
+    const clientType: McpClientType | null = mcpConfigManager.detectClient();
+
+    // If no MCP client detected, skip validation
+    if (!clientType) {
+      return false;
+    }
+
+    // 2. Load installed skills
+    const installedSkills = await installer.loadInstalledSkills();
+
+    // 3. Collect MCP dependencies
+    const mcpChecker = new MCPDependencyChecker();
+    const dependencies: McpDependencyInfo[] =
+      mcpChecker.collectDependencies(installedSkills);
+
+    // If no dependencies, nothing to validate
+    if (dependencies.length === 0) {
+      return false;
+    }
+
+    // 4. Check which dependencies are configured
+    const checkResult = await mcpChecker.checkDependencies(
+      clientType,
+      dependencies,
+      mcpConfigManager
+    );
+
+    // 5. If all configured, we're done
+    if (checkResult.allConfigured) {
+      return false;
+    }
+
+    // 6. Display error message for missing dependencies
+    console.error(chalk.red.bold("\n❌ Missing MCP server dependencies"));
+    console.error(
+      chalk.red(
+        `\nThe following MCP servers are required but not configured in your ${clientType} settings:\n`
+      )
+    );
+
+    // Display each missing server
+    for (const dep of checkResult.missing) {
+      console.error(chalk.yellow(`  • ${dep.serverName}`));
+      if (dep.spec.description) {
+        console.error(chalk.gray(`    ${dep.spec.description}`));
+      }
+      console.error(chalk.cyan(`    Needed by: ${dep.neededBy.join(", ")}`));
+      console.error(""); // Empty line for spacing
+    }
+
+    // Suggest using --with-mcp flag
+    console.error(
+      chalk.blue(
+        "💡 Tip: Run with --with-mcp flag to automatically configure these servers"
+      )
+    );
+    console.error("");
+
+    // Return true to indicate error
+    return true;
+  } catch (error: unknown) {
+    // Handle errors during validation
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    console.error(chalk.red(`\n✗ MCP validation error: ${errorMessage}`));
+    return true;
   }
 }
