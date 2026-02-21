@@ -1,0 +1,18 @@
+# Build outputs
+**/dist/
+**/node_modules/
+**/.pnpm-store/
+
+# Lock files
+pnpm-lock.yaml
+package-lock.json
+
+# Generated files
+**/*.d.ts.map
+**/*.js.map
+
+# Coverage
+**/coverage/
+
+# Misc
+.DS_Store
