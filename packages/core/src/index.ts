@@ -23,7 +23,7 @@ export type {
   SkillManifest,
   SkillLockFile,
   SkillLockEntry,
-  PackageConfig,
+  PackageConfig
 } from "./types.js";
 
 export { parseSkill, parseSkillContent } from "./parser.js";

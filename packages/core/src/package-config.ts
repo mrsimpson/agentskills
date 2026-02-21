@@ -36,11 +36,11 @@ export class PackageConfigManager {
         skillsDirectory: ".agentskills/skills",
         autoDiscover: [".claude/skills"],
         maxSkillSize: 5000,
-        logLevel: "info",
+        logLevel: "info"
       },
       source: {
-        type: "defaults",
-      },
+        type: "defaults"
+      }
     };
   }
 
@@ -74,8 +74,8 @@ export class PackageConfigManager {
         config,
         source: {
           type: "file",
-          path: this.packageJsonPath,
-        },
+          path: this.packageJsonPath
+        }
       };
     } catch (error: unknown) {
       // Return defaults if file doesn't exist
@@ -98,7 +98,9 @@ export class PackageConfigManager {
   /**
    * Validate and extract skills from package.json
    */
-  private validateAndExtractSkills(packageJson: Record<string, unknown>): Record<string, string> {
+  private validateAndExtractSkills(
+    packageJson: Record<string, unknown>
+  ): Record<string, string> {
     if (!packageJson.agentskills) {
       return {};
     }
@@ -127,7 +129,9 @@ export class PackageConfigManager {
   /**
    * Validate and extract config from package.json
    */
-  private validateAndExtractConfig(packageJson: Record<string, unknown>): PackageConfig["config"] {
+  private validateAndExtractConfig(
+    packageJson: Record<string, unknown>
+  ): PackageConfig["config"] {
     const defaultConfig = this.getDefaultConfig().config;
 
     if (!packageJson.agentskillsConfig) {
@@ -197,7 +201,11 @@ export class PackageConfigManager {
           `Invalid logLevel '${configObj.logLevel}'. Must be one of: error, warn, info, debug`
         );
       }
-      config.logLevel = configObj.logLevel as "error" | "warn" | "info" | "debug";
+      config.logLevel = configObj.logLevel as
+        | "error"
+        | "warn"
+        | "info"
+        | "debug";
     }
 
     return config;
@@ -215,10 +223,15 @@ export class PackageConfigManager {
       const content = await fs.readFile(this.packageJsonPath, "utf-8");
       packageJson = JSON.parse(content);
     } catch (error: unknown) {
-      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        error.code === "ENOENT"
+      ) {
         // Create minimal package.json
         packageJson = {
-          name: "agentskills-project",
+          name: "agentskills-project"
         };
       } else {
         throw error;
@@ -254,10 +267,15 @@ export class PackageConfigManager {
       const content = await fs.readFile(this.packageJsonPath, "utf-8");
       packageJson = JSON.parse(content);
     } catch (error: unknown) {
-      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        error.code === "ENOENT"
+      ) {
         // Create minimal package.json
         packageJson = {
-          name: "agentskills-project",
+          name: "agentskills-project"
         };
       } else {
         throw error;

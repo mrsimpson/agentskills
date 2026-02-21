@@ -15,6 +15,7 @@ npm run test:watch
 ## Implementation Checklist
 
 ### Phase 1: Basic Parsing (8 tests)
+
 - [ ] Install `gray-matter` for frontmatter extraction
 - [ ] Implement `parseSkillContent` basic flow:
   - [ ] Check for empty content
@@ -25,6 +26,7 @@ npm run test:watch
   - [ ] Construct Skill object with metadata + body
 
 **Target tests:**
+
 - should parse a basic skill with name and description
 - should parse a skill with all optional fields
 - should parse Claude Code extensions
@@ -35,12 +37,14 @@ npm run test:watch
 - should handle skill with only frontmatter (no body)
 
 ### Phase 2: Error Handling (5 tests)
+
 - [ ] Handle missing frontmatter
 - [ ] Handle YAML parsing errors (try-catch)
 - [ ] Validate required field presence
 - [ ] Return proper ParseError objects
 
 **Target tests:**
+
 - should fail when frontmatter is missing
 - should fail when YAML syntax is invalid
 - should fail when required field 'name' is missing
@@ -48,6 +52,7 @@ npm run test:watch
 - should fail when file is empty
 
 ### Phase 3: File System Operations (5 tests)
+
 - [ ] Implement `parseSkill` function
 - [ ] Read file using `fs.promises.readFile`
 - [ ] Handle file not found errors
@@ -55,6 +60,7 @@ npm run test:watch
 - [ ] Delegate to `parseSkillContent`
 
 **Target tests:**
+
 - should successfully parse a valid skill file
 - should fail when file does not exist
 - should fail gracefully on file read error
@@ -62,13 +68,16 @@ npm run test:watch
 - should handle invalid UTF-8 encoding gracefully
 
 ### Phase 4: Edge Cases (8 tests)
+
 Should mostly pass automatically if Phase 1 is solid.
+
 - [ ] Verify whitespace handling
 - [ ] Verify line ending handling (CRLF, LF, mixed)
 - [ ] Verify markdown preservation
 - [ ] Verify type preservation (numbers, booleans)
 
 **Target tests:**
+
 - should handle frontmatter with no body whitespace
 - should handle frontmatter with extra whitespace
 - should handle CRLF line endings
@@ -79,45 +88,52 @@ Should mostly pass automatically if Phase 1 is solid.
 - should handle boolean field values
 
 ### Phase 5: Type Safety (2 tests)
+
 Should pass automatically if types are correct.
+
 - [ ] Verify return types match ParseResult
 - [ ] Verify discriminated union works
 
 **Target tests:**
+
 - should return properly typed Skill object
 - should return properly typed ParseError on failure
 
 ### Phase 6: Immutability (1 test)
+
 - [ ] Ensure returned objects are immutable
 - [ ] Consider using `Object.freeze()` or readonly types
 
 **Target tests:**
+
 - should return immutable Skill object
 
 ## Implementation Tips
 
 ### Field Name Mapping
+
 ```typescript
 const FIELD_MAP: Record<string, string> = {
-  'name': 'name',
-  'description': 'description',
-  'license': 'license',
-  'compatibility': 'compatibility',
-  'metadata': 'metadata',
-  'allowed-tools': 'allowedTools',
-  'disable-model-invocation': 'disableModelInvocation',
-  'user-invocable': 'userInvocable',
-  'argument-hint': 'argumentHint',
-  'context': 'context',
-  'agent': 'agent',
-  'model': 'model',
-  'hooks': 'hooks',
+  name: "name",
+  description: "description",
+  license: "license",
+  compatibility: "compatibility",
+  metadata: "metadata",
+  "allowed-tools": "allowedTools",
+  "disable-model-invocation": "disableModelInvocation",
+  "user-invocable": "userInvocable",
+  "argument-hint": "argumentHint",
+  context: "context",
+  agent: "agent",
+  model: "model",
+  hooks: "hooks"
 };
 ```
 
 ### Frontmatter Extraction with gray-matter
+
 ```typescript
-import matter from 'gray-matter';
+import matter from "gray-matter";
 
 const { data, content } = matter(fileContent);
 // data = parsed YAML object
@@ -125,6 +141,7 @@ const { data, content } = matter(fileContent);
 ```
 
 ### Error Helper Functions
+
 ```typescript
 function createError(
   code: ParseErrorCode,
@@ -139,17 +156,21 @@ function createError(
 ```
 
 ### File Reading with Error Handling
+
 ```typescript
-import { promises as fs } from 'fs';
+import { promises as fs } from "fs";
 
 try {
-  const content = await fs.readFile(filePath, 'utf-8');
+  const content = await fs.readFile(filePath, "utf-8");
   return parseSkillContent(content);
 } catch (error) {
-  if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-    return createError('FILE_NOT_FOUND', `File not found: ${filePath}`);
+  if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+    return createError("FILE_NOT_FOUND", `File not found: ${filePath}`);
   }
-  return createError('FILE_READ_ERROR', `Failed to read file: ${error.message}`);
+  return createError(
+    "FILE_READ_ERROR",
+    `Failed to read file: ${error.message}`
+  );
 }
 ```
 

@@ -3,10 +3,10 @@ import { AgentSkillsServer } from "../index.js";
 
 /**
  * Smoke test for MCP server package setup
- * 
+ *
  * This test verifies that the basic package structure is in place
  * and exports are working correctly.
- * 
+ *
  * Following TDD approach:
  * - RED: This test will fail initially because AgentSkillsServer doesn't exist
  * - GREEN: Minimal implementation to make it pass

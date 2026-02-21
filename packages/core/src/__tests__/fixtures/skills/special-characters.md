@@ -1,6 +1,6 @@
 ---
 name: special-chars-skill
-description: "Testing special characters: émojis 🚀, quotes \"nested\", and symbols <>&"
+description: 'Testing special characters: émojis 🚀, quotes "nested", and symbols <>&'
 metadata:
   unicode: "日本語 中文 한국어"
   symbols: "!@#$%^&*()_+-=[]{}|;':,.<>?/"

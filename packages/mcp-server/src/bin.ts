@@ -2,9 +2,9 @@
 
 /**
  * Executable entry point for Agent Skills MCP Server
- * 
+ *
  * Usage: agentskills-mcp [project-directory]
- * 
+ *
  * If no directory provided, uses current working directory.
  * Reads package.json from project directory to load skill configuration.
  * Skills are loaded from .agentskills/skills within the project directory.

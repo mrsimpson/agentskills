@@ -9,6 +9,7 @@ This test suite was written **before** the implementation, following TDD best pr
 ## Test Philosophy
 
 Following patterns from `agentic-knowledge`:
+
 - **Minimal mocking**: Use real file system with temporary directories
 - **Clear test structure**: Arrange-Act-Assert pattern
 - **Test-driven interface design**: Tests define the API contract
@@ -17,6 +18,7 @@ Following patterns from `agentic-knowledge`:
 ## Test Structure
 
 ### 1. Valid Skill Parsing (8 tests)
+
 Tests for successfully parsing well-formed skills:
 
 - `should parse a basic skill with name and description`
@@ -54,6 +56,7 @@ Tests for successfully parsing well-formed skills:
   - Edge case but should be supported
 
 ### 2. Invalid/Malformed Skills (5 tests)
+
 Tests for proper error handling:
 
 - `should fail when frontmatter is missing`
@@ -77,6 +80,7 @@ Tests for proper error handling:
   - Error code: `EMPTY_FILE`
 
 ### 3. File System Handling (5 tests)
+
 Tests for file system operations (using `parseSkill`):
 
 - `should successfully parse a valid skill file`
@@ -100,6 +104,7 @@ Tests for file system operations (using `parseSkill`):
   - Should not crash, handle gracefully
 
 ### 4. Type Definitions (2 tests)
+
 Runtime validation of TypeScript types:
 
 - `should return properly typed Skill object`
@@ -112,11 +117,11 @@ Runtime validation of TypeScript types:
   - Validates field property for field-specific errors
 
 ### 5. Edge Cases (8 tests)
+
 Corner cases and unusual but valid inputs:
 
 - `should handle frontmatter with no body whitespace`
   - Frontmatter ending delimiter immediately followed by EOF
-  
 - `should handle frontmatter with extra whitespace`
   - Extra blank lines around frontmatter delimiters
 
@@ -143,6 +148,7 @@ Corner cases and unusual but valid inputs:
   - Should preserve boolean types
 
 ### 6. Immutability (1 test)
+
 Tests design principle:
 
 - `should return immutable Skill object`
@@ -153,39 +159,40 @@ Tests design principle:
 
 Located in `__tests__/fixtures/skills/`:
 
-| Fixture | Purpose |
-|---------|---------|
-| `basic-skill.md` | Minimal valid skill (name + description) |
-| `full-skill.md` | All optional fields + Claude Code extensions |
-| `claude-code-extensions.md` | All Claude-specific fields |
-| `missing-frontmatter.md` | No YAML frontmatter (error case) |
-| `invalid-yaml.md` | Malformed YAML syntax (error case) |
-| `missing-name.md` | No name field (error case) |
-| `missing-description.md` | No description field (error case) |
-| `empty.md` | Empty file (error case) |
-| `only-frontmatter.md` | Valid frontmatter, no body |
-| `special-characters.md` | Unicode, émojis, special symbols |
-| `long-description.md` | Multi-paragraph description |
-| `nested-metadata.md` | Deep metadata nesting |
-| `empty-optional-fields.md` | Empty strings, arrays, objects |
+| Fixture                     | Purpose                                      |
+| --------------------------- | -------------------------------------------- |
+| `basic-skill.md`            | Minimal valid skill (name + description)     |
+| `full-skill.md`             | All optional fields + Claude Code extensions |
+| `claude-code-extensions.md` | All Claude-specific fields                   |
+| `missing-frontmatter.md`    | No YAML frontmatter (error case)             |
+| `invalid-yaml.md`           | Malformed YAML syntax (error case)           |
+| `missing-name.md`           | No name field (error case)                   |
+| `missing-description.md`    | No description field (error case)            |
+| `empty.md`                  | Empty file (error case)                      |
+| `only-frontmatter.md`       | Valid frontmatter, no body                   |
+| `special-characters.md`     | Unicode, émojis, special symbols             |
+| `long-description.md`       | Multi-paragraph description                  |
+| `nested-metadata.md`        | Deep metadata nesting                        |
+| `empty-optional-fields.md`  | Empty strings, arrays, objects               |
 
 ## Expected Interface
 
 Based on the tests, the parser should export:
 
 ### Types
+
 ```typescript
 interface SkillMetadata {
   // Required
   name: string;
   description: string;
-  
+
   // Optional standard fields
   license?: string;
   compatibility?: string;
   metadata?: Record<string, any>;
   allowedTools?: string[];
-  
+
   // Claude Code extensions
   disableModelInvocation?: boolean;
   userInvocable?: boolean;
@@ -201,7 +208,7 @@ interface Skill {
   body: string;
 }
 
-type ParseErrorCode = 
+type ParseErrorCode =
   | "EMPTY_FILE"
   | "MISSING_FRONTMATTER"
   | "INVALID_YAML"
@@ -215,15 +222,16 @@ interface ParseError {
   field?: string;
 }
 
-type ParseResult = 
+type ParseResult =
   | { success: true; skill: Skill }
   | { success: false; error: ParseError };
 ```
 
 ### Functions
+
 ```typescript
-function parseSkillContent(content: string): ParseResult
-function parseSkill(filePath: string): Promise<ParseResult>
+function parseSkillContent(content: string): ParseResult;
+function parseSkill(filePath: string): Promise<ParseResult>;
 ```
 
 ## Running Tests

@@ -1,15 +1,19 @@
 # Validate Command - TDD Test Implementation Summary
 
 ## Overview
+
 Comprehensive test suite for the `agentskills validate` command following TDD best practices.
 
 ## Test File Location
+
 `packages/cli/src/commands/__tests__/validate.test.ts`
 
 ## Implementation File (Stub)
+
 `packages/cli/src/commands/validate.ts`
 
 ## Test Statistics
+
 - **Total Tests**: 48 test cases
 - **Test Groups**: 11 describe blocks
 - **Current Status**: ✅ Tests written (RED phase)
@@ -19,6 +23,7 @@ Comprehensive test suite for the `agentskills validate` command following TDD be
 ## Test Coverage
 
 ### 1. Single Skill Validation (15 tests)
+
 - ✅ Valid skill → success message, exit 0
 - ✅ Valid skill with direct SKILL.md path
 - ✅ Invalid skill (parse error) → error message, exit 1
@@ -27,6 +32,7 @@ Comprehensive test suite for the `agentskills validate` command following TDD be
 - ✅ Skill with warnings (--strict) → treat as error, exit 1
 
 ### 2. Directory Validation - All Skills (18 tests)
+
 - ✅ All valid → success summary, exit 0
 - ✅ Some invalid → show errors, summary, exit 1
 - ✅ Mix of valid/invalid/warnings → detailed report
@@ -34,24 +40,28 @@ Comprehensive test suite for the `agentskills validate` command following TDD be
 - ✅ Non-skill files in directory → handle gracefully
 
 ### 3. Error Handling (6 tests)
+
 - ✅ Path doesn't exist → error message, exit 1
 - ✅ Not a skill directory (no SKILL.md) → error message, exit 1
 - ✅ Permission errors → error message, exit 1
 - ✅ No path provided → validate default locations
 
 ### 4. Output Formatting (7 tests)
+
 - ✅ Success: "✓ Skill 'name' is valid"
-- ✅ Error: "✗ Skill 'name' failed validation:\n  - error details"
+- ✅ Error: "✗ Skill 'name' failed validation:\n - error details"
 - ✅ Warning: "⚠ Warning: issue description"
 - ✅ Summary: "Validated X skills: Y valid, Z invalid"
 - ✅ Proper pluralization handling
 
 ### 5. --fix Flag (3 tests)
+
 - ✅ Shows "Auto-fix not implemented yet" message
 - ✅ Still validates and reports issues
 - ✅ Works with --strict flag
 
 ### 6. Edge Cases (3 tests)
+
 - ✅ Very long content handling
 - ✅ Special characters in skill name
 - ✅ Nested directory structures
@@ -59,6 +69,7 @@ Comprehensive test suite for the `agentskills validate` command following TDD be
 ## Test Infrastructure
 
 ### Helper Functions
+
 ```typescript
 - createSkillFile(dir, content) - Create SKILL.md file
 - createValidSkill(dir, name) - Create valid skill fixture
@@ -68,12 +79,15 @@ Comprehensive test suite for the `agentskills validate` command following TDD be
 ```
 
 ### Mocking Strategy
+
 - Real file system operations (temp directories)
 - Mocked console.log, console.error, process.exit
 - No mocking of core parser/validator (integration testing)
 
 ### Test Fixtures
+
 Uses real file system with generated test skills:
+
 - Valid skills with required fields only
 - Valid skills with all optional fields
 - Skills with YAML parse errors
@@ -86,7 +100,7 @@ Uses real file system with generated test skills:
 export async function validateCommand(
   path: string | undefined,
   options: { strict?: boolean; fix?: boolean }
-): Promise<void>
+): Promise<void>;
 ```
 
 ## Next Steps (Implementation Phase)
@@ -154,6 +168,7 @@ npm test -- validate.test.ts -t "Single Skill Validation"
 ## Expected User Experience
 
 ### Success Case
+
 ```
 ✓ Skill 'test-skill' is valid
 
@@ -161,6 +176,7 @@ Validated 1 skill: 1 valid, 0 invalid
 ```
 
 ### Error Case
+
 ```
 ✗ Skill 'invalid-skill' failed validation:
   - Invalid YAML in frontmatter
@@ -170,6 +186,7 @@ Validated 1 skill: 0 valid, 1 invalid
 ```
 
 ### Warning Case (no --strict)
+
 ```
 ✓ Skill 'warning-skill' is valid
   ⚠ Warning: Description is very short (recommended 50+ characters)
@@ -178,6 +195,7 @@ Validated 1 skill: 1 valid, 0 invalid
 ```
 
 ### Warning Case (--strict)
+
 ```
 ✗ Skill 'warning-skill' failed validation:
   ⚠ Warning: Description is very short (recommended 50+ characters)

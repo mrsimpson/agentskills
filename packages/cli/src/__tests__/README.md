@@ -7,6 +7,7 @@ This test suite follows **Test-Driven Development (TDD)** principles for the Age
 ## Test Philosophy
 
 ### TDD Approach
+
 1. **Red Phase** ✅ - Write comprehensive failing tests
 2. **Green Phase** - Implement minimal code to pass tests
 3. **Refactor Phase** - Improve implementation while keeping tests green
@@ -14,6 +15,7 @@ This test suite follows **Test-Driven Development (TDD)** principles for the Age
 ### Testing Strategy
 
 The test suite focuses on:
+
 - **Framework Setup**: CLI initialization and configuration
 - **Command Registration**: Verifying all commands are properly registered
 - **Command Structure**: Arguments and options for each command
@@ -120,17 +122,22 @@ CLI Framework (55 tests)
 ## Command Specifications
 
 ### 1. Create Command
+
 ```bash
 agentskills create <name> [options]
 ```
+
 **Arguments:**
+
 - `<name>` (required) - Name of the skill to create
 
 **Options:**
+
 - `--template <type>` - Template to use (basic, advanced, etc.)
 - `--path <dir>` - Directory path for the new skill
 
 **Tests:**
+
 - Argument parsing
 - Option parsing
 - Help display
@@ -138,17 +145,22 @@ agentskills create <name> [options]
 ---
 
 ### 2. Validate Command
+
 ```bash
 agentskills validate [path] [options]
 ```
+
 **Arguments:**
+
 - `[path]` (optional) - Path to skill(s) to validate
 
 **Options:**
+
 - `--strict` - Enable strict validation mode
 - `--fix` - Automatically fix validation issues
 
 **Tests:**
+
 - Optional argument handling
 - Flag parsing
 - Help display
@@ -156,14 +168,18 @@ agentskills validate [path] [options]
 ---
 
 ### 3. List Command
+
 ```bash
 agentskills list [options]
 ```
+
 **Options:**
+
 - `--format <type>` - Output format (table, json, yaml)
 - `--filter <query>` - Filter criteria
 
 **Tests:**
+
 - No arguments
 - Option parsing
 - Help display
@@ -171,13 +187,17 @@ agentskills list [options]
 ---
 
 ### 4. Config Command
+
 ```bash
 agentskills config <action> [options]
 ```
+
 **Arguments:**
+
 - `<action>` (required) - Configuration action (show, set, reset)
 
 **Tests:**
+
 - Required argument
 - Action parsing
 - Help display
@@ -185,26 +205,31 @@ agentskills config <action> [options]
 ## Running Tests
 
 ### Run All Tests
+
 ```bash
 npm test
 ```
 
 ### Watch Mode
+
 ```bash
 npm run test:watch
 ```
 
 ### With Coverage
+
 ```bash
 npm run test:coverage
 ```
 
 ### Run Specific Test Suite
+
 ```bash
 npm test -- cli.test.ts
 ```
 
 ### Run Specific Test
+
 ```bash
 npm test -- -t "should register create command"
 ```
@@ -214,6 +239,7 @@ npm test -- -t "should register create command"
 ### Current Status: RED PHASE ✅
 
 All 55 tests are written and currently failing as expected:
+
 - 45 tests failing (implementation needed)
 - 10 tests passing (framework capabilities)
 
@@ -245,6 +271,7 @@ Implement `cli.ts` to make tests pass:
 ### Refactor Phase
 
 Once tests pass:
+
 - Extract command builders to separate files
 - Add shared option builders
 - Improve error messages
@@ -261,28 +288,31 @@ Once tests pass:
 ## Notes for Implementation
 
 ### Version Loading
+
 ```typescript
-import { readFileSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const packageJson = JSON.parse(
-  readFileSync(join(__dirname, '../package.json'), 'utf-8')
+  readFileSync(join(__dirname, "../package.json"), "utf-8")
 );
 const VERSION = packageJson.version;
 ```
 
 ### Command Structure
+
 Each command should be created by a dedicated function:
+
 ```typescript
 function createCreateCommand(): Command {
-  return new Command('create')
-    .description('Create a new skill')
-    .argument('<name>', 'Name of the skill')
-    .option('-t, --template <type>', 'Template to use')
-    .option('-p, --path <dir>', 'Target directory')
+  return new Command("create")
+    .description("Create a new skill")
+    .argument("<name>", "Name of the skill")
+    .option("-t, --template <type>", "Template to use")
+    .option("-p, --path <dir>", "Target directory")
     .action((name, options) => {
       // Implementation will be in separate command handler
     });
@@ -290,6 +320,7 @@ function createCreateCommand(): Command {
 ```
 
 ### Mock Actions
+
 The tests inject mock actions to verify parsing without implementing actual command logic. This allows testing the framework independently from command implementations.
 
 ## Best Practices
@@ -303,6 +334,7 @@ The tests inject mock actions to verify parsing without implementing actual comm
 ## Continuous Integration
 
 These tests should be run:
+
 - Before every commit
 - In CI/CD pipeline
 - Before releasing new versions

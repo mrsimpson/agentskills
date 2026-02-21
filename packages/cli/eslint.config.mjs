@@ -18,7 +18,11 @@ export default [
   },
   {
     // Relaxed rules for test files
-    files: ["**/__tests__/**/*.{ts,tsx}", "**/*.test.{ts,tsx}", "**/*.spec.{ts,tsx}"],
+    files: [
+      "**/__tests__/**/*.{ts,tsx}",
+      "**/*.test.{ts,tsx}",
+      "**/*.spec.{ts,tsx}"
+    ],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unused-vars": "off"
@@ -42,9 +46,9 @@ export default [
       "**/dist/**",
       ".pnpm-store/**",
       "pnpm-lock.yaml",
-      "**/*.d.ts",  // Type definition files don't need runtime linting
-      "test-*.js",  // Test helper scripts
-      "fix-*.js"    // Fix scripts
+      "**/*.d.ts", // Type definition files don't need runtime linting
+      "test-*.js", // Test helper scripts
+      "fix-*.js" // Fix scripts
     ]
   }
 ];

@@ -7,7 +7,7 @@ import { tmpdir } from "os";
 
 /**
  * ToolHandler Tests - use_skill Tool Implementation (TDD)
- * 
+ *
  * Tests for the use_skill tool that retrieves skill instructions and metadata.
  * The tool does NOT execute anything - it returns skill information for AI agents
  * to use with other tools.
@@ -20,7 +20,10 @@ describe("ToolHandler - use_skill", () => {
 
   beforeEach(async () => {
     // Create a temporary test directory
-    testDir = join(tmpdir(), `tool-handler-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    testDir = join(
+      tmpdir(),
+      `tool-handler-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
     skillsDir = join(testDir, "skills");
     await fs.mkdir(skillsDir, { recursive: true });
 
@@ -79,7 +82,7 @@ This is test skill 2 instructions.
       expect(tools).toBeDefined();
       expect(Array.isArray(tools)).toBe(true);
       expect(tools.length).toBeGreaterThan(0);
-      
+
       const useSkillTool = tools.find((tool: any) => tool.name === "use_skill");
       expect(useSkillTool).toBeDefined();
     });
@@ -92,7 +95,9 @@ This is test skill 2 instructions.
 
       // Act
       const tools = server.getTools();
-      const useSkillTool = tools.find((tool: any) => tool.name === "use_skill") as any;
+      const useSkillTool = tools.find(
+        (tool: any) => tool.name === "use_skill"
+      ) as any;
 
       // Assert
       expect(useSkillTool.name).toBe("use_skill");
@@ -104,7 +109,9 @@ This is test skill 2 instructions.
 
       // Act
       const tools = server.getTools();
-      const useSkillTool = tools.find((tool: any) => tool.name === "use_skill") as any;
+      const useSkillTool = tools.find(
+        (tool: any) => tool.name === "use_skill"
+      ) as any;
 
       // Assert
       expect(useSkillTool.description).toBeDefined();
@@ -118,7 +125,9 @@ This is test skill 2 instructions.
 
       // Act
       const tools = server.getTools();
-      const useSkillTool = tools.find((tool: any) => tool.name === "use_skill") as any;
+      const useSkillTool = tools.find(
+        (tool: any) => tool.name === "use_skill"
+      ) as any;
 
       // Assert
       expect(useSkillTool.description).toContain("test-skill-1");
@@ -134,7 +143,9 @@ This is test skill 2 instructions.
 
       // Act
       const tools = server.getTools();
-      const useSkillTool = tools.find((tool: any) => tool.name === "use_skill") as any;
+      const useSkillTool = tools.find(
+        (tool: any) => tool.name === "use_skill"
+      ) as any;
 
       // Assert
       expect(useSkillTool.description).toBeDefined();
@@ -147,14 +158,18 @@ This is test skill 2 instructions.
 
       // Act
       const tools = server.getTools();
-      const useSkillTool = tools.find((tool: any) => tool.name === "use_skill") as any;
+      const useSkillTool = tools.find(
+        (tool: any) => tool.name === "use_skill"
+      ) as any;
 
       // Assert
       expect(useSkillTool.inputSchema).toBeDefined();
       expect(useSkillTool.inputSchema.type).toBe("object");
       expect(useSkillTool.inputSchema.properties).toBeDefined();
       expect(useSkillTool.inputSchema.properties.skill_name).toBeDefined();
-      expect(useSkillTool.inputSchema.properties.skill_name.type).toBe("string");
+      expect(useSkillTool.inputSchema.properties.skill_name.type).toBe(
+        "string"
+      );
     });
 
     it("should have inputSchema with optional arguments parameter", async () => {
@@ -163,7 +178,9 @@ This is test skill 2 instructions.
 
       // Act
       const tools = server.getTools();
-      const useSkillTool = tools.find((tool: any) => tool.name === "use_skill") as any;
+      const useSkillTool = tools.find(
+        (tool: any) => tool.name === "use_skill"
+      ) as any;
 
       // Assert
       expect(useSkillTool.inputSchema.properties.arguments).toBeDefined();
@@ -176,7 +193,9 @@ This is test skill 2 instructions.
 
       // Act
       const tools = server.getTools();
-      const useSkillTool = tools.find((tool: any) => tool.name === "use_skill") as any;
+      const useSkillTool = tools.find(
+        (tool: any) => tool.name === "use_skill"
+      ) as any;
 
       // Assert
       expect(useSkillTool.inputSchema.required).toBeDefined();
@@ -192,14 +211,24 @@ This is test skill 2 instructions.
 
       // Act
       const tools = server.getTools();
-      const useSkillTool = tools.find((tool: any) => tool.name === "use_skill") as any;
+      const useSkillTool = tools.find(
+        (tool: any) => tool.name === "use_skill"
+      ) as any;
 
       // Assert
       expect(useSkillTool.inputSchema.properties.skill_name.enum).toBeDefined();
-      expect(Array.isArray(useSkillTool.inputSchema.properties.skill_name.enum)).toBe(true);
-      expect(useSkillTool.inputSchema.properties.skill_name.enum).toContain("test-skill-1");
-      expect(useSkillTool.inputSchema.properties.skill_name.enum).toContain("test-skill-2");
-      expect(useSkillTool.inputSchema.properties.skill_name.enum.length).toBe(2);
+      expect(
+        Array.isArray(useSkillTool.inputSchema.properties.skill_name.enum)
+      ).toBe(true);
+      expect(useSkillTool.inputSchema.properties.skill_name.enum).toContain(
+        "test-skill-1"
+      );
+      expect(useSkillTool.inputSchema.properties.skill_name.enum).toContain(
+        "test-skill-2"
+      );
+      expect(useSkillTool.inputSchema.properties.skill_name.enum.length).toBe(
+        2
+      );
     });
 
     it("should update enum when new skills are loaded", async () => {
@@ -224,11 +253,17 @@ This is test skill 3 instructions.
 
       // Act
       const tools = server.getTools();
-      const useSkillTool = tools.find((tool: any) => tool.name === "use_skill") as any;
+      const useSkillTool = tools.find(
+        (tool: any) => tool.name === "use_skill"
+      ) as any;
 
       // Assert
-      expect(useSkillTool.inputSchema.properties.skill_name.enum).toContain("test-skill-3");
-      expect(useSkillTool.inputSchema.properties.skill_name.enum.length).toBe(3);
+      expect(useSkillTool.inputSchema.properties.skill_name.enum).toContain(
+        "test-skill-3"
+      );
+      expect(useSkillTool.inputSchema.properties.skill_name.enum.length).toBe(
+        3
+      );
     });
   });
 
@@ -238,27 +273,29 @@ This is test skill 3 instructions.
       const server = new MCPServer(registry);
 
       // Act
-      const result = await server.callTool("use_skill", { skill_name: "test-skill-1" });
+      const result = await server.callTool("use_skill", {
+        skill_name: "test-skill-1"
+      });
 
       // Assert
       expect(result).toBeDefined();
       expect(typeof result).toBe("object");
-      
+
       // Parse the JSON response
       const content = (result as any).content;
       expect(content).toBeDefined();
       expect(Array.isArray(content)).toBe(true);
       expect(content.length).toBeGreaterThan(0);
-      
+
       const textContent = content.find((c: any) => c.type === "text");
       expect(textContent).toBeDefined();
       expect(textContent.text).toBeDefined();
-      
+
       // Parse the response - should only have instructions field
       const data = JSON.parse(textContent.text);
       expect(data).toHaveProperty("instructions");
       expect(data.instructions).toContain("This is test skill 1 instructions");
-      
+
       // Should NOT have metadata fields
       expect(data).not.toHaveProperty("name");
       expect(data).not.toHaveProperty("description");
@@ -270,17 +307,19 @@ This is test skill 3 instructions.
       const server = new MCPServer(registry);
 
       // Act
-      const result = await server.callTool("use_skill", { skill_name: "test-skill-2" });
+      const result = await server.callTool("use_skill", {
+        skill_name: "test-skill-2"
+      });
 
       // Assert
       const content = (result as any).content;
       const textContent = content.find((c: any) => c.type === "text");
       const data = JSON.parse(textContent.text);
-      
+
       // Should ONLY have instructions field
       expect(data).toHaveProperty("instructions");
       expect(data.instructions).toContain("This is test skill 2 instructions");
-      
+
       // Should NOT have any metadata
       expect(data).not.toHaveProperty("name");
       expect(data).not.toHaveProperty("description");
@@ -292,7 +331,9 @@ This is test skill 3 instructions.
       const server = new MCPServer(registry);
 
       // Act - call without arguments parameter
-      const result = await server.callTool("use_skill", { skill_name: "test-skill-1" });
+      const result = await server.callTool("use_skill", {
+        skill_name: "test-skill-1"
+      });
 
       // Assert - should still work
       expect(result).toBeDefined();
@@ -308,7 +349,7 @@ This is test skill 3 instructions.
 
       // Act
       const result = await server.callTool("use_skill", {
-        skill_name: "non-existent-skill",
+        skill_name: "non-existent-skill"
       });
 
       // Assert
@@ -335,7 +376,7 @@ This is test skill 3 instructions.
 
       // Act
       const result = await server.callTool("invalid_tool", {
-        skill_name: "test-skill-1",
+        skill_name: "test-skill-1"
       });
 
       // Assert

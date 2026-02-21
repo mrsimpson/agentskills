@@ -3,17 +3,22 @@ import { promises as fs } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { SkillRegistry } from "../registry.js";
-import type { LoadResult, RegistryState, Skill, SkillMetadata } from "../types.js";
+import type {
+  LoadResult,
+  RegistryState,
+  Skill,
+  SkillMetadata
+} from "../types.js";
 
 /**
  * Test suite for simplified SkillRegistry (TDD RED phase)
- * 
+ *
  * New simplified model:
  * - Single directory path (not SkillSource array)
  * - Expects <skill-name>/SKILL.md structure (exactly 2 levels deep)
  * - STRICT: Throws errors on misconfiguration (fail fast)
  * - No multi-source, no priority, no partial failures
- * 
+ *
  * Test coverage (~22 tests):
  * 1. Basic Loading (5 tests)
  * 2. Strict Error Handling (8 tests)
@@ -337,7 +342,10 @@ describe("SkillRegistry - Simplified Model", () => {
       await createSkill(
         tempDir,
         "invalid-skill",
-        getBasicSkillContent("Invalid Skill!", "Invalid name with spaces and exclamation")
+        getBasicSkillContent(
+          "Invalid Skill!",
+          "Invalid name with spaces and exclamation"
+        )
       );
 
       // Act & Assert
@@ -403,14 +411,26 @@ describe("SkillRegistry - Simplified Model", () => {
 
       // Create valid skill
       const skillDir = join(tempDir, "my-skill");
-      await createSkill(tempDir, "my-skill", getBasicSkillContent("my-skill", "A test skill"));
+      await createSkill(
+        tempDir,
+        "my-skill",
+        getBasicSkillContent("my-skill", "A test skill")
+      );
 
       // Create nested directories with files
       await createNestedDir(skillDir, "scripts");
-      await fs.writeFile(join(skillDir, "scripts", "helper.sh"), "#!/bin/bash", "utf-8");
+      await fs.writeFile(
+        join(skillDir, "scripts", "helper.sh"),
+        "#!/bin/bash",
+        "utf-8"
+      );
 
       await createNestedDir(skillDir, "references");
-      await fs.writeFile(join(skillDir, "references", "doc.md"), "# Documentation", "utf-8");
+      await fs.writeFile(
+        join(skillDir, "references", "doc.md"),
+        "# Documentation",
+        "utf-8"
+      );
 
       // Act
       const result = await registry.loadSkills(tempDir);
@@ -571,8 +591,12 @@ describe("SkillRegistry - Simplified Model", () => {
       // Assert
       expect(result.timestamp).toBeInstanceOf(Date);
       expect(state.lastLoaded).toBeInstanceOf(Date);
-      expect(result.timestamp.getTime()).toBeGreaterThanOrEqual(beforeLoad.getTime());
-      expect(result.timestamp.getTime()).toBeLessThanOrEqual(afterLoad.getTime());
+      expect(result.timestamp.getTime()).toBeGreaterThanOrEqual(
+        beforeLoad.getTime()
+      );
+      expect(result.timestamp.getTime()).toBeLessThanOrEqual(
+        afterLoad.getTime()
+      );
     });
 
     it("should reflect loaded skills count and directory in state", async () => {

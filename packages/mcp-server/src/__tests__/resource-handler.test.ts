@@ -7,7 +7,7 @@ import { tmpdir } from "os";
 
 /**
  * ResourceHandler Tests - Skills as MCP Resources (TDD)
- * 
+ *
  * Tests for exposing skills as MCP resources so clients can:
  * - List available skills as concrete resources (resources/list)
  * - List resource templates with skill name enum (resources/templates/list)
@@ -22,7 +22,10 @@ describe("ResourceHandler - Skills as Resources", () => {
 
   beforeEach(async () => {
     // Create a temporary test directory
-    testDir = join(tmpdir(), `resource-handler-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    testDir = join(
+      tmpdir(),
+      `resource-handler-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
     skillsDir = join(testDir, "skills");
     await fs.mkdir(skillsDir, { recursive: true });
 
@@ -102,10 +105,10 @@ This is test skill 2 instructions for resource reading.
 
       // Assert
       const resource = resources[0];
-      expect(resource).toHaveProperty('uri');
-      expect(resource).toHaveProperty('name');
-      expect(resource).toHaveProperty('description');
-      expect(resource).toHaveProperty('mimeType');
+      expect(resource).toHaveProperty("uri");
+      expect(resource).toHaveProperty("name");
+      expect(resource).toHaveProperty("description");
+      expect(resource).toHaveProperty("mimeType");
     });
 
     it("should have correct URI format", async () => {
@@ -116,7 +119,7 @@ This is test skill 2 instructions for resource reading.
       const resources = server.getResources() as any[];
 
       // Assert
-      resources.forEach(resource => {
+      resources.forEach((resource) => {
         expect(resource.uri).toMatch(/^skill:\/\//);
         expect(resource.uri).toBe(`skill://${resource.name}`);
       });
@@ -130,20 +133,20 @@ This is test skill 2 instructions for resource reading.
       const resources = server.getResources() as any[];
 
       // Assert
-      const skill1 = resources.find(r => r.name === 'test-skill-1');
-      const skill2 = resources.find(r => r.name === 'test-skill-2');
+      const skill1 = resources.find((r) => r.name === "test-skill-1");
+      const skill2 = resources.find((r) => r.name === "test-skill-2");
 
       expect(skill1).toBeDefined();
-      expect(skill1.uri).toBe('skill://test-skill-1');
-      expect(skill1.name).toBe('test-skill-1');
-      expect(skill1.description).toBe('A test skill for resource tests');
-      expect(skill1.mimeType).toBe('text/markdown');
+      expect(skill1.uri).toBe("skill://test-skill-1");
+      expect(skill1.name).toBe("test-skill-1");
+      expect(skill1.description).toBe("A test skill for resource tests");
+      expect(skill1.mimeType).toBe("text/markdown");
 
       expect(skill2).toBeDefined();
-      expect(skill2.uri).toBe('skill://test-skill-2');
-      expect(skill2.name).toBe('test-skill-2');
-      expect(skill2.description).toBe('Another test skill for resources');
-      expect(skill2.mimeType).toBe('text/markdown');
+      expect(skill2.uri).toBe("skill://test-skill-2");
+      expect(skill2.name).toBe("test-skill-2");
+      expect(skill2.description).toBe("Another test skill for resources");
+      expect(skill2.mimeType).toBe("text/markdown");
     });
 
     it("should return empty array with no skills", async () => {
@@ -251,11 +254,11 @@ This is test skill 2 instructions for resource reading.
       expect(template.name).toBe("Agent Skill");
       expect(typeof template.description).toBe("string");
       expect(template.mimeType).toBe("text/markdown");
-      
+
       // NEW: Verify inputSchema is present
       expect(template.inputSchema).toBeDefined();
       expect(template.inputSchema.properties.skillName.enum).toEqual(
-        expect.arrayContaining(['test-skill-1', 'test-skill-2'])
+        expect.arrayContaining(["test-skill-1", "test-skill-2"])
       );
     });
 
@@ -268,18 +271,18 @@ This is test skill 2 instructions for resource reading.
 
       // Assert
       expect(templates).toHaveLength(1);
-      expect(templates[0]).toHaveProperty('inputSchema');
+      expect(templates[0]).toHaveProperty("inputSchema");
 
       const schema = templates[0].inputSchema;
-      expect(schema.type).toBe('object');
-      expect(schema.properties).toHaveProperty('skillName');
-      expect(schema.properties.skillName.type).toBe('string');
+      expect(schema.type).toBe("object");
+      expect(schema.properties).toHaveProperty("skillName");
+      expect(schema.properties.skillName.type).toBe("string");
       expect(schema.properties.skillName.enum).toEqual(
-        expect.arrayContaining(['test-skill-1', 'test-skill-2'])
+        expect.arrayContaining(["test-skill-1", "test-skill-2"])
       );
       expect(schema.properties.skillName.enum.length).toBe(2);
       expect(schema.properties.skillName.description).toBeDefined();
-      expect(schema.required).toContain('skillName');
+      expect(schema.required).toContain("skillName");
     });
 
     it("should exist even with empty skill list", async () => {
@@ -293,7 +296,7 @@ This is test skill 2 instructions for resource reading.
       // Assert
       expect(Array.isArray(templates)).toBe(true);
       expect(templates.length).toBe(1); // Template exists regardless
-      
+
       // NEW: Verify inputSchema exists even with empty skills
       expect(templates[0].inputSchema).toBeDefined();
       expect(templates[0].inputSchema.properties.skillName.enum).toEqual([]);
@@ -326,12 +329,14 @@ This is test skill 2 instructions for resource reading.
       // Assert
       const response = result as any;
       const content = response.contents[0];
-      
+
       expect(content.uri).toBe("skill://test-skill-1");
       expect(content.mimeType).toBe("text/markdown");
       expect(content.text).toBeDefined();
       expect(content.text).toContain("Test Skill 1");
-      expect(content.text).toContain("This is test skill 1 instructions for resource reading");
+      expect(content.text).toContain(
+        "This is test skill 1 instructions for resource reading"
+      );
     });
 
     it("should work with different skills", async () => {
@@ -345,7 +350,7 @@ This is test skill 2 instructions for resource reading.
       // Assert
       const response1 = result1 as any;
       const response2 = result2 as any;
-      
+
       expect(response1.contents[0].text).toContain("Test Skill 1");
       expect(response2.contents[0].text).toContain("Test Skill 2");
     });
@@ -361,7 +366,7 @@ This is test skill 2 instructions for resource reading.
       const response = result as any;
       expect(response).toHaveProperty("contents");
       expect(Array.isArray(response.contents)).toBe(true);
-      
+
       const content = response.contents[0];
       expect(content).toHaveProperty("uri");
       expect(content).toHaveProperty("mimeType");
@@ -408,7 +413,7 @@ This is test skill 2 instructions for resource reading.
       // Assert
       const response1 = result1 as any;
       const response2 = result2 as any;
-      
+
       expect(response1.isError).toBe(true);
       expect(response2.isError).toBe(true);
     });

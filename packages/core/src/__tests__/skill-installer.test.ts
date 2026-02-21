@@ -8,7 +8,7 @@ import * as pacote from "pacote";
 
 vi.mock("pacote", () => ({
   extract: vi.fn(),
-  manifest: vi.fn(),
+  manifest: vi.fn()
 }));
 
 describe("SkillInstaller", () => {
@@ -28,29 +28,43 @@ describe("SkillInstaller", () => {
 
     installer = new SkillInstaller(skillsDir, cacheDir);
 
-    vi.mocked(pacote.extract).mockImplementation(async (spec: string, dest?: string, opts?: any) => {
-      if (!dest) return {} as any;
-      if (spec.includes("nonexistent")) throw new Error("Repository not found");
-      
-      await fs.mkdir(dest, { recursive: true });
-      
-      const skillName = spec.match(/skill-\w+|test-skill|cached-skill|existing-skill|nested-skill/)?.[0] || "test-skill";
-      
-      await fs.writeFile(join(dest, "SKILL.md"), `---\nname: ${skillName}\ndescription: Test skill\n---\n\n# ${skillName}`, "utf-8");
-      
-      if (opts?.cache) {
-        await fs.mkdir(opts.cache, { recursive: true });
-        await fs.writeFile(join(opts.cache, `${skillName}-cached.txt`), "cached", "utf-8");
+    vi.mocked(pacote.extract).mockImplementation(
+      async (spec: string, dest?: string, opts?: any) => {
+        if (!dest) return {} as any;
+        if (spec.includes("nonexistent"))
+          throw new Error("Repository not found");
+
+        await fs.mkdir(dest, { recursive: true });
+
+        const skillName =
+          spec.match(
+            /skill-\w+|test-skill|cached-skill|existing-skill|nested-skill/
+          )?.[0] || "test-skill";
+
+        await fs.writeFile(
+          join(dest, "SKILL.md"),
+          `---\nname: ${skillName}\ndescription: Test skill\n---\n\n# ${skillName}`,
+          "utf-8"
+        );
+
+        if (opts?.cache) {
+          await fs.mkdir(opts.cache, { recursive: true });
+          await fs.writeFile(
+            join(opts.cache, `${skillName}-cached.txt`),
+            "cached",
+            "utf-8"
+          );
+        }
+
+        return {} as any;
       }
-      
-      return {} as any;
-    });
+    );
 
     vi.mocked(pacote.manifest).mockResolvedValue({
       name: "test-skill",
       version: "1.0.0",
       _integrity: "sha512-abc123",
-      dist: { integrity: "sha512-abc123" },
+      dist: { integrity: "sha512-abc123" }
     } as any);
   });
 
@@ -73,7 +87,7 @@ describe("SkillInstaller", () => {
       ["github:user/test-skill#v1.0.0"],
       ["git+https://github.com/user/test-skill.git#v1.0.0"],
       ["git+ssh://git@github.com/user/test-skill.git#v1.0.0"],
-      ["https://example.com/skills/test-skill.tgz"],
+      ["https://example.com/skills/test-skill.tgz"]
     ])("should install skill from spec %s", async (spec) => {
       const result = await installer.install("test-skill", spec);
       expect(result.success).toBe(true);
@@ -81,14 +95,23 @@ describe("SkillInstaller", () => {
         expect(result.name).toBe("test-skill");
         expect(result.spec).toBe(spec);
         expect(result.installPath).toBe(join(skillsDir, "test-skill"));
-        expect(await fs.access(join(skillsDir, "test-skill", "SKILL.md")).then(() => true).catch(() => false)).toBe(true);
+        expect(
+          await fs
+            .access(join(skillsDir, "test-skill", "SKILL.md"))
+            .then(() => true)
+            .catch(() => false)
+        ).toBe(true);
       }
     });
 
     it("should install from local directory", async () => {
       const localDir = join(tempDir, "local-skill");
       await fs.mkdir(localDir, { recursive: true });
-      await fs.writeFile(join(localDir, "SKILL.md"), "---\nname: local-skill\ndescription: Local\n---", "utf-8");
+      await fs.writeFile(
+        join(localDir, "SKILL.md"),
+        "---\nname: local-skill\ndescription: Local\n---",
+        "utf-8"
+      );
 
       const result = await installer.install("local-skill", `file:${localDir}`);
       expect(result.success).toBe(true);
@@ -98,7 +121,7 @@ describe("SkillInstaller", () => {
   describe("install - Error handling", () => {
     it.each([
       ["invalid-spec", "test-skill", "INVALID_SPEC"],
-      ["", "test-skill", "INVALID_SPEC"],
+      ["", "test-skill", "INVALID_SPEC"]
     ])("should fail for invalid spec: %s", async (spec, name, expectedCode) => {
       const result = await installer.install(name, spec);
       expect(result.success).toBe(false);
@@ -108,7 +131,10 @@ describe("SkillInstaller", () => {
     });
 
     it("should fail when repository does not exist", async () => {
-      const result = await installer.install("nonexistent-skill", "github:nonexistent/repo");
+      const result = await installer.install(
+        "nonexistent-skill",
+        "github:nonexistent/repo"
+      );
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error?.code).toBe("INSTALL_FAILED");
@@ -128,8 +154,13 @@ describe("SkillInstaller", () => {
     });
 
     it("should handle network errors", async () => {
-      vi.mocked(pacote.extract).mockRejectedValueOnce(Object.assign(new Error("ENOTFOUND"), { code: "ENOTFOUND" }));
-      const result = await installer.install("test-skill", "github:user/test-skill");
+      vi.mocked(pacote.extract).mockRejectedValueOnce(
+        Object.assign(new Error("ENOTFOUND"), { code: "ENOTFOUND" })
+      );
+      const result = await installer.install(
+        "test-skill",
+        "github:user/test-skill"
+      );
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error?.code).toBe("NETWORK_ERROR");
@@ -142,7 +173,7 @@ describe("SkillInstaller", () => {
       const skills = {
         "skill-one": "github:user/skill-one#v1.0.0",
         "skill-two": "github:user/skill-two#v1.0.0",
-        "skill-three": "github:user/skill-three#v1.0.0",
+        "skill-three": "github:user/skill-three#v1.0.0"
       };
 
       const result = await installer.installAll(skills);
@@ -155,7 +186,7 @@ describe("SkillInstaller", () => {
       const skills = {
         "valid-skill": "github:user/valid-skill",
         "invalid-skill": "invalid-spec",
-        "another-valid": "github:user/another-valid",
+        "another-valid": "github:user/another-valid"
       };
 
       const result = await installer.installAll(skills);
@@ -176,18 +207,22 @@ describe("SkillInstaller", () => {
           resolvedVersion: "v1.0.0",
           integrity: "sha512-abc",
           installPath: join(skillsDir, "test-skill"),
-          manifest: { name: "test-skill", description: "Test" },
-        },
+          manifest: { name: "test-skill", description: "Test" }
+        }
       };
 
       await installer.generateLockFile(installed);
 
       const lockFilePath = join(skillsDir, "..", "skills-lock.json");
-      const lockFile: SkillLockFile = JSON.parse(await fs.readFile(lockFilePath, "utf-8"));
+      const lockFile: SkillLockFile = JSON.parse(
+        await fs.readFile(lockFilePath, "utf-8")
+      );
 
       expect(lockFile.version).toBe("1.0");
       expect(lockFile.skills["test-skill"]).toBeDefined();
-      expect(lockFile.skills["test-skill"].spec).toBe("github:user/test-skill#v1.0.0");
+      expect(lockFile.skills["test-skill"].spec).toBe(
+        "github:user/test-skill#v1.0.0"
+      );
 
       const read = await installer.readLockFile();
       expect(read).not.toBeNull();
@@ -206,12 +241,15 @@ describe("SkillInstaller", () => {
   describe("Cache behavior", () => {
     it("should use cache directory and reuse cached content", async () => {
       const spec = "github:user/test-skill#v1.0.0";
-      
+
       await installer.install("cached-skill", spec);
       const cacheContents = await fs.readdir(cacheDir);
       expect(cacheContents.length).toBeGreaterThan(0);
 
-      await fs.rm(join(skillsDir, "cached-skill"), { recursive: true, force: true });
+      await fs.rm(join(skillsDir, "cached-skill"), {
+        recursive: true,
+        force: true
+      });
       const secondResult = await installer.install("cached-skill", spec);
       expect(secondResult.success).toBe(true);
     });
@@ -223,10 +261,23 @@ describe("SkillInstaller", () => {
       await fs.mkdir(existingDir, { recursive: true });
       await fs.writeFile(join(existingDir, "old-file.txt"), "old", "utf-8");
 
-      const result = await installer.install("existing-skill", "github:user/test-skill");
+      const result = await installer.install(
+        "existing-skill",
+        "github:user/test-skill"
+      );
       expect(result.success).toBe(true);
-      expect(await fs.access(join(existingDir, "old-file.txt")).then(() => true).catch(() => false)).toBe(false);
-      expect(await fs.access(join(existingDir, "SKILL.md")).then(() => true).catch(() => false)).toBe(true);
+      expect(
+        await fs
+          .access(join(existingDir, "old-file.txt"))
+          .then(() => true)
+          .catch(() => false)
+      ).toBe(false);
+      expect(
+        await fs
+          .access(join(existingDir, "SKILL.md"))
+          .then(() => true)
+          .catch(() => false)
+      ).toBe(true);
     });
   });
 
@@ -234,7 +285,7 @@ describe("SkillInstaller", () => {
     it("should support complete install, lock, and reinstall workflow", async () => {
       const skills = {
         "skill-one": "github:user/skill-one#v1.0.0",
-        "skill-two": "github:user/skill-two#v2.0.0",
+        "skill-two": "github:user/skill-two#v2.0.0"
       };
 
       const installResult = await installer.installAll(skills);
@@ -242,12 +293,13 @@ describe("SkillInstaller", () => {
 
       const installedResults: Record<string, InstallResult> = {};
       for (const [name, result] of Object.entries(installResult.results)) {
-        if ((result as InstallResult).success) installedResults[name] = result as InstallResult;
+        if ((result as InstallResult).success)
+          installedResults[name] = result as InstallResult;
       }
 
       await installer.generateLockFile(installedResults);
       const lockFile = await installer.readLockFile();
-      
+
       expect(lockFile).not.toBeNull();
       expect(lockFile?.skills["skill-one"]).toBeDefined();
       expect(lockFile?.skills["skill-two"]).toBeDefined();

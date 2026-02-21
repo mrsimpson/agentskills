@@ -7,10 +7,10 @@ import { tmpdir } from "os";
 
 /**
  * MCPServer Core Tests (TDD RED Phase)
- * 
+ *
  * These tests define the expected behavior of the MCPServer class.
  * Following TDD approach: write tests first (RED), then implement (GREEN).
- * 
+ *
  * Architecture:
  * - MCPServer only accepts SkillRegistry via dependency injection
  * - Server is immediately ready after construction (no start/stop methods)
@@ -23,7 +23,10 @@ describe("MCPServer", () => {
 
   beforeEach(async () => {
     // Create a temporary test directory
-    testDir = join(tmpdir(), `mcp-server-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    testDir = join(
+      tmpdir(),
+      `mcp-server-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
     skillsDir = join(testDir, "skills");
     await fs.mkdir(skillsDir, { recursive: true });
 
@@ -133,7 +136,9 @@ This is a test skill.
       const server = new MCPServer(registry);
 
       // Act
-      const result = await server.callTool("use_skill", { skill_name: "test-skill" });
+      const result = await server.callTool("use_skill", {
+        skill_name: "test-skill"
+      });
 
       // Assert
       expect(result).toBeDefined();

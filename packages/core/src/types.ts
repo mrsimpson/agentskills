@@ -1,6 +1,6 @@
 /**
  * Type definitions for Agent Skills Parser
- * 
+ *
  * These types define the structure of parsed Agent Skills following
  * the Agent Skills standard and Claude Code extensions.
  */
@@ -126,14 +126,14 @@ export interface ValidationResult {
 
 /**
  * Result of loading skills into registry
- * 
+ *
  * Note: Loading is strict - any error throws exception.
  * No partial failures allowed (fail fast on misconfiguration).
  */
 export interface LoadResult {
-  loaded: number;      // Number of skills successfully loaded
-  skillsDir: string;   // Directory loaded from
-  timestamp: Date;     // When skills were loaded
+  loaded: number; // Number of skills successfully loaded
+  skillsDir: string; // Directory loaded from
+  timestamp: Date; // When skills were loaded
 }
 
 /**
@@ -141,7 +141,7 @@ export interface LoadResult {
  */
 export interface RegistryState {
   skillCount: number;
-  skillsDir: string;   // Directory skills loaded from (changed from sources array)
+  skillsDir: string; // Directory skills loaded from (changed from sources array)
   lastLoaded?: Date;
 }
 

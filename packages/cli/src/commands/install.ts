@@ -5,12 +5,15 @@
  * using SkillInstaller. Generates a lock file after successful installation.
  */
 
-import { promises as fs } from 'fs';
-import { join } from 'path';
-import { PackageConfigManager, SkillInstaller } from '@codemcp/agentskills-core';
-import type { InstallResult } from '@codemcp/agentskills-core';
-import ora from 'ora';
-import chalk from 'chalk';
+import { promises as fs } from "fs";
+import { join } from "path";
+import {
+  PackageConfigManager,
+  SkillInstaller
+} from "@codemcp/agentskills-core";
+import type { InstallResult } from "@codemcp/agentskills-core";
+import ora from "ora";
+import chalk from "chalk";
 
 /**
  * Install all skills declared in package.json
@@ -18,7 +21,9 @@ import chalk from 'chalk';
  * @param options - Options for the install command
  * @param options.cwd - Working directory (default: process.cwd())
  */
-export async function installCommand(options?: { cwd?: string }): Promise<void> {
+export async function installCommand(options?: {
+  cwd?: string;
+}): Promise<void> {
   const cwd = options?.cwd ?? process.cwd();
 
   try {
@@ -27,14 +32,18 @@ export async function installCommand(options?: { cwd?: string }): Promise<void> 
     const config = await configManager.loadConfig();
 
     // Check if package.json exists (if source is defaults, it means no package.json was found)
-    if (config.source.type === 'defaults') {
-      throw new Error('package.json not found');
+    if (config.source.type === "defaults") {
+      throw new Error("package.json not found");
     }
 
     // 2. Check if any skills to install
     const skillEntries = Object.entries(config.skills);
     if (skillEntries.length === 0) {
-      console.log(chalk.yellow('⚠ No skills to install. Add skills to the "agentskills" field in package.json or the agentskills field is empty.'));
+      console.log(
+        chalk.yellow(
+          '⚠ No skills to install. Add skills to the "agentskills" field in package.json or the agentskills field is empty.'
+        )
+      );
       process.exit(0);
       return;
     }
@@ -44,7 +53,8 @@ export async function installCommand(options?: { cwd?: string }): Promise<void> 
     try {
       await fs.mkdir(skillsDir, { recursive: true });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       console.error(chalk.red(`✗ Failed to create directory: ${errorMessage}`));
       process.exit(1);
       return;
@@ -54,7 +64,7 @@ export async function installCommand(options?: { cwd?: string }): Promise<void> 
     const installer = new SkillInstaller(skillsDir);
 
     // 5. Install each skill with spinner
-    const spinner = ora('Installing skills...').start();
+    const spinner = ora("Installing skills...").start();
     const results = new Map<string, InstallResult>();
 
     // Install all skills in parallel
@@ -99,14 +109,26 @@ export async function installCommand(options?: { cwd?: string }): Promise<void> 
 
     if (successCount > 0) {
       await installer.generateLockFile(successfulInstalls);
-      
-      console.log(chalk.green(`\n✅ Successfully installed ${successCount} skill${successCount !== 1 ? 's' : ''}`));
-      console.log(chalk.green(`📁 ${successCount} skill${successCount !== 1 ? 's' : ''} installed to ${config.config.skillsDirectory}`));
-      
+
+      console.log(
+        chalk.green(
+          `\n✅ Successfully installed ${successCount} skill${successCount !== 1 ? "s" : ""}`
+        )
+      );
+      console.log(
+        chalk.green(
+          `📁 ${successCount} skill${successCount !== 1 ? "s" : ""} installed to ${config.config.skillsDirectory}`
+        )
+      );
+
       if (failCount > 0) {
-        console.log(chalk.yellow(`⚠ ${failCount} skill${failCount !== 1 ? 's' : ''} failed`));
+        console.log(
+          chalk.yellow(
+            `⚠ ${failCount} skill${failCount !== 1 ? "s" : ""} failed`
+          )
+        );
       }
-      
+
       process.exit(0);
     } else {
       // All installs failed
@@ -115,22 +137,31 @@ export async function installCommand(options?: { cwd?: string }): Promise<void> 
     }
   } catch (error: unknown) {
     // Handle configuration errors
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const errorCode = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    const errorCode =
+      error && typeof error === "object" && "code" in error
+        ? error.code
+        : undefined;
 
-    if (errorMessage.includes('package.json not found') || errorCode === 'ENOENT') {
+    if (
+      errorMessage.includes("package.json not found") ||
+      errorCode === "ENOENT"
+    ) {
       console.error(chalk.red(`✗ Error: package.json not found in ${cwd}`));
       process.exit(1);
       return;
     }
 
-    if (errorMessage.includes('Failed to parse')) {
-      console.error(chalk.red(`✗ Error: Failed to parse package.json - Invalid JSON`));
+    if (errorMessage.includes("Failed to parse")) {
+      console.error(
+        chalk.red(`✗ Error: Failed to parse package.json - Invalid JSON`)
+      );
       process.exit(1);
       return;
     }
 
-    if (errorMessage.includes('Permission denied') || errorCode === 'EACCES') {
+    if (errorMessage.includes("Permission denied") || errorCode === "EACCES") {
       console.error(chalk.red(`✗ Error: Permission error - ${errorMessage}`));
       process.exit(1);
       return;

@@ -16,7 +16,7 @@ import type {
   InstallAllResult,
   SkillManifest,
   SkillLockFile,
-  InstallErrorCode,
+  InstallErrorCode
 } from "./types.js";
 import { parseSkillContent } from "./parser.js";
 
@@ -130,16 +130,19 @@ export class SkillInstaller {
       // Get package metadata for integrity and version
       let resolvedVersion: string;
       let integrity: string;
-      
+
       if (spec.startsWith("file:")) {
         // For local files, use a hash of the path or timestamp
         resolvedVersion = "local";
         integrity = `file:${installPath}`;
-        
+
         // Try to get version from package.json
         try {
           const packageJsonPath = join(installPath, "package.json");
-          const packageJsonContent = await fs.readFile(packageJsonPath, "utf-8");
+          const packageJsonContent = await fs.readFile(
+            packageJsonPath,
+            "utf-8"
+          );
           const packageJson = JSON.parse(packageJsonContent);
           if (packageJson.version) {
             resolvedVersion = packageJson.version;
@@ -149,7 +152,10 @@ export class SkillInstaller {
         }
       } else {
         const metadata = await pacote.manifest(spec, opts);
-        resolvedVersion = this.extractVersion(spec, metadata as unknown as Record<string, unknown>);
+        resolvedVersion = this.extractVersion(
+          spec,
+          metadata as unknown as Record<string, unknown>
+        );
         integrity = metadata._integrity || metadata.dist?.integrity || "";
       }
 
@@ -160,7 +166,7 @@ export class SkillInstaller {
         resolvedVersion,
         integrity,
         installPath,
-        manifest,
+        manifest
       };
     } catch (error) {
       // Clean up on error
@@ -180,26 +186,22 @@ export class SkillInstaller {
    * @param skills - Record of skill names to package specs
    * @returns InstallAllResult with success/failure information
    */
-  async installAll(
-    skills: Record<string, string>
-  ): Promise<InstallAllResult> {
+  async installAll(skills: Record<string, string>): Promise<InstallAllResult> {
     const results: Record<string, InstallResult> = {};
     const installed = new Set<string>();
     const failed = new Set<string>();
 
     // Install all skills in parallel
-    const installPromises = Object.entries(skills).map(
-      async ([name, spec]) => {
-        const result = await this.install(name, spec);
-        results[name] = result;
+    const installPromises = Object.entries(skills).map(async ([name, spec]) => {
+      const result = await this.install(name, spec);
+      results[name] = result;
 
-        if (result.success) {
-          installed.add(name);
-        } else {
-          failed.add(name);
-        }
+      if (result.success) {
+        installed.add(name);
+      } else {
+        failed.add(name);
       }
-    );
+    });
 
     await Promise.all(installPromises);
 
@@ -207,7 +209,7 @@ export class SkillInstaller {
       success: failed.size === 0,
       installed,
       failed,
-      results,
+      results
     };
   }
 
@@ -222,7 +224,7 @@ export class SkillInstaller {
     const lockFile: SkillLockFile = {
       version: "1.0",
       generated: new Date().toISOString(),
-      skills: {},
+      skills: {}
     };
 
     for (const [name, result] of Object.entries(installed)) {
@@ -230,13 +232,17 @@ export class SkillInstaller {
         lockFile.skills[name] = {
           spec: result.spec,
           resolvedVersion: result.resolvedVersion,
-          integrity: result.integrity,
+          integrity: result.integrity
         };
       }
     }
 
     const lockFilePath = join(dirname(this.skillsDir), "skills-lock.json");
-    await fs.writeFile(lockFilePath, JSON.stringify(lockFile, null, 2), "utf-8");
+    await fs.writeFile(
+      lockFilePath,
+      JSON.stringify(lockFile, null, 2),
+      "utf-8"
+    );
   }
 
   /**
@@ -316,24 +322,27 @@ export class SkillInstaller {
   /**
    * Copy local directory to install path
    */
-  private async copyLocalDirectory(spec: string, installPath: string): Promise<void> {
+  private async copyLocalDirectory(
+    spec: string,
+    installPath: string
+  ): Promise<void> {
     // Remove "file:" prefix and resolve path
     let sourcePath = spec.substring(5); // Remove "file:"
-    
+
     // Handle file:// protocol
     if (sourcePath.startsWith("//")) {
       sourcePath = sourcePath.substring(2);
     }
-    
+
     // Expand tilde to home directory
     if (sourcePath.startsWith("~/")) {
       const os = await import("os");
       sourcePath = join(os.homedir(), sourcePath.substring(2));
     }
-    
+
     // Resolve relative paths
     sourcePath = resolve(sourcePath);
-    
+
     // Verify source exists
     try {
       const stat = await fs.stat(sourcePath);
@@ -343,7 +352,7 @@ export class SkillInstaller {
     } catch {
       throw new Error(`Local path not found: ${sourcePath}`);
     }
-    
+
     // Copy directory recursively
     await fs.mkdir(installPath, { recursive: true });
     await this.copyDir(sourcePath, installPath);
@@ -354,16 +363,20 @@ export class SkillInstaller {
    */
   private async copyDir(src: string, dest: string): Promise<void> {
     const entries = await fs.readdir(src, { withFileTypes: true });
-    
+
     for (const entry of entries) {
       // Skip .agentskills, node_modules, and hidden directories
-      if (entry.name === '.agentskills' || entry.name === 'node_modules' || entry.name.startsWith('.')) {
+      if (
+        entry.name === ".agentskills" ||
+        entry.name === "node_modules" ||
+        entry.name.startsWith(".")
+      ) {
         continue;
       }
-      
+
       const srcPath = join(src, entry.name);
       const destPath = join(dest, entry.name);
-      
+
       if (entry.isDirectory()) {
         await fs.mkdir(destPath, { recursive: true });
         await this.copyDir(srcPath, destPath);
@@ -413,7 +426,7 @@ export class SkillInstaller {
         compatibility: metadata.compatibility,
         packageName,
         version,
-        metadata: metadata.metadata,
+        metadata: metadata.metadata
       };
     } catch {
       return null;
@@ -423,7 +436,10 @@ export class SkillInstaller {
   /**
    * Extract version from spec or metadata
    */
-  private extractVersion(spec: string, metadata: Record<string, unknown>): string {
+  private extractVersion(
+    spec: string,
+    metadata: Record<string, unknown>
+  ): string {
     // Try to extract from spec first
     const hashIndex = spec.indexOf("#");
     if (hashIndex !== -1) {
@@ -440,7 +456,9 @@ export class SkillInstaller {
     }
 
     // Default to "latest" or branch name
-    return typeof metadata._resolved === "string" ? metadata._resolved : "latest";
+    return typeof metadata._resolved === "string"
+      ? metadata._resolved
+      : "latest";
   }
 
   /**
@@ -459,7 +477,7 @@ export class SkillInstaller {
       "file:",
       "http://",
       "https://",
-      "@", // npm scoped packages
+      "@" // npm scoped packages
     ];
 
     // Check if it starts with any valid prefix
@@ -497,8 +515,8 @@ export class SkillInstaller {
       spec,
       error: {
         code,
-        message,
-      },
+        message
+      }
     };
   }
 

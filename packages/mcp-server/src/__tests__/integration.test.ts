@@ -1,6 +1,6 @@
 /**
  * Integration tests for MCP server execution
- * 
+ *
  * Tests that the server can be spawned as a subprocess and properly
  * communicates via stdio using the MCP protocol.
  */
@@ -27,8 +27,8 @@ describe("MCP Server Integration - Subprocess Execution", () => {
       name: "test-project",
       agentskills: {
         "example-skill": "file:./local-skills/example-skill",
-        "another-skill": "file:./local-skills/another-skill",
-      },
+        "another-skill": "file:./local-skills/another-skill"
+      }
     };
     await fs.writeFile(
       join(tempDir, "package.json"),
@@ -47,10 +47,7 @@ description: An example skill for integration testing
 
 This is an example skill body with instructions for the first skill.
 `;
-    await fs.writeFile(
-      join(exampleSkillDir, "SKILL.md"),
-      exampleSkillContent
-    );
+    await fs.writeFile(join(exampleSkillDir, "SKILL.md"), exampleSkillContent);
 
     // Create another-skill
     const anotherSkillDir = join(skillsDir, "another-skill");
@@ -64,10 +61,7 @@ description: Another skill for integration testing
 
 This is another skill body with instructions for the second skill.
 `;
-    await fs.writeFile(
-      join(anotherSkillDir, "SKILL.md"),
-      anotherSkillContent
-    );
+    await fs.writeFile(join(anotherSkillDir, "SKILL.md"), anotherSkillContent);
   });
 
   afterEach(async () => {
@@ -85,15 +79,11 @@ This is another skill body with instructions for the second skill.
 
   it("should spawn server, initialize via MCP protocol, and expose use_skill tool with skill enum", async () => {
     // Get path to compiled server binary
-    const serverBinPath = join(
-      process.cwd(),
-      "dist",
-      "bin.js"
-    );
+    const serverBinPath = join(process.cwd(), "dist", "bin.js");
 
     // Spawn the server as a subprocess with project directory (not skills directory)
     serverProcess = spawn("node", [serverBinPath, tempDir], {
-      stdio: ["pipe", "pipe", "pipe"],
+      stdio: ["pipe", "pipe", "pipe"]
     });
 
     // Collect responses
@@ -201,14 +191,14 @@ This is another skill body with instructions for the second skill.
         protocolVersion: "2024-11-05",
         capabilities: {
           roots: {
-            listChanged: true,
-          },
+            listChanged: true
+          }
         },
         clientInfo: {
           name: "test-client",
-          version: "1.0.0",
-        },
-      },
+          version: "1.0.0"
+        }
+      }
     });
 
     // Step 2: Wait for initialize response
@@ -221,14 +211,14 @@ This is another skill body with instructions for the second skill.
     // Step 3: Send initialized notification
     sendMessage({
       jsonrpc: "2.0",
-      method: "notifications/initialized",
+      method: "notifications/initialized"
     });
 
     // Step 4: Send tools/list request
     sendMessage({
       jsonrpc: "2.0",
       id: 2,
-      method: "tools/list",
+      method: "tools/list"
     });
 
     // Step 5: Wait for tools/list response
@@ -244,24 +234,34 @@ This is another skill body with instructions for the second skill.
     );
     expect(useSkillTool).toBeDefined();
     expect(useSkillTool.description).toBeDefined();
-    
+
     // Verify description includes skill names and descriptions
     expect(useSkillTool.description).toContain("example-skill");
-    expect(useSkillTool.description).toContain("An example skill for integration testing");
+    expect(useSkillTool.description).toContain(
+      "An example skill for integration testing"
+    );
     expect(useSkillTool.description).toContain("another-skill");
-    expect(useSkillTool.description).toContain("Another skill for integration testing");
-    
+    expect(useSkillTool.description).toContain(
+      "Another skill for integration testing"
+    );
+
     expect(useSkillTool.inputSchema).toBeDefined();
     expect(useSkillTool.inputSchema.type).toBe("object");
-    
+
     // Verify skill_name parameter has enum with loaded skill names
     expect(useSkillTool.inputSchema.properties).toBeDefined();
     expect(useSkillTool.inputSchema.properties.skill_name).toBeDefined();
     expect(useSkillTool.inputSchema.properties.skill_name.type).toBe("string");
     expect(useSkillTool.inputSchema.properties.skill_name.enum).toBeDefined();
-    expect(Array.isArray(useSkillTool.inputSchema.properties.skill_name.enum)).toBe(true);
-    expect(useSkillTool.inputSchema.properties.skill_name.enum).toContain("example-skill");
-    expect(useSkillTool.inputSchema.properties.skill_name.enum).toContain("another-skill");
+    expect(
+      Array.isArray(useSkillTool.inputSchema.properties.skill_name.enum)
+    ).toBe(true);
+    expect(useSkillTool.inputSchema.properties.skill_name.enum).toContain(
+      "example-skill"
+    );
+    expect(useSkillTool.inputSchema.properties.skill_name.enum).toContain(
+      "another-skill"
+    );
     expect(useSkillTool.inputSchema.properties.skill_name.enum.length).toBe(2);
 
     // Step 7: Test tool execution - call use_skill with example-skill
@@ -272,9 +272,9 @@ This is another skill body with instructions for the second skill.
       params: {
         name: "use_skill",
         arguments: {
-          skill_name: "example-skill",
-        },
-      },
+          skill_name: "example-skill"
+        }
+      }
     });
 
     // Step 8: Wait for tool execution response
@@ -285,13 +285,15 @@ This is another skill body with instructions for the second skill.
     expect(Array.isArray(toolCallResponse.result.content)).toBe(true);
     expect(toolCallResponse.result.content.length).toBeGreaterThan(0);
     expect(toolCallResponse.result.content[0].type).toBe("text");
-    
+
     // Parse the skill response - should only contain instructions
     const data = JSON.parse(toolCallResponse.result.content[0].text);
     expect(data).toHaveProperty("instructions");
     expect(data.instructions).toContain("Example Skill");
-    expect(data.instructions).toContain("This is an example skill body with instructions for the first skill");
-    
+    expect(data.instructions).toContain(
+      "This is an example skill body with instructions for the first skill"
+    );
+
     // Should NOT contain metadata
     expect(data).not.toHaveProperty("name");
     expect(data).not.toHaveProperty("description");
@@ -304,7 +306,7 @@ This is another skill body with instructions for the second skill.
     sendMessage({
       jsonrpc: "2.0",
       id: 4,
-      method: "resources/templates/list",
+      method: "resources/templates/list"
     });
 
     // Step 10: Wait for resources/templates/list response
@@ -312,12 +314,14 @@ This is another skill body with instructions for the second skill.
     expect(templatesResponse.id).toBe(4);
     expect(templatesResponse.result).toBeDefined();
     expect(templatesResponse.result.resourceTemplates).toBeDefined();
-    expect(Array.isArray(templatesResponse.result.resourceTemplates)).toBe(true);
+    expect(Array.isArray(templatesResponse.result.resourceTemplates)).toBe(
+      true
+    );
 
     // Verify single template covers all skills
     const templates = templatesResponse.result.resourceTemplates;
     expect(templates.length).toBe(1);
-    
+
     const template = templates[0];
     expect(template).toBeDefined();
     expect(template.uriTemplate).toBe("skill://{skillName}");
@@ -325,7 +329,7 @@ This is another skill body with instructions for the second skill.
     expect(template.description).toContain("use_skill tool");
     expect(template.description).toContain("skill_name parameter");
     expect(template.mimeType).toBe("text/markdown");
-    
+
     // NEW: Verify inputSchema with skill enum is present
     expect(template.inputSchema).toBeDefined();
     expect(template.inputSchema.type).toBe("object");
@@ -333,9 +337,15 @@ This is another skill body with instructions for the second skill.
     expect(template.inputSchema.properties.skillName).toBeDefined();
     expect(template.inputSchema.properties.skillName.type).toBe("string");
     expect(template.inputSchema.properties.skillName.enum).toBeDefined();
-    expect(Array.isArray(template.inputSchema.properties.skillName.enum)).toBe(true);
-    expect(template.inputSchema.properties.skillName.enum).toContain("example-skill");
-    expect(template.inputSchema.properties.skillName.enum).toContain("another-skill");
+    expect(Array.isArray(template.inputSchema.properties.skillName.enum)).toBe(
+      true
+    );
+    expect(template.inputSchema.properties.skillName.enum).toContain(
+      "example-skill"
+    );
+    expect(template.inputSchema.properties.skillName.enum).toContain(
+      "another-skill"
+    );
     expect(template.inputSchema.properties.skillName.enum.length).toBe(2);
     expect(template.inputSchema.required).toContain("skillName");
 
@@ -345,8 +355,8 @@ This is another skill body with instructions for the second skill.
       id: 5,
       method: "resources/read",
       params: {
-        uri: "skill://example-skill",
-      },
+        uri: "skill://example-skill"
+      }
     });
 
     // Step 12: Wait for resources/read response
@@ -356,23 +366,27 @@ This is another skill body with instructions for the second skill.
     expect(resourceReadResponse.result.contents).toBeDefined();
     expect(Array.isArray(resourceReadResponse.result.contents)).toBe(true);
     expect(resourceReadResponse.result.contents.length).toBeGreaterThan(0);
-    
+
     const resourceContent = resourceReadResponse.result.contents[0];
     expect(resourceContent.uri).toBe("skill://example-skill");
     expect(resourceContent.mimeType).toBe("text/markdown");
     expect(resourceContent.text).toBeDefined();
     expect(resourceContent.text).toContain("Example Skill");
-    expect(resourceContent.text).toContain("This is an example skill body with instructions for the first skill");
+    expect(resourceContent.text).toContain(
+      "This is an example skill body with instructions for the first skill"
+    );
 
     console.log("Resource template successfully exposed via MCP protocol");
-    console.log("Single template covers all skills via skill://{skillName} pattern");
+    console.log(
+      "Single template covers all skills via skill://{skillName} pattern"
+    );
     console.log("Resource reading successfully returned SKILL.md content");
 
     // Step 13: Test resources/list (concrete resources)
     sendMessage({
       jsonrpc: "2.0",
       id: 6,
-      method: "resources/list",
+      method: "resources/list"
     });
 
     // Step 14: Wait for resources/list response
@@ -385,19 +399,27 @@ This is another skill body with instructions for the second skill.
 
     // Verify each resource has correct structure
     const resources = resourcesListResponse.result.resources;
-    const exampleResource = resources.find((r: any) => r.name === "example-skill");
-    const anotherResource = resources.find((r: any) => r.name === "another-skill");
+    const exampleResource = resources.find(
+      (r: any) => r.name === "example-skill"
+    );
+    const anotherResource = resources.find(
+      (r: any) => r.name === "another-skill"
+    );
 
     expect(exampleResource).toBeDefined();
     expect(exampleResource.uri).toBe("skill://example-skill");
     expect(exampleResource.name).toBe("example-skill");
-    expect(exampleResource.description).toBe("An example skill for integration testing");
+    expect(exampleResource.description).toBe(
+      "An example skill for integration testing"
+    );
     expect(exampleResource.mimeType).toBe("text/markdown");
 
     expect(anotherResource).toBeDefined();
     expect(anotherResource.uri).toBe("skill://another-skill");
     expect(anotherResource.name).toBe("another-skill");
-    expect(anotherResource.description).toBe("Another skill for integration testing");
+    expect(anotherResource.description).toBe(
+      "Another skill for integration testing"
+    );
     expect(anotherResource.mimeType).toBe("text/markdown");
 
     console.log("Resources list successfully exposed via MCP protocol");
@@ -405,7 +427,7 @@ This is another skill body with instructions for the second skill.
 
     // Cleanup: Close subprocess
     serverProcess.stdin?.end();
-    
+
     // Wait for process to exit
     await new Promise<void>((resolve) => {
       serverProcess?.on("close", () => {

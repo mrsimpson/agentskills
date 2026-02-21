@@ -117,9 +117,14 @@ export class MCPServer {
 
     // Access underlying server for resource capabilities
     // Using type assertion as the SDK doesn't expose these methods directly
-    const underlyingServer = (this.mcpServer as unknown as Record<string, unknown>).server as {
+    const underlyingServer = (
+      this.mcpServer as unknown as Record<string, unknown>
+    ).server as {
       registerCapabilities: (caps: Record<string, unknown>) => void;
-      setRequestHandler: (schema: unknown, handler: (request: Record<string, unknown>) => unknown) => void;
+      setRequestHandler: (
+        schema: unknown,
+        handler: (request: Record<string, unknown>) => unknown
+      ) => void;
     };
 
     // Register resource capabilities via the underlying server
@@ -147,7 +152,9 @@ export class MCPServer {
     underlyingServer.setRequestHandler(
       ReadResourceRequestSchema,
       async (request: Record<string, unknown>) => {
-        return this.handleReadResource((request.params as Record<string, unknown>).uri as string);
+        return this.handleReadResource(
+          (request.params as Record<string, unknown>).uri as string
+        );
       }
     );
   }
@@ -177,8 +184,8 @@ export class MCPServer {
     mimeType: string;
   }> {
     const skills = this.registry.getAllMetadata();
-    
-    return skills.map(skill => ({
+
+    return skills.map((skill) => ({
       uri: `skill://${skill.name}`,
       name: skill.name,
       description: skill.description,
@@ -348,12 +355,13 @@ ${skillList}`;
   }> {
     // Get skill names for enum (reuse same method as tool)
     const skillNames = this.getSkillNames();
-    
+
     return [
       {
         uriTemplate: "skill://{skillName}",
         name: "Agent Skill",
-        description: "Access skill instructions and metadata. Use skill names from the use_skill tool's skill_name parameter.",
+        description:
+          "Access skill instructions and metadata. Use skill names from the use_skill tool's skill_name parameter.",
         mimeType: "text/markdown",
         inputSchema: {
           type: "object",
@@ -378,9 +386,9 @@ ${skillList}`;
    * @param uri - Resource URI (skill://<name>)
    * @returns MCP resource content response
    */
-  private async handleReadResource(
-    uri: string
-  ): Promise<{ contents: Array<{ uri: string; mimeType: string; text: string }> }> {
+  private async handleReadResource(uri: string): Promise<{
+    contents: Array<{ uri: string; mimeType: string; text: string }>;
+  }> {
     // Parse URI: skill://<name> or skill://<name>/SKILL.md
     const match = uri.match(/^skill:\/\/([^/]+)/);
     if (!match) {

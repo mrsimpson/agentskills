@@ -40,7 +40,9 @@ describe("PackageConfigManager", () => {
 
   describe("Constructor and defaults", () => {
     it("should throw error for invalid project root", () => {
-      expect(() => new PackageConfigManager("")).toThrow("Project root directory is required");
+      expect(() => new PackageConfigManager("")).toThrow(
+        "Project root directory is required"
+      );
       expect(() => new PackageConfigManager(null as any)).toThrow();
     });
 
@@ -54,9 +56,9 @@ describe("PackageConfigManager", () => {
           skillsDirectory: ".agentskills/skills",
           autoDiscover: [".claude/skills"],
           maxSkillSize: 5000,
-          logLevel: "info",
+          logLevel: "info"
         },
-        source: { type: "defaults" },
+        source: { type: "defaults" }
       });
     });
   });
@@ -70,34 +72,42 @@ describe("PackageConfigManager", () => {
     });
 
     it("should load complete config with both fields", async () => {
-      await fs.writeFile(packageJsonPath, JSON.stringify({
-        name: "project",
-        agentskills: {
-          "api-integration": "github:user/api#v1.0.0",
-          "database-query": "git+https://github.com/org/db.git",
-        },
-        agentskillsConfig: {
-          skillsDirectory: ".agentskills/skills",
-          autoDiscover: [".claude/skills", "~/custom"],
-          maxSkillSize: 5000,
-          logLevel: "info",
-        },
-      }), "utf-8");
+      await fs.writeFile(
+        packageJsonPath,
+        JSON.stringify({
+          name: "project",
+          agentskills: {
+            "api-integration": "github:user/api#v1.0.0",
+            "database-query": "git+https://github.com/org/db.git"
+          },
+          agentskillsConfig: {
+            skillsDirectory: ".agentskills/skills",
+            autoDiscover: [".claude/skills", "~/custom"],
+            maxSkillSize: 5000,
+            logLevel: "info"
+          }
+        }),
+        "utf-8"
+      );
 
       const config = await new PackageConfigManager(projectRoot).loadConfig();
       expect(config.source.type).toBe("file");
       expect(config.skills).toEqual({
         "api-integration": "github:user/api#v1.0.0",
-        "database-query": "git+https://github.com/org/db.git",
+        "database-query": "git+https://github.com/org/db.git"
       });
       expect(config.config.skillsDirectory).toBe(".agentskills/skills");
     });
 
     it("should load skills only and use default config", async () => {
-      await fs.writeFile(packageJsonPath, JSON.stringify({
-        name: "project",
-        agentskills: { "skill-one": "github:user/skill-one" },
-      }), "utf-8");
+      await fs.writeFile(
+        packageJsonPath,
+        JSON.stringify({
+          name: "project",
+          agentskills: { "skill-one": "github:user/skill-one" }
+        }),
+        "utf-8"
+      );
 
       const config = await new PackageConfigManager(projectRoot).loadConfig();
       expect(config.skills).toEqual({ "skill-one": "github:user/skill-one" });
@@ -105,9 +115,16 @@ describe("PackageConfigManager", () => {
     });
 
     it("should merge partial config with defaults", async () => {
-      await fs.writeFile(packageJsonPath, JSON.stringify({
-        agentskillsConfig: { skillsDirectory: "custom/path", logLevel: "debug" },
-      }), "utf-8");
+      await fs.writeFile(
+        packageJsonPath,
+        JSON.stringify({
+          agentskillsConfig: {
+            skillsDirectory: "custom/path",
+            logLevel: "debug"
+          }
+        }),
+        "utf-8"
+      );
 
       const config = await new PackageConfigManager(projectRoot).loadConfig();
       expect(config.config.skillsDirectory).toBe("custom/path");
@@ -119,28 +136,64 @@ describe("PackageConfigManager", () => {
   describe("loadConfig - Validation errors", () => {
     it("should throw for invalid JSON", async () => {
       await fs.writeFile(packageJsonPath, "{ invalid json", "utf-8");
-      await expect(new PackageConfigManager(projectRoot).loadConfig()).rejects.toThrow(/Failed to parse/);
+      await expect(
+        new PackageConfigManager(projectRoot).loadConfig()
+      ).rejects.toThrow(/Failed to parse/);
     });
 
     it.each([
       ["invalid logLevel", { logLevel: "invalid" }, /Invalid logLevel/i],
-      ["non-array autoDiscover", { autoDiscover: "string" }, /autoDiscover must be an array/i],
-      ["non-number maxSkillSize", { maxSkillSize: "5000" }, /maxSkillSize must be a number/i],
-      ["negative maxSkillSize", { maxSkillSize: -100 }, /maxSkillSize must be a positive/i],
-      ["empty skillsDirectory", { skillsDirectory: "" }, /skillsDirectory cannot be empty/i],
+      [
+        "non-array autoDiscover",
+        { autoDiscover: "string" },
+        /autoDiscover must be an array/i
+      ],
+      [
+        "non-number maxSkillSize",
+        { maxSkillSize: "5000" },
+        /maxSkillSize must be a number/i
+      ],
+      [
+        "negative maxSkillSize",
+        { maxSkillSize: -100 },
+        /maxSkillSize must be a positive/i
+      ],
+      [
+        "empty skillsDirectory",
+        { skillsDirectory: "" },
+        /skillsDirectory cannot be empty/i
+      ]
     ])("should throw for %s", async (_, config, expectedError) => {
-      await fs.writeFile(packageJsonPath, JSON.stringify({ agentskillsConfig: config }), "utf-8");
-      await expect(new PackageConfigManager(projectRoot).loadConfig()).rejects.toThrow(expectedError);
+      await fs.writeFile(
+        packageJsonPath,
+        JSON.stringify({ agentskillsConfig: config }),
+        "utf-8"
+      );
+      await expect(
+        new PackageConfigManager(projectRoot).loadConfig()
+      ).rejects.toThrow(expectedError);
     });
 
     it("should throw for non-object agentskills", async () => {
-      await fs.writeFile(packageJsonPath, JSON.stringify({ agentskills: "not-object" }), "utf-8");
-      await expect(new PackageConfigManager(projectRoot).loadConfig()).rejects.toThrow(/agentskills must be an object/i);
+      await fs.writeFile(
+        packageJsonPath,
+        JSON.stringify({ agentskills: "not-object" }),
+        "utf-8"
+      );
+      await expect(
+        new PackageConfigManager(projectRoot).loadConfig()
+      ).rejects.toThrow(/agentskills must be an object/i);
     });
 
     it("should throw for agentskills with non-string values", async () => {
-      await fs.writeFile(packageJsonPath, JSON.stringify({ agentskills: { skill: 123 } }), "utf-8");
-      await expect(new PackageConfigManager(projectRoot).loadConfig()).rejects.toThrow(/values must be strings/i);
+      await fs.writeFile(
+        packageJsonPath,
+        JSON.stringify({ agentskills: { skill: 123 } }),
+        "utf-8"
+      );
+      await expect(
+        new PackageConfigManager(projectRoot).loadConfig()
+      ).rejects.toThrow(/values must be strings/i);
     });
   });
 
@@ -149,22 +202,36 @@ describe("PackageConfigManager", () => {
       const manager = new PackageConfigManager(projectRoot);
       await manager.saveSkills({ "skill-one": "github:user/skill-one" });
 
-      const packageJson = JSON.parse(await fs.readFile(packageJsonPath, "utf-8"));
-      expect(packageJson.agentskills).toEqual({ "skill-one": "github:user/skill-one" });
+      const packageJson = JSON.parse(
+        await fs.readFile(packageJsonPath, "utf-8")
+      );
+      expect(packageJson.agentskills).toEqual({
+        "skill-one": "github:user/skill-one"
+      });
     });
 
     it("should update existing package.json and preserve other fields", async () => {
-      await fs.writeFile(packageJsonPath, JSON.stringify({
-        name: "project",
-        version: "1.0.0",
-        dependencies: { express: "^4.0.0" },
-        agentskillsConfig: { logLevel: "debug" },
-      }), "utf-8");
+      await fs.writeFile(
+        packageJsonPath,
+        JSON.stringify({
+          name: "project",
+          version: "1.0.0",
+          dependencies: { express: "^4.0.0" },
+          agentskillsConfig: { logLevel: "debug" }
+        }),
+        "utf-8"
+      );
 
-      await new PackageConfigManager(projectRoot).saveSkills({ "new-skill": "github:user/new" });
+      await new PackageConfigManager(projectRoot).saveSkills({
+        "new-skill": "github:user/new"
+      });
 
-      const packageJson = JSON.parse(await fs.readFile(packageJsonPath, "utf-8"));
-      expect(packageJson.agentskills).toEqual({ "new-skill": "github:user/new" });
+      const packageJson = JSON.parse(
+        await fs.readFile(packageJsonPath, "utf-8")
+      );
+      expect(packageJson.agentskills).toEqual({
+        "new-skill": "github:user/new"
+      });
       expect(packageJson.name).toBe("project");
       expect(packageJson.dependencies).toEqual({ express: "^4.0.0" });
       expect(packageJson.agentskillsConfig).toEqual({ logLevel: "debug" });
@@ -173,56 +240,91 @@ describe("PackageConfigManager", () => {
 
   describe("addSkill", () => {
     it("should add skill to existing agentskills", async () => {
-      await fs.writeFile(packageJsonPath, JSON.stringify({
-        agentskills: { "existing": "github:user/existing" },
-      }), "utf-8");
+      await fs.writeFile(
+        packageJsonPath,
+        JSON.stringify({
+          agentskills: { existing: "github:user/existing" }
+        }),
+        "utf-8"
+      );
 
-      await new PackageConfigManager(projectRoot).addSkill("new-skill", "github:user/new");
+      await new PackageConfigManager(projectRoot).addSkill(
+        "new-skill",
+        "github:user/new"
+      );
 
-      const packageJson = JSON.parse(await fs.readFile(packageJsonPath, "utf-8"));
+      const packageJson = JSON.parse(
+        await fs.readFile(packageJsonPath, "utf-8")
+      );
       expect(packageJson.agentskills).toEqual({
-        "existing": "github:user/existing",
-        "new-skill": "github:user/new",
+        existing: "github:user/existing",
+        "new-skill": "github:user/new"
       });
     });
 
     it("should create package.json if it does not exist", async () => {
-      await new PackageConfigManager(projectRoot).addSkill("first", "github:user/first");
-      const packageJson = JSON.parse(await fs.readFile(packageJsonPath, "utf-8"));
-      expect(packageJson.agentskills).toEqual({ "first": "github:user/first" });
+      await new PackageConfigManager(projectRoot).addSkill(
+        "first",
+        "github:user/first"
+      );
+      const packageJson = JSON.parse(
+        await fs.readFile(packageJsonPath, "utf-8")
+      );
+      expect(packageJson.agentskills).toEqual({ first: "github:user/first" });
     });
 
     it("should update existing skill with new spec", async () => {
-      await fs.writeFile(packageJsonPath, JSON.stringify({
-        agentskills: { "skill": "github:user/skill#v1.0.0" },
-      }), "utf-8");
+      await fs.writeFile(
+        packageJsonPath,
+        JSON.stringify({
+          agentskills: { skill: "github:user/skill#v1.0.0" }
+        }),
+        "utf-8"
+      );
 
-      await new PackageConfigManager(projectRoot).addSkill("skill", "github:user/skill#v2.0.0");
+      await new PackageConfigManager(projectRoot).addSkill(
+        "skill",
+        "github:user/skill#v2.0.0"
+      );
 
-      const packageJson = JSON.parse(await fs.readFile(packageJsonPath, "utf-8"));
+      const packageJson = JSON.parse(
+        await fs.readFile(packageJsonPath, "utf-8")
+      );
       expect(packageJson.agentskills["skill"]).toBe("github:user/skill#v2.0.0");
     });
 
     it("should throw for empty name or spec", async () => {
       const manager = new PackageConfigManager(projectRoot);
-      await expect(manager.addSkill("", "github:user/skill")).rejects.toThrow(/name cannot be empty/i);
-      await expect(manager.addSkill("skill", "")).rejects.toThrow(/spec cannot be empty/i);
+      await expect(manager.addSkill("", "github:user/skill")).rejects.toThrow(
+        /name cannot be empty/i
+      );
+      await expect(manager.addSkill("skill", "")).rejects.toThrow(
+        /spec cannot be empty/i
+      );
     });
   });
 
   describe("removeSkill", () => {
     it("should remove skill from agentskills", async () => {
-      await fs.writeFile(packageJsonPath, JSON.stringify({
-        agentskills: {
-          "skill-one": "github:user/one",
-          "skill-two": "github:user/two",
-        },
-      }), "utf-8");
+      await fs.writeFile(
+        packageJsonPath,
+        JSON.stringify({
+          agentskills: {
+            "skill-one": "github:user/one",
+            "skill-two": "github:user/two"
+          }
+        }),
+        "utf-8"
+      );
 
       await new PackageConfigManager(projectRoot).removeSkill("skill-one");
 
-      const packageJson = JSON.parse(await fs.readFile(packageJsonPath, "utf-8"));
-      expect(packageJson.agentskills).toEqual({ "skill-two": "github:user/two" });
+      const packageJson = JSON.parse(
+        await fs.readFile(packageJsonPath, "utf-8")
+      );
+      expect(packageJson.agentskills).toEqual({
+        "skill-two": "github:user/two"
+      });
     });
 
     it("should not error when removing non-existent skill or when file does not exist", async () => {
@@ -231,7 +333,9 @@ describe("PackageConfigManager", () => {
     });
 
     it("should throw for empty skill name", async () => {
-      await expect(new PackageConfigManager(projectRoot).removeSkill("")).rejects.toThrow(/name cannot be empty/i);
+      await expect(
+        new PackageConfigManager(projectRoot).removeSkill("")
+      ).rejects.toThrow(/name cannot be empty/i);
     });
   });
 
@@ -257,14 +361,18 @@ describe("PackageConfigManager", () => {
     });
 
     it("should preserve config settings throughout operations", async () => {
-      await fs.writeFile(packageJsonPath, JSON.stringify({
-        agentskills: { initial: "github:user/initial" },
-        agentskillsConfig: {
-          skillsDirectory: "custom",
-          maxSkillSize: 8000,
-          logLevel: "debug",
-        },
-      }), "utf-8");
+      await fs.writeFile(
+        packageJsonPath,
+        JSON.stringify({
+          agentskills: { initial: "github:user/initial" },
+          agentskillsConfig: {
+            skillsDirectory: "custom",
+            maxSkillSize: 8000,
+            logLevel: "debug"
+          }
+        }),
+        "utf-8"
+      );
 
       const manager = new PackageConfigManager(projectRoot);
       await manager.addSkill("new", "github:user/new");

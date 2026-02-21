@@ -13,6 +13,7 @@ npm test:watch -- validate.test.ts
 ## Implementation Checklist
 
 ### Phase 1: Basic Single Skill Validation
+
 - [ ] Implement path resolution (handle both directory and SKILL.md file paths)
 - [ ] Use `parseSkill()` from @agentskills/core to parse skill
 - [ ] Use `validateSkill()` from @agentskills/core to validate parsed skill
@@ -20,6 +21,7 @@ npm test:watch -- validate.test.ts
 - [ ] Exit with code 0 on success
 
 ### Phase 2: Error Handling
+
 - [ ] Handle file not found errors
 - [ ] Handle parse errors (invalid YAML)
 - [ ] Handle validation errors
@@ -28,17 +30,20 @@ npm test:watch -- validate.test.ts
 - [ ] Exit with code 1 on errors
 
 ### Phase 3: Warning Support
+
 - [ ] Display warnings (yellow ⚠)
 - [ ] Allow success with warnings (exit 0) in normal mode
 - [ ] Implement --strict mode (treat warnings as errors, exit 1)
 
 ### Phase 4: Directory Validation
+
 - [ ] Recursively find all SKILL.md files in directory
 - [ ] Validate each skill
 - [ ] Aggregate results (counts for valid/invalid)
 - [ ] Display summary statistics
 
 ### Phase 5: --fix Flag (Stub)
+
 - [ ] Display "Auto-fix not implemented" message
 - [ ] Continue with validation as normal
 
@@ -55,13 +60,13 @@ async function resolvePath(path: string | undefined): Promise<string[]> {
   }
 
   const stat = await fs.stat(path);
-  
+
   if (stat.isFile()) {
     // Direct SKILL.md file
     return [path];
   } else if (stat.isDirectory()) {
     // Check if directory contains SKILL.md
-    const skillPath = join(path, 'SKILL.md');
+    const skillPath = join(path, "SKILL.md");
     try {
       await fs.access(skillPath);
       return [skillPath];
@@ -79,9 +84,14 @@ async function resolvePath(path: string | undefined): Promise<string[]> {
 async function validateSingleSkill(
   skillPath: string,
   options: ValidateOptions
-): Promise<{ success: boolean; name?: string; errors: string[]; warnings: string[] }> {
+): Promise<{
+  success: boolean;
+  name?: string;
+  errors: string[];
+  warnings: string[];
+}> {
   const parseResult = await parseSkill(skillPath);
-  
+
   if (!parseResult.success) {
     return {
       success: false,
@@ -91,9 +101,9 @@ async function validateSingleSkill(
   }
 
   const validationResult = validateSkill(parseResult.skill);
-  const errors = validationResult.errors.map(e => e.message);
-  const warnings = validationResult.warnings.map(w => w.message);
-  
+  const errors = validationResult.errors.map((e) => e.message);
+  const warnings = validationResult.warnings.map((w) => w.message);
+
   // In strict mode, warnings become errors
   if (options.strict && warnings.length > 0) {
     return {
@@ -118,33 +128,34 @@ async function validateSingleSkill(
 ```typescript
 function formatSuccess(skillName: string, warnings: string[]): void {
   console.log(chalk.green(`✓ Skill '${skillName}' is valid`));
-  
+
   if (warnings.length > 0) {
-    warnings.forEach(warning => {
+    warnings.forEach((warning) => {
       console.log(chalk.yellow(`  ⚠ ${warning}`));
     });
   }
 }
 
 function formatError(skillName: string | undefined, errors: string[]): void {
-  const name = skillName || 'unknown';
+  const name = skillName || "unknown";
   console.error(chalk.red(`✗ Skill '${name}' failed validation:`));
-  
-  errors.forEach(error => {
+
+  errors.forEach((error) => {
     console.error(chalk.red(`  - ${error}`));
   });
 }
 
 function formatSummary(total: number, valid: number, invalid: number): void {
-  const skillWord = total === 1 ? 'skill' : 'skills';
+  const skillWord = total === 1 ? "skill" : "skills";
   const validColor = invalid === 0 ? chalk.green : chalk.yellow;
   const invalidColor = invalid > 0 ? chalk.red : chalk.gray;
-  
-  console.log('');
+
+  console.log("");
   console.log(
     `Validated ${total} ${skillWord}: ` +
-    validColor(`${valid} valid`) + ', ' +
-    invalidColor(`${invalid} invalid`)
+      validColor(`${valid} valid`) +
+      ", " +
+      invalidColor(`${invalid} invalid`)
   );
 }
 ```
@@ -154,22 +165,22 @@ function formatSummary(total: number, valid: number, invalid: number): void {
 ```typescript
 async function findAllSkills(dir: string): Promise<string[]> {
   const skills: string[] = [];
-  
+
   async function walk(currentDir: string) {
     const entries = await fs.readdir(currentDir, { withFileTypes: true });
-    
+
     for (const entry of entries) {
       const fullPath = join(currentDir, entry.name);
-      
+
       if (entry.isDirectory()) {
         // Recurse into subdirectories
         await walk(fullPath);
-      } else if (entry.name === 'SKILL.md') {
+      } else if (entry.name === "SKILL.md") {
         skills.push(fullPath);
       }
     }
   }
-  
+
   await walk(dir);
   return skills;
 }
@@ -185,21 +196,21 @@ export async function validateCommand(
   try {
     // Show --fix message if flag is present
     if (options.fix) {
-      console.log(chalk.yellow('⚠ Auto-fix is not yet implemented'));
-      console.log('');
+      console.log(chalk.yellow("⚠ Auto-fix is not yet implemented"));
+      console.log("");
     }
 
     // Resolve paths
     const skillPaths = await resolvePath(path);
-    
+
     if (skillPaths.length === 0) {
-      console.log(chalk.yellow('No skills found'));
+      console.log(chalk.yellow("No skills found"));
       process.exit(0);
     }
 
     // Validate all skills
     const results = await Promise.all(
-      skillPaths.map(p => validateSingleSkill(p, options))
+      skillPaths.map((p) => validateSingleSkill(p, options))
     );
 
     // Display results
@@ -215,14 +226,13 @@ export async function validateCommand(
 
     // Display summary if multiple skills
     if (skillPaths.length > 1) {
-      const valid = results.filter(r => r.success).length;
+      const valid = results.filter((r) => r.success).length;
       const invalid = results.length - valid;
       formatSummary(results.length, valid, invalid);
     }
 
     // Exit with appropriate code
     process.exit(hasErrors ? 1 : 0);
-    
   } catch (error: any) {
     // Handle unexpected errors
     console.error(chalk.red(`Error: ${error.message}`));
@@ -269,6 +279,7 @@ This will re-run tests automatically when you save changes to the implementation
 ## Validation Examples
 
 ### Example 1: Valid Skill
+
 ```bash
 $ agentskills validate ./skills/my-skill
 
@@ -276,6 +287,7 @@ $ agentskills validate ./skills/my-skill
 ```
 
 ### Example 2: Skill with Warnings
+
 ```bash
 $ agentskills validate ./skills/my-skill
 
@@ -284,6 +296,7 @@ $ agentskills validate ./skills/my-skill
 ```
 
 ### Example 3: Invalid Skill
+
 ```bash
 $ agentskills validate ./skills/invalid-skill
 
@@ -293,6 +306,7 @@ $ agentskills validate ./skills/invalid-skill
 ```
 
 ### Example 4: Multiple Skills
+
 ```bash
 $ agentskills validate ./skills
 
@@ -306,6 +320,7 @@ Validated 3 skills: 2 valid, 1 invalid
 ```
 
 ### Example 5: Strict Mode
+
 ```bash
 $ agentskills validate ./skills/warning-skill --strict
 

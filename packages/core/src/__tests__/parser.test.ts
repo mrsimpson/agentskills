@@ -12,12 +12,12 @@ type MetadataRecord = Record<string, any>;
 
 /**
  * Comprehensive test suite for SkillParser component
- * 
+ *
  * Following TDD approach from agentic-knowledge:
  * - Minimal mocking (use real file system with temp directories)
  * - Test-driven interface design
  * - Clear test structure with arrange-act-assert
- * 
+ *
  * Coverage:
  * 1. Valid skill parsing (basic, full, Claude Code extensions)
  * 2. Invalid/malformed skills (missing frontmatter, invalid YAML, missing fields)
@@ -48,7 +48,7 @@ describe("SkillParser", () => {
         );
         expect(result.skill.body).toContain("# Test Skill");
         expect(result.skill.body).toContain("Use this skill to test");
-        
+
         // Optional fields should be undefined
         expect(result.skill.metadata.license).toBeUndefined();
         expect(result.skill.metadata.compatibility).toBeUndefined();
@@ -83,14 +83,19 @@ describe("SkillParser", () => {
         expect(metadata.allowedTools).toEqual([
           "bash",
           "read_file",
-          "write_file",
+          "write_file"
         ]);
 
         // Metadata object
         expect(metadata.metadata).toBeDefined();
-        expect((metadata.metadata as MetadataRecord)?.author).toBe("Test Author");
+        expect((metadata.metadata as MetadataRecord)?.author).toBe(
+          "Test Author"
+        );
         expect((metadata.metadata as MetadataRecord)?.version).toBe("1.0.0");
-        expect((metadata.metadata as MetadataRecord)?.tags).toEqual(["testing", "example"]);
+        expect((metadata.metadata as MetadataRecord)?.tags).toEqual([
+          "testing",
+          "example"
+        ]);
 
         // Body content
         expect(body).toContain("# Full Feature Skill");
@@ -146,15 +151,20 @@ describe("SkillParser", () => {
         const { metadata } = result.skill;
 
         expect(metadata.metadata).toBeDefined();
-        expect((metadata.metadata as MetadataRecord)?.level1?.level2?.level3?.deeply).toBe("nested");
-        expect((metadata.metadata as MetadataRecord)?.level1?.level2?.level3?.values).toEqual([
-          "item1",
-          "item2",
-        ]);
+        expect(
+          (metadata.metadata as MetadataRecord)?.level1?.level2?.level3?.deeply
+        ).toBe("nested");
+        expect(
+          (metadata.metadata as MetadataRecord)?.level1?.level2?.level3?.values
+        ).toEqual(["item1", "item2"]);
         expect((metadata.metadata as MetadataRecord)?.array).toHaveLength(2);
-        expect((metadata.metadata as MetadataRecord)?.mixed?.string).toBe("value");
+        expect((metadata.metadata as MetadataRecord)?.mixed?.string).toBe(
+          "value"
+        );
         expect((metadata.metadata as MetadataRecord)?.mixed?.number).toBe(42);
-        expect((metadata.metadata as MetadataRecord)?.mixed?.boolean).toBe(true);
+        expect((metadata.metadata as MetadataRecord)?.mixed?.boolean).toBe(
+          true
+        );
         expect((metadata.metadata as MetadataRecord)?.mixed?.null).toBeNull();
       }
     });
@@ -178,9 +188,15 @@ describe("SkillParser", () => {
         expect(metadata.description).toContain('quotes "nested"');
         expect(metadata.description).toContain("symbols <>&");
 
-        expect((metadata.metadata as MetadataRecord)?.unicode).toContain("日本語");
-        expect((metadata.metadata as MetadataRecord)?.symbols).toContain("!@#$%^&*()");
-        expect((metadata.metadata as MetadataRecord)?.quotes).toContain("single and \"double\"");
+        expect((metadata.metadata as MetadataRecord)?.unicode).toContain(
+          "日本語"
+        );
+        expect((metadata.metadata as MetadataRecord)?.symbols).toContain(
+          "!@#$%^&*()"
+        );
+        expect((metadata.metadata as MetadataRecord)?.quotes).toContain(
+          'single and "double"'
+        );
 
         expect(body).toContain("你好世界 🌍");
         expect(body).toContain("<script>");
@@ -451,11 +467,15 @@ Testing parseSkill function with real file.
     it("should handle invalid UTF-8 encoding gracefully", async () => {
       // Arrange
       const invalidUtf8Path = join(tempDir, "invalid-utf8.md");
-      
+
       // Write invalid UTF-8 bytes
       const buffer = Buffer.from([
-        0xff, 0xfe, // Invalid UTF-8 sequence
-        0x2d, 0x2d, 0x2d, 0x0a, // ---\n
+        0xff,
+        0xfe, // Invalid UTF-8 sequence
+        0x2d,
+        0x2d,
+        0x2d,
+        0x0a // ---\n
       ]);
       await fs.writeFile(invalidUtf8Path, buffer);
 
@@ -610,7 +630,8 @@ With extra spacing.
 
     it("should handle CRLF line endings", () => {
       // Arrange
-      const content = "---\r\nname: crlf-test\r\ndescription: Testing CRLF line endings\r\n---\r\n\r\n# Content\r\n";
+      const content =
+        "---\r\nname: crlf-test\r\ndescription: Testing CRLF line endings\r\n---\r\n\r\n# Content\r\n";
 
       // Act
       const result = parseSkillContent(content);
@@ -624,7 +645,8 @@ With extra spacing.
 
     it("should handle mixed line endings", () => {
       // Arrange
-      const content = "---\r\nname: mixed-test\ndescription: Testing mixed line endings\r\n---\n\n# Content\r\n";
+      const content =
+        "---\r\nname: mixed-test\ndescription: Testing mixed line endings\r\n---\n\n# Content\r\n";
 
       // Act
       const result = parseSkillContent(content);
@@ -721,9 +743,15 @@ metadata:
       // Assert
       expect(result.success).toBe(true);
       if (result.success) {
-        expect((result.skill.metadata.metadata as MetadataRecord)?.version).toBe(1.0);
-        expect((result.skill.metadata.metadata as MetadataRecord)?.count).toBe(42);
-        expect((result.skill.metadata.metadata as MetadataRecord)?.rating).toBe(4.5);
+        expect(
+          (result.skill.metadata.metadata as MetadataRecord)?.version
+        ).toBe(1.0);
+        expect((result.skill.metadata.metadata as MetadataRecord)?.count).toBe(
+          42
+        );
+        expect((result.skill.metadata.metadata as MetadataRecord)?.rating).toBe(
+          4.5
+        );
       }
     });
 
@@ -750,8 +778,12 @@ metadata:
       if (result.success) {
         expect(result.skill.metadata.disableModelInvocation).toBe(true);
         expect(result.skill.metadata.userInvocable).toBe(false);
-        expect((result.skill.metadata.metadata as MetadataRecord)?.enabled).toBe(true);
-        expect((result.skill.metadata.metadata as MetadataRecord)?.disabled).toBe(false);
+        expect(
+          (result.skill.metadata.metadata as MetadataRecord)?.enabled
+        ).toBe(true);
+        expect(
+          (result.skill.metadata.metadata as MetadataRecord)?.disabled
+        ).toBe(false);
       }
     });
   });

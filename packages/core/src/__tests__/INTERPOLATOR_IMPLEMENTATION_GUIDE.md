@@ -1,14 +1,17 @@
 # StringInterpolator Implementation Guide
 
 ## Overview
+
 This guide provides implementation hints and considerations for making all 60 tests pass.
 
 ## Implementation Strategy
 
 ### Phase 1: Regex Pattern Design
+
 The key to successful implementation is applying replacements in the correct order to avoid conflicts.
 
 **Recommended Order:**
+
 1. Escape sequences (`$$` → `$`) - Handle first to avoid interfering with other patterns
 2. `${CLAUDE_SESSION_ID}` - Handle before other `$` patterns
 3. `$ARGUMENTS[N]` - Handle before `$N` to avoid partial matching issues
@@ -47,6 +50,7 @@ const argumentsPattern = /\$ARGUMENTS/g;
 ### Phase 3: Boundary Detection Considerations
 
 **Critical: Avoiding Conflicts**
+
 - `$ARGUMENTS[10]` should NOT match `$ARGUMENTS` first and leave `[10]`
 - `$10` should NOT match as `$1` leaving `0`
 - `MY$ARGUMENTS` should NOT match (requires word boundary before)
@@ -54,6 +58,7 @@ const argumentsPattern = /\$ARGUMENTS/g;
 
 **Solution Approach:**
 Either:
+
 1. Apply replacements in specific order (recommended)
 2. Use negative lookbehind/lookahead for boundaries
 3. Use word boundary anchors `\b` where appropriate
@@ -75,10 +80,7 @@ export class StringInterpolator {
     result = result.replace(/\$\$/g, ESCAPED_PLACEHOLDER);
 
     // Step 2: Replace ${CLAUDE_SESSION_ID}
-    result = result.replace(
-      /\$\{CLAUDE_SESSION_ID\}/g,
-      sessionId || ""
-    );
+    result = result.replace(/\$\{CLAUDE_SESSION_ID\}/g, sessionId || "");
 
     // Step 3: Replace $ARGUMENTS[N]
     result = result.replace(/\$ARGUMENTS\[(\d+)\]/g, (match, index) => {
@@ -158,7 +160,9 @@ npm test -- interpolator.test.ts
 ## Common Pitfalls
 
 ### Pitfall 1: Replacement Order
+
 ❌ **Wrong**: Replace `$ARGUMENTS` before `$ARGUMENTS[N]`
+
 ```typescript
 // This breaks: "$ARGUMENTS[0]" becomes "arg1 arg2[0]"
 ```
@@ -166,7 +170,9 @@ npm test -- interpolator.test.ts
 ✅ **Right**: Replace `$ARGUMENTS[N]` before `$ARGUMENTS`
 
 ### Pitfall 2: Greedy Matching
+
 ❌ **Wrong**: `$1` regex matches the "1" in "$10"
+
 ```typescript
 // "$10" incorrectly becomes "arg[1]0" instead of "arg[10]"
 ```
@@ -174,7 +180,9 @@ npm test -- interpolator.test.ts
 ✅ **Right**: Match complete digit sequences with `\d+`
 
 ### Pitfall 3: Missing Boundary Detection
+
 ❌ **Wrong**: `$ARGUMENTS` matches in `MY$ARGUMENTS`
+
 ```typescript
 // "MY$ARGUMENTS" incorrectly becomes "MYarg1 arg2"
 ```
@@ -182,7 +190,9 @@ npm test -- interpolator.test.ts
 ✅ **Right**: Add word boundary checks or negative lookaround
 
 ### Pitfall 4: Escaped Dollars
+
 ❌ **Wrong**: Handle escaping last or not at all
+
 ```typescript
 // "$$0" with ["test"] becomes "$test" instead of "$0"
 ```
@@ -201,6 +211,7 @@ For the performance tests to pass efficiently:
 ## Debugging Tips
 
 ### Use Console Logging
+
 ```typescript
 console.log("Before:", content);
 console.log("After escaping:", result);
@@ -209,6 +220,7 @@ console.log("After session:", result);
 ```
 
 ### Test Individual Patterns
+
 ```typescript
 const testPattern = /\$ARGUMENTS\[(\d+)\]/g;
 const matches = [...content.matchAll(testPattern)];
@@ -216,6 +228,7 @@ console.log("Matches:", matches);
 ```
 
 ### Verify Boundary Cases
+
 ```typescript
 const testCases = [
   "$$100",
@@ -226,7 +239,7 @@ const testCases = [
   "$10"
 ];
 
-testCases.forEach(tc => {
+testCases.forEach((tc) => {
   console.log(`"${tc}" ->`, interpolate(tc, ["a", "b"]));
 });
 ```
@@ -250,7 +263,9 @@ testCases.forEach(tc => {
 ## Reference
 
 See test file for complete expected behaviors:
+
 - `packages/core/src/__tests__/interpolator.test.ts`
 
 See test summary for detailed breakdown:
+
 - `packages/core/src/__tests__/INTERPOLATOR_TEST_SUMMARY.md`
