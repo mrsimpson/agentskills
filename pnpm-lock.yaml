@@ -14,7 +14,7 @@ importers:
       '@codemcp/agentskills-core':
         specifier: workspace:*
         version: link:packages/core
-      '@codemcp/agentskills-mcp-server':
+      '@codemcp/agentskills-mcp':
         specifier: workspace:*
         version: link:packages/mcp-server
     devDependencies:

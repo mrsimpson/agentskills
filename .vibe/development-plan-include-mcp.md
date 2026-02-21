@@ -976,7 +976,7 @@ The `SkillMetadata` interface currently supports:
 Based on research and examples:
 
 - MCP servers are typically identified by simple kebab-case names (e.g., `agentskills`, `filesystem`, `postgres`)
-- NPM package names often use scoped format: `@scope/package-name` (e.g., `@codemcp/agentskills-mcp-server`)
+- NPM package names often use scoped format: `@scope/package-name` (e.g., `@codemcp/agentskills-mcp`)
 - In Claude Desktop config, servers are referenced by simple identifiers in the `mcpServers` object
 - Common MCP server examples: `filesystem`, `postgres`, `github`, `slack`, `google-drive`
 

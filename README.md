@@ -267,7 +267,7 @@ This is a monorepo containing three packages:
 
 - **[@codemcp/agentskills-core](./packages/core)** - Core parsing, validation, and installation logic
 - **[@codemcp/agentskills-cli](./packages/cli)** - Command-line interface for skill management
-- **[@codemcp/agentskills-mcp-server](./packages/mcp-server)** - MCP protocol server implementation
+- **[@codemcp/agentskills-mcp](./packages/mcp-server)** - MCP protocol server implementation
 
 ## Development
 
