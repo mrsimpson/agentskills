@@ -69,14 +69,14 @@ vi.mock("ora", () => ({
 }));
 
 describe("Install Command - --with-mcp Flag", () => {
-  let mockConfigManager: any;  
-  let mockInstaller: any;  
-  let mockMCPConfigManager: any;  
-  let mockMCPDependencyChecker: any;  
-  let mockInquirer: any;  
+  let mockConfigManager: any;
+  let mockInstaller: any;
+  let mockMCPConfigManager: any;
+  let mockMCPDependencyChecker: any;
+  let mockInquirer: any;
   let consoleLogSpy: ReturnType<typeof vi.spyOn>;
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
-  let processExitSpy: any;  
+  let processExitSpy: any;
 
   beforeEach(async () => {
     // Setup mocks
@@ -114,7 +114,6 @@ describe("Install Command - --with-mcp Flag", () => {
 
     // Default substituteParameters to pass-through
     vi.mocked(substituteParameters).mockImplementation(
-       
       (template: any, params: any) => {
         if (typeof template === "string") {
           let result = template;
@@ -137,6 +136,25 @@ describe("Install Command - --with-mcp Flag", () => {
               : item
           );
         }
+        if (typeof template === "object" && template !== null) {
+          const result: Record<string, unknown> = {};
+          for (const [key, value] of Object.entries(template)) {
+            // Recursively substitute parameters in object values
+            if (typeof value === "string") {
+              let substituted = value;
+              for (const [paramKey, paramValue] of Object.entries(params)) {
+                substituted = substituted.replace(
+                  new RegExp(`{{${paramKey}}}`, "g"),
+                  String(paramValue)
+                );
+              }
+              result[key] = substituted;
+            } else {
+              result[key] = value;
+            }
+          }
+          return result;
+        }
         return template;
       }
     );
@@ -146,7 +164,7 @@ describe("Install Command - --with-mcp Flag", () => {
     consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     processExitSpy = vi
       .spyOn(process, "exit")
-       
+
       .mockImplementation((() => {}) as any);
 
     // Default mock implementations
@@ -1073,6 +1091,7 @@ describe("Install Command - --with-mcp Flag", () => {
 
       // Verify addServer was called with substituted config
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
+        "claude-desktop",
         "filesystem",
         expect.objectContaining({
           command: "npx",
@@ -1169,6 +1188,7 @@ describe("Install Command - --with-mcp Flag", () => {
 
       // Verify addServer was called with env vars
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
+        "claude-desktop",
         "github",
         expect.objectContaining({
           command: "npx",
@@ -1414,6 +1434,7 @@ describe("Install Command - --with-mcp Flag", () => {
       expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledTimes(1);
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
+        "claude-desktop",
         "github",
         expect.any(Object)
       );
@@ -1553,14 +1574,17 @@ describe("Install Command - --with-mcp Flag", () => {
       expect(mockInquirer.prompt).toHaveBeenCalledTimes(3);
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledTimes(3);
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
+        "claude-desktop",
         "filesystem",
         expect.any(Object)
       );
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
+        "claude-desktop",
         "github",
         expect.any(Object)
       );
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
+        "claude-desktop",
         "slack",
         expect.any(Object)
       );
@@ -2455,6 +2479,7 @@ describe("Install Command - --with-mcp Flag", () => {
       expect(mockInquirer.prompt).toHaveBeenCalledTimes(1);
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledTimes(1);
       expect(mockMCPConfigManager.addServer).toHaveBeenCalledWith(
+        "claude-desktop",
         "filesystem",
         expect.any(Object)
       );
