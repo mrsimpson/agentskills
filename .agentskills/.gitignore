@@ -1,0 +1,2 @@
+# Ignore installed skills - they should be installed via package.json
+skills/
