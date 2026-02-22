@@ -55,7 +55,14 @@ pnpm add -g @codemcp/agentskills
 
 ### 2. Configure Skills
 
-Add skills to your project's `package.json`:
+Add skills using the CLI (validates the skill before adding it to `package.json`):
+
+```bash
+agentskills add git-workflow github:anthropics/agent-skills/skills/git-workflow
+agentskills add local-skill file:./my-skills/custom-skill
+```
+
+Or edit `package.json` directly:
 
 ```json
 {
@@ -73,7 +80,7 @@ Add skills to your project's `package.json`:
 agentskills install
 ```
 
-This downloads skills to `.agentskills/skills/` directory.
+This downloads all configured skills to `.agentskills/skills/`.
 
 ## MCP Server Dependencies
 
@@ -221,6 +228,11 @@ Options:
 ```bash
 agentskills add my-skill github:user/repo/path/to/skill
 ```
+
+The `add` command validates the skill configuration (spec format, presence of `SKILL.md`,
+and skill metadata) before writing anything. The skill is added to `package.json` only if
+validation succeeds. Run `agentskills install` afterwards to download and install all
+configured skills.
 
 ### List configured skills
 
