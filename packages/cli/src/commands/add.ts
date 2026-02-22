@@ -1,18 +1,20 @@
 /**
- * Add command - Add a skill to package.json and install it
+ * Add command - Validate a skill and add it to package.json
  *
  * This command:
- * 1. Reads package.json using PackageConfigManager
- * 2. Adds the skill to the agentskills field using configManager.addSkill()
- * 3. Installs the skill using SkillInstaller
- * 4. Displays success message
+ * 1. Validates inputs (name, spec)
+ * 2. Performs a dry-run validation of the skill (download to temp dir, verify SKILL.md, parse)
+ * 3. Adds the skill to package.json only if validation succeeds
+ * 4. Prints info that the skill was added and can be installed via the install command
  *
  * Usage:
  *   agentskills add api-integration github:anthropic/api-integration#v1.0.0
  *   agentskills add local-skill file:./skills/my-skill
- *   agentskills add --skip-install my-skill git+https://...
  */
 
+import { tmpdir } from "os";
+import { join } from "path";
+import { promises as fs } from "fs";
 import {
   PackageConfigManager,
   SkillInstaller
@@ -21,20 +23,23 @@ import ora from "ora";
 import chalk from "chalk";
 
 /**
- * Add a skill to package.json and install it
+ * Validate a skill and add it to package.json
+ *
+ * Performs a dry-run validation (download to temp dir, verify SKILL.md, parse metadata)
+ * before writing anything to package.json. If validation fails the package.json is
+ * left untouched. On success the skill is added to package.json and the user is
+ * instructed to run `agentskills install` to actually install it.
  *
  * @param name - Name of the skill
  * @param spec - Spec/source of the skill (e.g., github:user/repo#v1.0.0)
  * @param options - Options for the add command
  * @param options.cwd - Working directory (default: process.cwd())
- * @param options.skipInstall - Skip installation, only update package.json
  */
 export async function addCommand(
   name: string,
   spec: string,
   options?: {
     cwd?: string;
-    skipInstall?: boolean;
   }
 ): Promise<void> {
   const cwd = options?.cwd ?? process.cwd();
@@ -47,38 +52,44 @@ export async function addCommand(
     throw new Error("Skill spec cannot be empty");
   }
 
-  // 2. Add to package.json
-  const configManager = new PackageConfigManager(cwd);
-  await configManager.addSkill(name, spec);
-  console.log(chalk.green(`✓ Added ${name} to package.json`));
+  // 2. Validate the skill via a dry-run (download to temp dir, verify SKILL.md, parse)
+  const tempDir = join(
+    tmpdir(),
+    `agentskills-validate-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  );
 
-  // 3. Install if not skipped
-  if (!options?.skipInstall) {
-    const spinner = ora(`Installing ${name}...`).start();
+  const spinner = ora(`Validating ${name}...`).start();
 
+  let validationResult;
+  try {
+    const tempInstaller = new SkillInstaller(tempDir);
+    validationResult = await tempInstaller.install(name, spec);
+  } finally {
+    // Always clean up the temp dir, whether validation passed or failed
     try {
-      const config = await configManager.loadConfig();
-      const installer = new SkillInstaller(config.config.skillsDirectory);
-
-      const result = await installer.install(name, spec);
-      spinner.stop();
-
-      if (!result.success) {
-        // Handle both string error (from tests) and InstallError object
-        const errorMessage =
-          typeof result.error === "string"
-            ? result.error
-            : result.error?.message || "Installation failed";
-        throw new Error(errorMessage);
-      }
-
-      console.log(chalk.green(`✓ ${name} installed successfully`));
-    } catch (error) {
-      spinner.stop();
-      throw error;
+      await fs.rm(tempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
     }
+    spinner.stop();
   }
 
-  console.log(chalk.blue(`\n✅ Successfully added ${name}`));
+  if (!validationResult.success) {
+    const errorMessage =
+      typeof validationResult.error === "string"
+        ? validationResult.error
+        : validationResult.error?.message || "Validation failed";
+    throw new Error(errorMessage);
+  }
+
+  // 3. Add to package.json only after successful validation
+  const configManager = new PackageConfigManager(cwd);
+  await configManager.addSkill(name, spec);
+
+  // 4. Inform the user
+  console.log(chalk.green(`✓ Added ${name} to package.json`));
   console.log(chalk.gray(`   Spec: ${spec}`));
+  console.log(
+    chalk.blue(`\nRun 'agentskills install' to install all configured skills.`)
+  );
 }

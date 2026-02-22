@@ -59,18 +59,19 @@ export function createCLI(): Command {
 
   // Create "add" command
   const addCommandDef = new Command("add")
-    .description("Add a skill to package.json and install it")
+    .description(
+      "Validate a skill and add it to package.json (run 'install' to install)"
+    )
     .argument("<name>", "Skill name (used as the install directory)")
     .argument("<spec>", "Skill source specifier (see supported formats below)")
     .showHelpAfterError("(add --help for additional information)")
-    .option(
-      "--skip-install",
-      "Only update package.json without installing",
-      false
-    )
     .addHelpText(
       "after",
       `
+Validates the skill configuration (spec format, SKILL.md presence, metadata) and
+adds it to package.json only if validation succeeds. Run 'agentskills install'
+afterwards to download and install all configured skills.
+
 Supported spec formats:
 
   GitHub shorthand (subdirectory):
@@ -107,11 +108,10 @@ Examples:
   $ agentskills add my-skill git+https://github.com/org/repo.git#v2.0.0::path:skills/my-skill
   $ agentskills add local file:./team-skills/custom`
     )
-    .action(async (name, spec, options) => {
+    .action(async (name, spec) => {
       try {
         await addCommand(name, spec, {
-          cwd: process.cwd(),
-          skipInstall: options.skipInstall
+          cwd: process.cwd()
         });
       } catch (error) {
         console.error(error instanceof Error ? error.message : String(error));

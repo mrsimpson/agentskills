@@ -7,21 +7,20 @@ import { SkillInstaller } from "@codemcp/agentskills-core";
 import type { InstallResult } from "@codemcp/agentskills-core";
 
 /**
- * Comprehensive test suite for add command
+ * Test suite for the add command
  *
- * Following TDD RED phase:
- * - Write tests first to define the command interface and behavior
- * - Tests define expected user experience before implementation
- * - Clear test structure with arrange-act-assert
- * - Mock SkillInstaller to avoid real downloads
- * - Use real file system with temp directories
+ * New semantics (post-refactor):
+ * - Validates the skill via a dry-run (download to temp dir) BEFORE touching package.json
+ * - Adds skill to package.json only if validation succeeds
+ * - Does NOT install the skill - prints a hint to run `agentskills install`
+ * - No --skip-install option
  *
- * Coverage (~14 tests):
- * 1. Basic Operation (4 tests): add & install, create field, create package.json, success message
- * 2. Error Handling (4 tests): empty name, empty spec, invalid spec, installation fails
- * 3. Options (2 tests): skip-install flag, custom cwd
+ * Coverage:
+ * 1. Basic Operation (4 tests): validate + add, create field, create package.json, success message
+ * 2. Error Handling (3 tests): empty name, empty spec, validation failure leaves package.json untouched
+ * 3. Options (1 test): custom cwd
  * 4. Update Existing (2 tests): replace spec, preserve other skills
- * 5. Output (2 tests): spinner during install, success checkmark
+ * 5. Output (2 tests): spinner during validation, install hint shown
  */
 
 describe("add command", () => {
@@ -43,7 +42,7 @@ describe("add command", () => {
       .spyOn(process, "exit")
       .mockImplementation((() => {}) as any);
 
-    // Mock SkillInstaller.install method
+    // Mock SkillInstaller.install - used for dry-run validation
     skillInstallerInstallSpy = vi.spyOn(SkillInstaller.prototype, "install");
   });
 
@@ -51,7 +50,7 @@ describe("add command", () => {
     // Clean up temp directory
     try {
       await fs.rm(testDir, { recursive: true, force: true });
-    } catch (error) {
+    } catch {
       // Ignore cleanup errors
     }
 
@@ -77,7 +76,7 @@ describe("add command", () => {
     return JSON.parse(content);
   }
 
-  // Helper function to create successful install result
+  // Helper function to create a successful validation result
   function createSuccessResult(name: string, spec: string): InstallResult {
     return {
       success: true,
@@ -94,7 +93,7 @@ describe("add command", () => {
   }
 
   describe("Basic Operation", () => {
-    it("should add skill to package.json and install it", async () => {
+    it("should validate skill then add it to package.json", async () => {
       // Arrange
       await createPackageJson({
         name: "test-project",
@@ -113,23 +112,21 @@ describe("add command", () => {
       await addCommand(
         "api-integration",
         "github:anthropic/api-integration#v1.0.0",
-        {
-          cwd: testDir
-        }
+        { cwd: testDir }
       );
+
+      // Assert - validation (dry-run install) was called
+      expect(skillInstallerInstallSpy).toHaveBeenCalledWith(
+        "api-integration",
+        "github:anthropic/api-integration#v1.0.0"
+      );
+      expect(skillInstallerInstallSpy).toHaveBeenCalledTimes(1);
 
       // Assert - package.json updated
       const packageJson = await readPackageJson();
       expect(packageJson.agentskills).toEqual({
         "api-integration": "github:anthropic/api-integration#v1.0.0"
       });
-
-      // Assert - installer called
-      expect(skillInstallerInstallSpy).toHaveBeenCalledWith(
-        "api-integration",
-        "github:anthropic/api-integration#v1.0.0"
-      );
-      expect(skillInstallerInstallSpy).toHaveBeenCalledTimes(1);
     });
 
     it("should create agentskills field if it does not exist", async () => {
@@ -156,8 +153,7 @@ describe("add command", () => {
     });
 
     it("should create package.json if it does not exist", async () => {
-      // Arrange
-      // No package.json exists
+      // Arrange - no package.json
 
       skillInstallerInstallSpy.mockResolvedValue(
         createSuccessResult("new-skill", "git+https://example.com/skill.git")
@@ -207,40 +203,35 @@ describe("add command", () => {
 
   describe("Error Handling", () => {
     it("should throw error when skill name is empty", async () => {
-      // Arrange
       await createPackageJson({
         name: "test-project",
         version: "1.0.0",
         agentskills: {}
       });
 
-      // Act & Assert
       await expect(
         addCommand("", "github:user/skill#v1.0.0", { cwd: testDir })
       ).rejects.toThrow("Skill name cannot be empty");
 
-      // Verify installer was not called
+      // Validator and package.json must not be touched
       expect(skillInstallerInstallSpy).not.toHaveBeenCalled();
     });
 
     it("should throw error when spec is empty", async () => {
-      // Arrange
       await createPackageJson({
         name: "test-project",
         version: "1.0.0",
         agentskills: {}
       });
 
-      // Act & Assert
       await expect(
         addCommand("test-skill", "", { cwd: testDir })
       ).rejects.toThrow("Skill spec cannot be empty");
 
-      // Verify installer was not called
       expect(skillInstallerInstallSpy).not.toHaveBeenCalled();
     });
 
-    it("should handle invalid spec format during installation", async () => {
+    it("should NOT update package.json when validation fails", async () => {
       // Arrange
       await createPackageJson({
         name: "test-project",
@@ -250,97 +241,37 @@ describe("add command", () => {
 
       skillInstallerInstallSpy.mockResolvedValue({
         success: false,
-        name: "invalid-skill",
-        spec: "invalid:::spec",
-        error: "Invalid spec format"
-      });
-
-      // Act & Assert
-      await expect(
-        addCommand("invalid-skill", "invalid:::spec", { cwd: testDir })
-      ).rejects.toThrow("Invalid spec format");
-
-      // Verify package.json was updated despite failure
-      const packageJson = await readPackageJson();
-      expect(packageJson.agentskills).toEqual({
-        "invalid-skill": "invalid:::spec"
-      });
-    });
-
-    it("should throw error when installation fails but update package.json", async () => {
-      // Arrange
-      await createPackageJson({
-        name: "test-project",
-        version: "1.0.0",
-        agentskills: {}
-      });
-
-      skillInstallerInstallSpy.mockResolvedValue({
-        success: false,
-        name: "fail-skill",
+        name: "bad-skill",
         spec: "github:user/nonexistent#v1.0.0",
-        error: "Repository not found"
+        error: { message: "Repository not found" }
       });
 
       // Act & Assert
       await expect(
-        addCommand("fail-skill", "github:user/nonexistent#v1.0.0", {
+        addCommand("bad-skill", "github:user/nonexistent#v1.0.0", {
           cwd: testDir
         })
       ).rejects.toThrow("Repository not found");
 
-      // Verify package.json was still updated
+      // package.json must NOT have been updated
       const packageJson = await readPackageJson();
-      expect(packageJson.agentskills).toEqual({
-        "fail-skill": "github:user/nonexistent#v1.0.0"
-      });
+      expect(packageJson.agentskills).toEqual({});
     });
   });
 
   describe("Options", () => {
-    it("should skip installation when skipInstall flag is true", async () => {
-      // Arrange
-      await createPackageJson({
-        name: "test-project",
-        version: "1.0.0",
-        agentskills: {}
-      });
-
-      // Act
-      await addCommand("skip-skill", "github:user/skill#v1.0.0", {
-        cwd: testDir,
-        skipInstall: true
-      });
-
-      // Assert - package.json updated
-      const packageJson = await readPackageJson();
-      expect(packageJson.agentskills).toEqual({
-        "skip-skill": "github:user/skill#v1.0.0"
-      });
-
-      // Assert - installer NOT called
-      expect(skillInstallerInstallSpy).not.toHaveBeenCalled();
-
-      // Assert - success message shown
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringMatching(/✓.*skip-skill/)
-      );
-    });
-
     it("should use custom cwd option", async () => {
       // Arrange
       const customDir = join(testDir, "custom");
       await fs.mkdir(customDir, { recursive: true });
-      await createPackageJson({
-        name: "custom-project",
-        version: "1.0.0",
-        agentskills: {}
-      });
-
-      // Move package.json to custom directory
-      await fs.rename(
-        join(testDir, "package.json"),
-        join(customDir, "package.json")
+      await fs.writeFile(
+        join(customDir, "package.json"),
+        JSON.stringify(
+          { name: "custom-project", version: "1.0.0", agentskills: {} },
+          null,
+          2
+        ),
+        "utf-8"
       );
 
       skillInstallerInstallSpy.mockResolvedValue(
@@ -348,9 +279,7 @@ describe("add command", () => {
       );
 
       // Act
-      await addCommand("custom-skill", "file:./skill", {
-        cwd: customDir
-      });
+      await addCommand("custom-skill", "file:./skill", { cwd: customDir });
 
       // Assert
       const packageJson = JSON.parse(
@@ -420,40 +349,7 @@ describe("add command", () => {
   });
 
   describe("Output", () => {
-    it("should show spinner during installation", async () => {
-      // Arrange
-      await createPackageJson({
-        name: "test-project",
-        version: "1.0.0",
-        agentskills: {}
-      });
-
-      let spinnerStarted = false;
-      skillInstallerInstallSpy.mockImplementation(async () => {
-        // Check that spinner message was shown before install completes
-        const calls = consoleLogSpy.mock.calls.flat().join(" ");
-        if (
-          calls.includes("Installing") ||
-          calls.includes("⠋") ||
-          calls.includes("⠙")
-        ) {
-          spinnerStarted = true;
-        }
-        return createSuccessResult("spinner-skill", "github:user/skill#v1.0.0");
-      });
-
-      // Act
-      await addCommand("spinner-skill", "github:user/skill#v1.0.0", {
-        cwd: testDir
-      });
-
-      // Assert - check that spinner-related output was shown
-      // Note: ora spinner output may not show in tests, but we can verify the pattern
-      const allOutput = consoleLogSpy.mock.calls.flat().join(" ");
-      expect(allOutput.includes("spinner-skill") || spinnerStarted).toBe(true);
-    });
-
-    it("should show success checkmark and summary after installation", async () => {
+    it("should show spinner during validation", async () => {
       // Arrange
       await createPackageJson({
         name: "test-project",
@@ -462,19 +358,39 @@ describe("add command", () => {
       });
 
       skillInstallerInstallSpy.mockResolvedValue(
-        createSuccessResult("summary-skill", "github:user/skill#v1.0.0")
+        createSuccessResult("spinner-skill", "github:user/skill#v1.0.0")
       );
 
       // Act
-      await addCommand("summary-skill", "github:user/skill#v1.0.0", {
+      await addCommand("spinner-skill", "github:user/skill#v1.0.0", {
         cwd: testDir
       });
 
-      // Assert - checkmark and skill info shown
+      // Assert - spinner output or skill name in output after completion
+      const allOutput = consoleLogSpy.mock.calls.flat().join(" ");
+      expect(allOutput).toContain("spinner-skill");
+    });
+
+    it("should show install hint after adding skill", async () => {
+      // Arrange
+      await createPackageJson({
+        name: "test-project",
+        version: "1.0.0",
+        agentskills: {}
+      });
+
+      skillInstallerInstallSpy.mockResolvedValue(
+        createSuccessResult("hint-skill", "github:user/skill#v1.0.0")
+      );
+
+      // Act
+      await addCommand("hint-skill", "github:user/skill#v1.0.0", {
+        cwd: testDir
+      });
+
+      // Assert - hint about install command shown
       const allOutput = consoleLogSpy.mock.calls.flat().join("\n");
-      expect(allOutput).toMatch(/✓/);
-      expect(allOutput).toMatch(/summary-skill/);
-      expect(allOutput).toMatch(/github:user\/skill#v1\.0\.0/);
+      expect(allOutput).toMatch(/agentskills install/);
     });
   });
 });
