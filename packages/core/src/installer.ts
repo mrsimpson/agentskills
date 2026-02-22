@@ -453,7 +453,33 @@ export class SkillInstaller {
 
     try {
       await fs.mkdir(tempRepo, { recursive: true });
-      await pacote.extract(baseSpec, tempRepo, opts);
+
+      // Try pacote.extract first, fall back to git clone if package.json is missing
+      try {
+        await pacote.extract(baseSpec, tempRepo, opts);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+
+        // If pacote fails because of missing package.json, try git clone for git repos
+        if (errorMessage.includes("Could not read package.json")) {
+          const isGitRepo =
+            baseSpec.startsWith("github:") ||
+            baseSpec.startsWith("git+") ||
+            baseSpec.includes("github.com") ||
+            baseSpec.includes("gitlab.com") ||
+            baseSpec.includes("bitbucket.org");
+
+          if (isGitRepo) {
+            // Use git clone fallback - clone full repo to temp directory
+            await this.gitCloneFallback(baseSpec, tempRepo);
+          } else {
+            throw error;
+          }
+        } else {
+          throw error;
+        }
+      }
 
       const subdirPath = join(tempRepo, subdir);
 
