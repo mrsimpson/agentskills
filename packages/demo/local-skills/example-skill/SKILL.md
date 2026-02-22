@@ -2,18 +2,6 @@
 name: example-skill
 description: A local example skill for demonstration purposes
 license: MIT
-requires-mcp-servers:
-  - name: filesystem
-    package: "@modelcontextprotocol/server-filesystem"
-    description: "Required for reading and writing files in the workspace"
-    command: npx
-    args:
-      ["-y", "@modelcontextprotocol/server-filesystem", "{{WORKSPACE_PATH}}"]
-    parameters:
-      WORKSPACE_PATH:
-        description: "Root directory for file access"
-        required: true
-        default: "."
 ---
 
 # Example Skill
