@@ -207,13 +207,19 @@ skills/
       }
 
       // 10. MCP Dependency handling
+      // Only process skills that are currently configured in package.json.
+      // Skills left on disk from previous installations must not influence
+      // the MCP configuration of the current project.
+      const configuredSkillNames = Object.keys(config.skills);
+
       if (withMcp) {
         // Auto-install MCP servers with parameter prompting
         const hasError = await installMCPServers(
           installer,
           clientType,
           mcpConfigManager,
-          cwd
+          cwd,
+          configuredSkillNames
         );
         if (hasError) {
           process.exit(1);
@@ -225,7 +231,8 @@ skills/
           installer,
           clientType,
           mcpConfigManager,
-          cwd
+          cwd,
+          configuredSkillNames
         );
         if (hasError) {
           process.exit(1);
@@ -284,17 +291,24 @@ skills/
  * @param clientType - The MCP client type (can be null if no agent specified)
  * @param mcpConfigManager - MCP config manager
  * @param projectRoot - Project root directory
+ * @param configuredSkillNames - Names of skills currently declared in package.json
  * @returns True if there are missing dependencies (error), false otherwise
  */
 async function validateMCPDependencies(
   installer: SkillInstaller,
   clientType: McpClientType | null,
   mcpConfigManager: MCPConfigManager,
-  projectRoot: string
+  projectRoot: string,
+  configuredSkillNames: string[]
 ): Promise<boolean> {
   try {
-    // 1. Load installed skills
-    const installedSkills = await installer.loadInstalledSkills();
+    // 1. Load installed skills, restricted to those declared in package.json.
+    // Stale skills left on disk from previous installations are ignored so they
+    // cannot silently inject MCP server requirements into the current project.
+    const allInstalledSkills = await installer.loadInstalledSkills();
+    const installedSkills = allInstalledSkills.filter((skill) =>
+      configuredSkillNames.includes(skill.metadata.name)
+    );
 
     // 2. Collect MCP dependencies
     const mcpChecker = new MCPDependencyChecker();
@@ -373,13 +387,15 @@ async function validateMCPDependencies(
  * @param clientType - The MCP client type (already validated to not be null)
  * @param mcpConfigManager - MCP config manager
  * @param projectRoot - Project root directory
+ * @param configuredSkillNames - Names of skills currently declared in package.json
  * @returns True if there are errors, false otherwise
  */
 async function installMCPServers(
   installer: SkillInstaller,
   clientType: McpClientType | null,
   mcpConfigManager: MCPConfigManager,
-  projectRoot: string
+  projectRoot: string,
+  configuredSkillNames: string[]
 ): Promise<boolean> {
   try {
     // clientType should never be null here as we validate earlier
@@ -395,8 +411,13 @@ async function installMCPServers(
       return true;
     }
 
-    // 1. Load installed skills
-    const installedSkills = await installer.loadInstalledSkills();
+    // 1. Load installed skills, restricted to those declared in package.json.
+    // Stale skills left on disk from previous installations are ignored so they
+    // cannot silently inject MCP server requirements into the current project.
+    const allInstalledSkills = await installer.loadInstalledSkills();
+    const installedSkills = allInstalledSkills.filter((skill) =>
+      configuredSkillNames.includes(skill.metadata.name)
+    );
 
     // 2. Collect MCP dependencies
     const mcpChecker = new MCPDependencyChecker();
