@@ -40,7 +40,10 @@
     "format:all": "turbo run --parallel format:fix",
     "typecheck:all": "turbo run --parallel typecheck",
     "prepare": "husky",
-    "clean:build": "turbo run clean:build"
+    "clean:build": "turbo run clean:build",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "devDependencies": {
     "@braintree/sanitize-url": "7.1.1",
