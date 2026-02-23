@@ -14,10 +14,6 @@
  */
 
 import { parseSkill, validateSkill } from "@codemcp/agentskills-core";
-import type {
-  ValidationError,
-  ValidationWarning
-} from "@codemcp/agentskills-core";
 import { promises as fs } from "fs";
 import { join } from "path";
 import chalk from "chalk";
@@ -222,12 +218,8 @@ async function validateSingleSkill(
 
     // Validate the skill
     const validationResult = validateSkill(parseResult.skill);
-    const errors = validationResult.errors.map(
-      (e: ValidationError) => e.message
-    );
-    const warnings = validationResult.warnings.map(
-      (w: ValidationWarning) => w.message
-    );
+    const errors = validationResult.errors.map((e) => e.message);
+    const warnings = validationResult.warnings.map((w) => w.message);
 
     // In strict mode, warnings become errors
     if (options.strict && warnings.length > 0) {
