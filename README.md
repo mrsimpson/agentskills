@@ -43,14 +43,12 @@ This project provides:
 
 ### 1. Install
 
-```bash
-npm install -g @codemcp/agentskills
-```
+**Alternatively**
 
-Or with pnpm:
+If you prefer always typing npx over a global install (I do)
 
 ```bash
-pnpm add -g @codemcp/agentskills
+npx @codemcp/agentskills-cli
 ```
 
 ### 2. Configure Skills
