@@ -212,4 +212,13 @@ export class SkillRegistry {
       lastLoaded: this.lastLoaded
     };
   }
+
+  /**
+   * Get the skills directory (base path for resolving relative references)
+   *
+   * @returns Absolute path to the skills directory, or empty string if no skills loaded
+   */
+  getSkillsDirectory(): string {
+    return this.skillsDir;
+  }
 }

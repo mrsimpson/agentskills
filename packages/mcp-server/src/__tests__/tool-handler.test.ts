@@ -268,7 +268,7 @@ This is test skill 3 instructions.
   });
 
   describe("Tool Execution", () => {
-    it("should return only skill instructions", async () => {
+    it("should return skill instructions and base path", async () => {
       // Arrange
       const server = new MCPServer(registry);
 
@@ -291,10 +291,12 @@ This is test skill 3 instructions.
       expect(textContent).toBeDefined();
       expect(textContent.text).toBeDefined();
 
-      // Parse the response - should only have instructions field
+      // Parse the response - should have instructions and basePath fields
       const data = JSON.parse(textContent.text);
       expect(data).toHaveProperty("instructions");
       expect(data.instructions).toContain("This is test skill 1 instructions");
+      expect(data).toHaveProperty("basePath");
+      expect(data.basePath).toBe(join(skillsDir, "test-skill-1"));
 
       // Should NOT have metadata fields
       expect(data).not.toHaveProperty("name");
@@ -316,9 +318,11 @@ This is test skill 3 instructions.
       const textContent = content.find((c: any) => c.type === "text");
       const data = JSON.parse(textContent.text);
 
-      // Should ONLY have instructions field
+      // Should have instructions and basePath fields
       expect(data).toHaveProperty("instructions");
       expect(data.instructions).toContain("This is test skill 2 instructions");
+      expect(data).toHaveProperty("basePath");
+      expect(data.basePath).toBe(join(skillsDir, "test-skill-2"));
 
       // Should NOT have any metadata
       expect(data).not.toHaveProperty("name");

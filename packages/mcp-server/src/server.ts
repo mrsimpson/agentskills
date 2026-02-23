@@ -205,20 +205,18 @@ export class MCPServer {
     const skills = this.registry.getAllMetadata();
 
     if (skills.length === 0) {
-      return `No skills currently loaded.`;
+      return `No skills currently loaded – don't use this tool!`;
     }
 
-    const instruction = "You've got skills!";
+    const instruction =
+      "IMPORTANT: Use the following skills by calling the `use_skill` MCP tool! Even if you think you know how to do something, check if there's a skill for it.\n";
 
     const skillList = skills
       .map((skill) => `- ${skill.name}: ${skill.description}`)
       .join("\n");
 
     return `${instruction}
-
-They help you complete tasks in the following situations:
 ${skillList}
-IMPORTANT: Use them intensively! Call the use_skill MCP tool! Even if you think you know how to do something, check if there's a skill for it.
 `;
   }
 
@@ -226,10 +224,10 @@ IMPORTANT: Use them intensively! Call the use_skill MCP tool! Even if you think 
    * Handle use_skill tool execution
    *
    * Retrieves skill instructions for the requested skill.
-   * Returns only instructions - metadata is available via resources.
+   * Returns instructions and base path for resolving relative references.
    *
    * @param args - Tool arguments with skill_name and optional arguments
-   * @returns MCP tool result with skill instructions
+   * @returns MCP tool result with skill instructions and base path
    */
   private async handleUseSkillTool(
     args: Record<string, unknown>
@@ -243,13 +241,24 @@ IMPORTANT: Use them intensively! Call the use_skill MCP tool! Even if you think 
       throw new Error(`Skill not found: ${skillName}`);
     }
 
-    // Return ONLY instructions - simple and clean
-    // Metadata is available via resources for discovery
+    // Get the skills directory and construct full path to this skill
+    const skillsDir = this.registry.getSkillsDirectory();
+    const basePath = `${skillsDir}/${skillName}`;
+
+    // Return instructions with base path for resolving relative references
+    // Client can resolve references like: <basePath>/scripts/extract.py
     return {
       content: [
         {
           type: "text" as const,
-          text: JSON.stringify({ instructions: skill.body }, null, 2)
+          text: JSON.stringify(
+            {
+              instructions: skill.body,
+              basePath: basePath
+            },
+            null,
+            2
+          )
         }
       ]
     };

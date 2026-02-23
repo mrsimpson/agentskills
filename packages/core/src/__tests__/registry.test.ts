@@ -630,5 +630,36 @@ describe("SkillRegistry - Simplified Model", () => {
       expect(state.skillsDir).toBe(tempDir);
       expect(state.lastLoaded).toBeInstanceOf(Date);
     });
+
+    it("should expose skills directory via getSkillsDirectory()", async () => {
+      // Arrange
+      const registry = new SkillRegistry();
+      const tempDir = await createTempDir();
+      tempDirs.push(tempDir);
+
+      await createSkill(
+        tempDir,
+        "test-skill",
+        getBasicSkillContent("test-skill", "Test skill")
+      );
+
+      // Act
+      await registry.loadSkills(tempDir);
+      const skillsDir = registry.getSkillsDirectory();
+
+      // Assert
+      expect(skillsDir).toBe(tempDir);
+    });
+
+    it("should return empty string when no skills loaded", async () => {
+      // Arrange
+      const registry = new SkillRegistry();
+
+      // Act
+      const skillsDir = registry.getSkillsDirectory();
+
+      // Assert
+      expect(skillsDir).toBe("");
+    });
   });
 });
