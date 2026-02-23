@@ -1,6 +1,6 @@
 {
   "name": "@codemcp/agentskills-demo",
-  "version": "1.3.2",
+  "version": "1.4.1",
   "description": "Demo package showing agentskills CLI usage",
   "private": true,
   "type": "module"
