@@ -65,20 +65,19 @@ describe("validate command", () => {
     return skillPath;
   }
 
-  // Helper function to create a valid skill (with proper description length to avoid warnings)
   async function createValidSkill(
     dir: string,
     name: string = "test-skill"
   ): Promise<string> {
     const content = `---
 name: ${name}
-description: A comprehensive test skill for validation with sufficient description length to avoid warnings
+description: A comprehensive test skill for validation
 license: MIT
 ---
 
 # Test Skill
 
-This is a valid skill for testing with no validation warnings.
+This is a valid skill for testing.
 `;
     return createSkillFile(dir, content);
   }
@@ -105,20 +104,6 @@ description: This skill has actual validation errors - empty name field
 # Invalid Skill
 
 This skill has validation errors (empty name).
-`;
-    return createSkillFile(dir, content);
-  }
-
-  // Helper function to create skill with warnings
-  async function createWarningSkill(dir: string): Promise<string> {
-    const content = `---
-name: warning-skill
-description: Short
----
-
-# Warning Skill
-
-This skill has a very short description which should trigger a warning.
 `;
     return createSkillFile(dir, content);
   }
@@ -274,55 +259,6 @@ This skill has a very short description which should trigger a warning.
         expect(processExitSpy).toHaveBeenCalledWith(1);
       });
     });
-
-    describe("Skill with warnings (no --strict)", () => {
-      it("should display warning message", async () => {
-        // Arrange
-        const skillDir = join(testDir, "warning-skill");
-        await fs.mkdir(skillDir, { recursive: true });
-        await createWarningSkill(skillDir);
-
-        // Act
-        await validateCommand(skillDir, {});
-
-        // Assert
-        expect(consoleLogSpy).toHaveBeenCalled();
-        const output = consoleLogSpy.mock.calls
-          .map((call) => call.join(" "))
-          .join("\n");
-        expect(output).toMatch(/⚠|warning/i);
-      });
-
-      it("should still show success with warnings", async () => {
-        // Arrange
-        const skillDir = join(testDir, "warning-skill");
-        await fs.mkdir(skillDir, { recursive: true });
-        await createWarningSkill(skillDir);
-
-        // Act
-        await validateCommand(skillDir, {});
-
-        // Assert
-        const output = consoleLogSpy.mock.calls
-          .map((call) => call.join(" "))
-          .join("\n");
-        expect(output).toMatch(/✓.*warning-skill/i);
-        expect(output).toMatch(/⚠|warning/i);
-      });
-
-      it("should exit with code 0 when warnings present but not strict", async () => {
-        // Arrange
-        const skillDir = join(testDir, "warning-skill");
-        await fs.mkdir(skillDir, { recursive: true });
-        await createWarningSkill(skillDir);
-
-        // Act
-        await validateCommand(skillDir, {});
-
-        // Assert
-        expect(processExitSpy).toHaveBeenCalledWith(0);
-      });
-    });
   });
 
   describe("Directory Validation (All Skills)", () => {
@@ -446,18 +382,15 @@ This skill has a very short description which should trigger a warning.
       });
     });
 
-    describe("Mix of valid, invalid, and warnings", () => {
+    describe("Mix of valid and invalid skills", () => {
       it("should report detailed results for mixed scenarios", async () => {
         // Arrange
         const skill1 = join(testDir, "skill-1");
         const skill2 = join(testDir, "skill-2");
-        const skill3 = join(testDir, "skill-3");
         await fs.mkdir(skill1, { recursive: true });
         await fs.mkdir(skill2, { recursive: true });
-        await fs.mkdir(skill3, { recursive: true });
         await createValidSkill(skill1, "skill-one");
-        await createWarningSkill(skill2);
-        await createParseErrorSkill(skill3);
+        await createParseErrorSkill(skill2);
 
         // Act
         await validateCommand(testDir, {});
@@ -475,13 +408,10 @@ This skill has a very short description which should trigger a warning.
         // Arrange
         const skill1 = join(testDir, "skill-1");
         const skill2 = join(testDir, "skill-2");
-        const skill3 = join(testDir, "skill-3");
         await fs.mkdir(skill1, { recursive: true });
         await fs.mkdir(skill2, { recursive: true });
-        await fs.mkdir(skill3, { recursive: true });
         await createValidSkill(skill1, "skill-one");
-        await createWarningSkill(skill2);
-        await createParseErrorSkill(skill3);
+        await createParseErrorSkill(skill2);
 
         // Act
         await validateCommand(testDir, {});
