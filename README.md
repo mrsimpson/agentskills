@@ -141,6 +141,27 @@ Your agent can now:
 - Call the `use_skill` tool to execute skill instructions
 - Browse available skills via `skill://` resources
 
+The `use_skill` tool returns a JSON response with two fields:
+
+```json
+{
+  "instructions": "# Skill Instructions\n\nThe full skill body content...",
+  "basePath": "/absolute/path/to/.agentskills/skills/skill-name"
+}
+```
+
+The `basePath` points to the skill's directory and allows agents to resolve relative references (per the [Agent Skills specification](https://agentskills.io/specification)):
+
+- Scripts: `<basePath>/scripts/extract.py`
+- References: `<basePath>/references/REFERENCE.md`
+- Assets: `<basePath>/assets/template.json`
+
+**Example**: If a skill references `scripts/setup.sh`, the agent can read it from:
+
+```
+<basePath>/scripts/setup.sh
+```
+
 ## How It Works
 
 ```
