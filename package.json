@@ -42,7 +42,7 @@
     "prepare": "husky",
     "clean:build": "turbo run clean:build",
     "docs:dev": "cp packages/core/src/skill-frontmatter.schema.json docs/public/ && vitepress dev docs",
-    "docs:build": "cp packages/core/src/skill-frontmatter.schema.json docs/public/ && vitepress build docs",
+    "docs:build": "mkdir -p docs/public && cp packages/core/src/skill-frontmatter.schema.json docs/public/ && vitepress build docs",
     "docs:preview": "vitepress preview docs"
   },
   "devDependencies": {
