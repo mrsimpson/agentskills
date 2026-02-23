@@ -10,8 +10,6 @@ export type {
   ValidationResult,
   ValidationError,
   ValidationWarning,
-  ValidationErrorCode,
-  ValidationWarningCode,
   LoadResult,
   RegistryState,
   InstallResult,
