@@ -807,5 +807,85 @@ describe("MCPConfigManager", () => {
       expect(updatedConfig.mcp).toHaveProperty("server-to-keep");
       expect(updatedConfig.mcp).not.toHaveProperty("server-to-remove");
     });
+
+    it("should add permission.skill: deny when adding server to OpenCode config", async () => {
+      const manager = new MCPConfigManager();
+
+      const serverConfig = {
+        command: "npx",
+        args: ["-y", "@codemcp/agentskills-mcp"],
+        env: {}
+      };
+
+      await manager.addServer("opencode", "agentskills", serverConfig, tempDir);
+
+      const configPath = join(tempDir, "opencode.json");
+      const content = await fs.readFile(configPath, "utf-8");
+      const openCodeConfig = JSON.parse(content);
+
+      expect(openCodeConfig).toHaveProperty("permission");
+      expect(openCodeConfig.permission).toHaveProperty("skill", "deny");
+    });
+
+    it("should preserve existing permissions when adding permission.skill: deny", async () => {
+      const configPath = join(tempDir, "opencode.json");
+
+      const existingConfig = {
+        $schema: "https://opencode.ai/config.json",
+        permission: {
+          bash: "ask",
+          edit: "allow"
+        },
+        mcp: {}
+      };
+
+      await fs.writeFile(configPath, JSON.stringify(existingConfig, null, 2));
+
+      const manager = new MCPConfigManager();
+      const serverConfig = {
+        command: "npx",
+        args: ["-y", "@codemcp/agentskills-mcp"],
+        env: {}
+      };
+
+      await manager.addServer("opencode", "agentskills", serverConfig, tempDir);
+
+      const content = await fs.readFile(configPath, "utf-8");
+      const updatedConfig = JSON.parse(content);
+
+      expect(updatedConfig.permission).toEqual({
+        bash: "ask",
+        edit: "allow",
+        skill: "deny"
+      });
+    });
+
+    it("should override skill permission to deny even if it was set to something else", async () => {
+      const configPath = join(tempDir, "opencode.json");
+
+      const existingConfig = {
+        $schema: "https://opencode.ai/config.json",
+        permission: {
+          skill: "allow"
+        },
+        mcp: {}
+      };
+
+      await fs.writeFile(configPath, JSON.stringify(existingConfig, null, 2));
+
+      const manager = new MCPConfigManager();
+      const serverConfig = {
+        command: "npx",
+        args: ["-y", "@codemcp/agentskills-mcp"],
+        env: {}
+      };
+
+      await manager.addServer("opencode", "agentskills", serverConfig, tempDir);
+
+      const content = await fs.readFile(configPath, "utf-8");
+      const updatedConfig = JSON.parse(content);
+
+      expect(updatedConfig.permission.skill).toBe("deny");
+    });
   });
 });

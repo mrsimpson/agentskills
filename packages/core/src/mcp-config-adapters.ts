@@ -84,10 +84,18 @@ export class OpenCodeConfigAdapter implements McpConfigAdapter {
   toClient(mcpConfig: McpConfig, existingConfig?: unknown): unknown {
     const openCodeConfig = (existingConfig as {
       $schema?: string;
+      permission?: Record<string, unknown>;
       mcp?: Record<string, unknown>;
       [key: string]: unknown;
     }) || {
       $schema: "https://opencode.ai/config.json"
+    };
+
+    // Add permission to disable native skill tool
+    // This prevents conflicts with our agentskills_use_skill MCP tool
+    openCodeConfig.permission = {
+      ...(openCodeConfig.permission || {}),
+      skill: "deny"
     };
 
     // Replace the mcp section completely with the new config
