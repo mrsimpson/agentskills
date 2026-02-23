@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Node.js 18 or later
+- Node.js 22 or later
 - An MCP-compatible agent (Claude Desktop, Cline, Cursor, etc.)
 
 ## 1. Install
@@ -14,6 +14,7 @@ pnpm add -g @codemcp/agentskills
 ```
 
 This installs two executables:
+
 - `agentskills` — the CLI for managing skills
 - `agentskills-mcp` — the MCP server your agent connects to
 

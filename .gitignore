@@ -20,3 +20,4 @@ coverage
 
 # vitepress
 docs/.vitepress/cache
+docs/public/skill-frontmatter.schema.json
