@@ -323,56 +323,6 @@ This skill has a very short description which should trigger a warning.
         expect(processExitSpy).toHaveBeenCalledWith(0);
       });
     });
-
-    describe("Skill with warnings (--strict mode)", () => {
-      it("should treat warnings as errors in strict mode", async () => {
-        // Arrange
-        const skillDir = join(testDir, "warning-skill");
-        await fs.mkdir(skillDir, { recursive: true });
-        await createWarningSkill(skillDir);
-
-        // Act
-        await validateCommand(skillDir, { strict: true });
-
-        // Assert
-        expect(consoleErrorSpy).toHaveBeenCalled();
-        const output = consoleErrorSpy.mock.calls
-          .map((call) => call.join(" "))
-          .join("\n");
-        expect(output).toMatch(/✗/);
-        expect(output).toMatch(/warning|strict/i);
-      });
-
-      it("should exit with code 1 in strict mode when warnings present", async () => {
-        // Arrange
-        const skillDir = join(testDir, "warning-skill");
-        await fs.mkdir(skillDir, { recursive: true });
-        await createWarningSkill(skillDir);
-
-        // Act
-        await validateCommand(skillDir, { strict: true });
-
-        // Assert
-        expect(processExitSpy).toHaveBeenCalledWith(1);
-      });
-
-      it("should display warning details as errors in strict mode", async () => {
-        // Arrange
-        const skillDir = join(testDir, "warning-skill");
-        await fs.mkdir(skillDir, { recursive: true });
-        await createWarningSkill(skillDir);
-
-        // Act
-        await validateCommand(skillDir, { strict: true });
-
-        // Assert
-        const output = consoleErrorSpy.mock.calls
-          .map((call) => call.join(" "))
-          .join("\n");
-        expect(output).toMatch(/⚠|warning/i);
-        expect(output).toMatch(/description/i);
-      });
-    });
   });
 
   describe("Directory Validation (All Skills)", () => {
@@ -518,7 +468,6 @@ This skill has a very short description which should trigger a warning.
           ...consoleErrorSpy.mock.calls.map((call) => call.join(" "))
         ].join("\n");
         expect(allOutput).toMatch(/✓/); // Valid skill
-        expect(allOutput).toMatch(/⚠/); // Warning
         expect(allOutput).toMatch(/✗/); // Error
       });
 
@@ -539,28 +488,6 @@ This skill has a very short description which should trigger a warning.
 
         // Assert
         expect(processExitSpy).toHaveBeenCalledWith(1);
-      });
-
-      it("should treat warnings as errors in strict mode for directory", async () => {
-        // Arrange
-        const skill1 = join(testDir, "skill-1");
-        const skill2 = join(testDir, "skill-2");
-        await fs.mkdir(skill1, { recursive: true });
-        await fs.mkdir(skill2, { recursive: true });
-        await createValidSkill(skill1, "skill-one");
-        await createWarningSkill(skill2);
-
-        // Act
-        await validateCommand(testDir, { strict: true });
-
-        // Assert
-        expect(processExitSpy).toHaveBeenCalledWith(1);
-        const allOutput = [
-          ...consoleLogSpy.mock.calls.map((call) => call.join(" ")),
-          ...consoleErrorSpy.mock.calls.map((call) => call.join(" "))
-        ].join("\n");
-        expect(allOutput).toMatch(/1.*valid/i);
-        expect(allOutput).toMatch(/1.*invalid/i);
       });
     });
 
@@ -796,40 +723,6 @@ This skill has a very short description which should trigger a warning.
       });
     });
 
-    describe("Warning format", () => {
-      it("should use yellow warning symbol for warnings", async () => {
-        // Arrange
-        const skillDir = join(testDir, "warning-skill");
-        await fs.mkdir(skillDir, { recursive: true });
-        await createWarningSkill(skillDir);
-
-        // Act
-        await validateCommand(skillDir, {});
-
-        // Assert
-        const output = consoleLogSpy.mock.calls
-          .map((call) => call.join(" "))
-          .join("\n");
-        expect(output).toMatch(/⚠/);
-      });
-
-      it("should include warning description", async () => {
-        // Arrange
-        const skillDir = join(testDir, "warning-skill");
-        await fs.mkdir(skillDir, { recursive: true });
-        await createWarningSkill(skillDir);
-
-        // Act
-        await validateCommand(skillDir, {});
-
-        // Assert
-        const output = consoleLogSpy.mock.calls
-          .map((call) => call.join(" "))
-          .join("\n");
-        expect(output).toMatch(/warning/i);
-      });
-    });
-
     describe("Summary format", () => {
       it("should display summary with skill counts", async () => {
         // Arrange
@@ -932,9 +825,9 @@ This skill has a very short description which should trigger a warning.
   describe("Combined Flags", () => {
     it("should handle --strict and --fix together", async () => {
       // Arrange
-      const skillDir = join(testDir, "warning-skill");
+      const skillDir = join(testDir, "invalid-skill");
       await fs.mkdir(skillDir, { recursive: true });
-      await createWarningSkill(skillDir);
+      await createParseErrorSkill(skillDir);
 
       // Act
       await validateCommand(skillDir, { strict: true, fix: true });
@@ -945,7 +838,7 @@ This skill has a very short description which should trigger a warning.
         ...consoleErrorSpy.mock.calls.map((call) => call.join(" "))
       ].join("\n");
       expect(allOutput).toMatch(/auto-fix.*not.*implemented/i);
-      expect(processExitSpy).toHaveBeenCalledWith(1); // Should fail due to strict mode
+      expect(processExitSpy).toHaveBeenCalledWith(1); // Should fail due to parse error
     });
   });
 

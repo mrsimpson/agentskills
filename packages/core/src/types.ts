@@ -82,40 +82,17 @@ export interface ParseFailure {
 export type ParseResult = ParseSuccess | ParseFailure;
 
 /**
- * Error codes for validation failures
- */
-export type ValidationErrorCode =
-  | "MISSING_FIELD"
-  | "INVALID_NAME_LENGTH"
-  | "INVALID_NAME_FORMAT"
-  | "INVALID_DESCRIPTION_LENGTH"
-  | "INVALID_COMPATIBILITY_LENGTH"
-  | "INVALID_FIELD_TYPE";
-
-/**
- * Warning codes for non-blocking validation issues
- */
-export type ValidationWarningCode =
-  | "MISSING_RECOMMENDED_FIELD"
-  | "SHORT_DESCRIPTION"
-  | "LONG_CONTENT";
-
-/**
  * Validation error information
  */
 export interface ValidationError {
-  code: ValidationErrorCode;
   message: string;
-  field?: string;
 }
 
 /**
- * Validation warning information
+ * Validation warning information (reserved for future use)
  */
 export interface ValidationWarning {
-  code: ValidationWarningCode;
   message: string;
-  field?: string;
 }
 
 /**

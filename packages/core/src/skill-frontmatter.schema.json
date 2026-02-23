@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://mrsimpson.github.io/agentskills-mcp/skill-frontmatter-schema.json",
+  "title": "Agent Skill Frontmatter",
+  "description": "YAML frontmatter schema for Agent Skills (SKILL.md files). See https://mrsimpson.github.io/agentskills-mcp/reference/skill-format for full documentation.",
+  "type": "object",
+  "required": ["name", "description"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique skill identifier. Lowercase letters, numbers, and hyphens only. No leading/trailing/consecutive hyphens.",
+      "minLength": 1,
+      "maxLength": 64,
+      "allOf": [
+        { "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$" },
+        { "not": { "pattern": "--" } }
+      ]
+    },
+    "description": {
+      "type": "string",
+      "description": "Short summary of the skill shown in tool descriptions.",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "license": {
+      "type": "string",
+      "description": "SPDX license identifier (e.g. MIT, Apache-2.0). Recommended for published skills."
+    },
+    "compatibility": {
+      "type": "string",
+      "description": "Agent compatibility string.",
+      "maxLength": 500
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Arbitrary key-value metadata.",
+      "additionalProperties": true
+    },
+    "allowedTools": {
+      "type": "array",
+      "description": "Tools this skill is permitted to use.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "disableModelInvocation": {
+      "type": "boolean",
+      "description": "If true, the skill is excluded from the use_skill tool enum and cannot be invoked via MCP."
+    },
+    "userInvocable": {
+      "type": "boolean",
+      "description": "If true, the skill is designed for direct user invocation (e.g. via /skill-name)."
+    },
+    "argumentHint": {
+      "type": "string",
+      "description": "Hint shown to users about expected arguments, e.g. \"<pr-url>\" or \"<target> [options]\"."
+    },
+    "context": {
+      "type": "string",
+      "description": "Execution context hint for the agent."
+    },
+    "agent": {
+      "type": "string",
+      "description": "Target agent identifier this skill is optimized for."
+    },
+    "model": {
+      "type": "string",
+      "description": "Preferred model for executing this skill."
+    },
+    "hooks": {
+      "type": "object",
+      "description": "Lifecycle hook definitions keyed by hook name.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "requiresMcpServers": {
+      "type": "array",
+      "description": "MCP servers that must be configured for this skill to work. Used by 'agentskills install --agent' for validation and auto-configuration.",
+      "items": {
+        "$ref": "#/$defs/McpServerDependency"
+      }
+    }
+  },
+  "$defs": {
+    "McpServerDependency": {
+      "type": "object",
+      "description": "An MCP server that this skill depends on.",
+      "required": ["name", "description", "command"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Server identifier. Lowercase letters, numbers, and hyphens. Must start and end with alphanumeric.",
+          "allOf": [
+            { "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$" },
+            { "not": { "pattern": "--" } }
+          ]
+        },
+        "package": {
+          "type": "string",
+          "description": "npm package name used for auto-installation (e.g. \"@modelcontextprotocol/server-filesystem\")."
+        },
+        "description": {
+          "type": "string",
+          "description": "Why this MCP server is needed by the skill."
+        },
+        "command": {
+          "type": "string",
+          "description": "Executable to run (e.g. \"npx\", \"node\", \"/usr/local/bin/my-server\")."
+        },
+        "args": {
+          "type": "array",
+          "description": "Arguments passed to the command. May contain {{PARAM_NAME}} placeholders resolved at install time.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "env": {
+          "type": "object",
+          "description": "Environment variables to set when running the server.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "cwd": {
+          "type": "string",
+          "description": "Working directory for the server process."
+        },
+        "parameters": {
+          "type": "object",
+          "description": "Parameter definitions for {{PARAM}} placeholders used in args or env.",
+          "propertyNames": {
+            "allOf": [
+              { "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$" },
+              { "not": { "pattern": "--" } }
+            ]
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/McpParameterSpec"
+          }
+        }
+      }
+    },
+    "McpParameterSpec": {
+      "type": "object",
+      "description": "Definition of a parameter placeholder used in an MCP server dependency.",
+      "required": ["description", "required"],
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "What this parameter configures."
+        },
+        "required": {
+          "type": "boolean",
+          "description": "Whether the user must supply this parameter."
+        },
+        "sensitive": {
+          "type": "boolean",
+          "description": "If true, treat as a secret or credential (mask in output, do not log)."
+        },
+        "default": {
+          "type": "string",
+          "description": "Default value used when the parameter is not supplied."
+        },
+        "example": {
+          "type": "string",
+          "description": "Example value shown to guide users."
+        }
+      }
+    }
+  }
+}
