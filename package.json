@@ -79,5 +79,9 @@
     "@codemcp/agentskills-cli": "workspace:*",
     "@codemcp/agentskills-core": "workspace:*",
     "@codemcp/agentskills-mcp": "workspace:*"
+  },
+  "agentskills": {
+    "commit": "github:mrsimpson/skills-coding/commit",
+    "tdd": "github:mrsimpson/skills-coding/tdd-with-agents"
   }
 }
