@@ -249,6 +249,7 @@ export type McpClientType =
   | "cursor"
   | "junie"
   | "kiro"
+  | "opencode"
   | "zed";
 
 /**
@@ -285,10 +286,34 @@ export interface McpServerConfig {
 }
 
 /**
+ * OpenCode MCP server configuration structure
+ * OpenCode uses "type": "local" and different property names
+ */
+export interface OpenCodeMcpServerConfig {
+  type: "local" | "remote";
+  command?: string[]; // For local: ["npx", "-y", "package-name"]
+  url?: string; // For remote servers
+  enabled?: boolean;
+  environment?: Record<string, string>;
+  headers?: Record<string, string>; // For remote servers
+  oauth?: Record<string, unknown> | false; // For remote OAuth
+  timeout?: number;
+}
+
+/**
  * MCP client configuration
  */
 export interface McpConfig {
   mcpServers: Record<string, McpServerConfig>;
+}
+
+/**
+ * OpenCode configuration structure
+ */
+export interface OpenCodeConfig {
+  $schema?: string;
+  mcp?: Record<string, OpenCodeMcpServerConfig>;
+  [key: string]: unknown; // Allow other OpenCode config properties
 }
 
 /**

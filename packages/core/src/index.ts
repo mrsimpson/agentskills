@@ -25,6 +25,8 @@ export type {
   McpClientType,
   McpConfig,
   McpServerConfig,
+  OpenCodeConfig,
+  OpenCodeMcpServerConfig,
   McpServerDependency,
   McpParameterSpec,
   McpDependencyCheckResult,
@@ -40,3 +42,9 @@ export { PackageConfigManager } from "./package-config.js";
 export { MCPConfigManager } from "./mcp-config-manager.js";
 export { MCPDependencyChecker } from "./mcp-dependency-checker.js";
 export { substituteParameters } from "./parameter-substitution.js";
+export {
+  McpConfigAdapterRegistry,
+  StandardMcpConfigAdapter,
+  OpenCodeConfigAdapter
+} from "./mcp-config-adapters.js";
+export type { McpConfigAdapter } from "./mcp-config-adapters.js";

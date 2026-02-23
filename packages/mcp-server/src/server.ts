@@ -204,12 +204,11 @@ export class MCPServer {
   private getToolDescription(): string {
     const skills = this.registry.getAllMetadata();
 
-    const instruction =
-      "You've got skills! Use them whenever their description matches what you need to accomplish.";
-
     if (skills.length === 0) {
-      return `${instruction} No skills currently loaded.`;
+      return `No skills currently loaded.`;
     }
+
+    const instruction = "You've got skills!";
 
     const skillList = skills
       .map((skill) => `- ${skill.name}: ${skill.description}`)
@@ -217,8 +216,10 @@ export class MCPServer {
 
     return `${instruction}
 
-Available skills:
-${skillList}`;
+They help you complete tasks in the following situations:
+${skillList}
+IMPORTANT: Use them intensively! Call the use_skill MCP tool! Even if you think you know how to do something, check if there's a skill for it.
+`;
   }
 
   /**

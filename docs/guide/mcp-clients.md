@@ -41,15 +41,16 @@ Configs are placed in the project directory so they can be committed to version 
 
 ## Agent Config Locations
 
-| Agent | Config File |
-|---|---|
+| Agent          | Config File                                                               |
+| -------------- | ------------------------------------------------------------------------- |
 | Claude Desktop | `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) |
-| Cline | VS Code settings / `.cline/` |
-| Continue | `.continue/config.json` |
-| Cursor | `.cursor/mcp.json` |
-| Junie | `.junie/` |
-| Kiro | `.kiro/` (supports multiple config files) |
-| Zed | `~/.config/zed/settings.json` |
+| Cline          | VS Code settings / `.cline/`                                              |
+| Continue       | `.continue/config.json`                                                   |
+| Cursor         | `.cursor/mcp.json`                                                        |
+| Junie          | `.junie/`                                                                 |
+| Kiro           | `.kiro/` (supports multiple config files)                                 |
+| OpenCode       | `opencode.json` (project root)                                            |
+| Zed            | `~/.config/zed/settings.json`                                             |
 
 ## How It Works at Runtime
 
