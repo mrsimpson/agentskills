@@ -116,13 +116,13 @@ agentskills install --agent claude
 agentskills install --with-mcp --agent cline
 ```
 
-**Supported agents:** `claude`, `cline`, `continue`, `cursor`, `junie`, `kiro`, `zed`
+**Supported agents:** `claude`, `cline`, `continue`, `cursor`, `junie`, `kiro`, `opencode`, `zed`
 
-Configs are created in project directory (`.claude/`, `.kiro/`, etc.) for version control.
+Configs are created in project directory (`.claude/`, `.kiro/`, `opencode.json`, etc.) for version control.
 
 ### 5. Configure MCP Client
 
-Point your MCP client (Claude Desktop, Cline, Continue, Cursor, Junie, Kiro, Zed, etc.) to the server:
+Point your MCP client (Claude Desktop, Cline, Continue, Cursor, Junie, Kiro, OpenCode, Zed, etc.) to the server:
 
 ```json
 {
@@ -156,7 +156,7 @@ Agent ← MCP Protocol ← agentskills-mcp (server) ← skill registry
 
 ## Features
 
-- 🔌 **MCP Protocol Support** - Works with Claude Desktop, Cline, Continue, Cursor, Junie, Kiro, Zed, and other MCP clients
+- 🔌 **MCP Protocol Support** - Works with Claude Desktop, Cline, Continue, Cursor, Junie, Kiro, OpenCode, Zed, and other MCP clients
 - 📦 **Package Manager Integration** - Declare skills in `package.json`, version control your configuration
 - 🚀 **Multiple Sources** - Install from GitHub repos, local paths, or tarball URLs
 - 🔧 **MCP Server Dependencies** - Skills declare required MCP servers, auto-configured for your agent

@@ -50,6 +50,7 @@ export async function installCommand(options?: {
     cursor: "cursor",
     junie: "junie",
     kiro: "kiro",
+    opencode: "opencode",
     zed: "zed",
     vscode: "cline" // cline runs in vscode
   };

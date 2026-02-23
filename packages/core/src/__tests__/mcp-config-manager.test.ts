@@ -67,6 +67,12 @@ describe("MCPConfigManager", () => {
         expect(path).toBe(join(tempDir, ".zed/mcp_settings.json"));
       });
 
+      it("should return project-relative path for opencode", () => {
+        const manager = new MCPConfigManager();
+        const path = manager.getConfigPath("opencode", tempDir);
+        expect(path).toBe(join(tempDir, "opencode.json"));
+      });
+
       it("should use process.cwd() when projectRoot is not provided", () => {
         const manager = new MCPConfigManager();
         const path = manager.getConfigPath("cline");
@@ -586,6 +592,220 @@ describe("MCPConfigManager", () => {
 
       expect(clineReadConfig.mcpServers["agent-skills"]).toEqual(clineConfig);
       expect(cursorReadConfig.mcpServers["agent-skills"]).toEqual(cursorConfig);
+    });
+  });
+
+  describe("OpenCode adapter integration", () => {
+    it("should read OpenCode config format and convert to standard format", async () => {
+      const configPath = join(tempDir, "opencode.json");
+
+      const openCodeConfig = {
+        $schema: "https://opencode.ai/config.json",
+        mcp: {
+          agentskills: {
+            type: "local",
+            command: ["npx", "-y", "@codemcp/agentskills-mcp"],
+            enabled: true,
+            environment: {
+              TEST_VAR: "test_value"
+            }
+          },
+          "another-server": {
+            type: "local",
+            command: ["node", "server.js"],
+            enabled: false,
+            environment: {}
+          }
+        }
+      };
+
+      await fs.writeFile(configPath, JSON.stringify(openCodeConfig, null, 2));
+
+      const manager = new MCPConfigManager();
+      const config = await manager.readConfig("opencode", tempDir);
+
+      expect(config.mcpServers).toEqual({
+        agentskills: {
+          command: "npx",
+          args: ["-y", "@codemcp/agentskills-mcp"],
+          env: { TEST_VAR: "test_value" }
+        },
+        "another-server": {
+          command: "node",
+          args: ["server.js"],
+          env: {}
+        }
+      });
+    });
+
+    it("should write standard format and convert to OpenCode format", async () => {
+      const manager = new MCPConfigManager();
+
+      const serverConfig = {
+        command: "npx",
+        args: ["-y", "@codemcp/agentskills-mcp"],
+        env: { MY_VAR: "value" }
+      };
+
+      await manager.addServer("opencode", "agentskills", serverConfig, tempDir);
+
+      const configPath = join(tempDir, "opencode.json");
+      const content = await fs.readFile(configPath, "utf-8");
+      const openCodeConfig = JSON.parse(content);
+
+      expect(openCodeConfig).toHaveProperty(
+        "$schema",
+        "https://opencode.ai/config.json"
+      );
+      expect(openCodeConfig).toHaveProperty("mcp");
+      expect(openCodeConfig.mcp.agentskills).toEqual({
+        type: "local",
+        command: ["npx", "-y", "@codemcp/agentskills-mcp"],
+        enabled: true,
+        environment: { MY_VAR: "value" }
+      });
+    });
+
+    it("should preserve existing OpenCode config when adding servers", async () => {
+      const configPath = join(tempDir, "opencode.json");
+
+      const existingConfig = {
+        $schema: "https://opencode.ai/config.json",
+        someOtherSetting: "preserved",
+        mcp: {
+          "existing-server": {
+            type: "local",
+            command: ["existing", "command"],
+            enabled: true,
+            environment: {}
+          }
+        }
+      };
+
+      await fs.writeFile(configPath, JSON.stringify(existingConfig, null, 2));
+
+      const manager = new MCPConfigManager();
+      const newServerConfig = {
+        command: "new",
+        args: ["server"],
+        env: {}
+      };
+
+      await manager.addServer(
+        "opencode",
+        "new-server",
+        newServerConfig,
+        tempDir
+      );
+
+      const content = await fs.readFile(configPath, "utf-8");
+      const updatedConfig = JSON.parse(content);
+
+      expect(updatedConfig.someOtherSetting).toBe("preserved");
+      expect(updatedConfig.mcp).toHaveProperty("existing-server");
+      expect(updatedConfig.mcp).toHaveProperty("new-server");
+      expect(updatedConfig.mcp["new-server"]).toEqual({
+        type: "local",
+        command: ["new", "server"],
+        enabled: true,
+        environment: {}
+      });
+    });
+
+    it("should handle OpenCode remote servers gracefully (skip them)", async () => {
+      const configPath = join(tempDir, "opencode.json");
+
+      const openCodeConfig = {
+        $schema: "https://opencode.ai/config.json",
+        mcp: {
+          "local-server": {
+            type: "local",
+            command: ["npx", "server"],
+            enabled: true,
+            environment: {}
+          },
+          "remote-server": {
+            type: "remote",
+            url: "https://example.com/mcp",
+            enabled: true
+          }
+        }
+      };
+
+      await fs.writeFile(configPath, JSON.stringify(openCodeConfig, null, 2));
+
+      const manager = new MCPConfigManager();
+      const config = await manager.readConfig("opencode", tempDir);
+
+      // Only local server should be converted
+      expect(config.mcpServers).toHaveProperty("local-server");
+      expect(config.mcpServers).not.toHaveProperty("remote-server");
+    });
+
+    it("should check if OpenCode server is configured", async () => {
+      const configPath = join(tempDir, "opencode.json");
+
+      const openCodeConfig = {
+        $schema: "https://opencode.ai/config.json",
+        mcp: {
+          "test-server": {
+            type: "local",
+            command: ["test", "command"],
+            enabled: true,
+            environment: {}
+          }
+        }
+      };
+
+      await fs.writeFile(configPath, JSON.stringify(openCodeConfig, null, 2));
+
+      const manager = new MCPConfigManager();
+      const isConfigured = await manager.isServerConfigured(
+        "opencode",
+        "test-server",
+        tempDir
+      );
+      const isNotConfigured = await manager.isServerConfigured(
+        "opencode",
+        "non-existent",
+        tempDir
+      );
+
+      expect(isConfigured).toBe(true);
+      expect(isNotConfigured).toBe(false);
+    });
+
+    it("should remove server from OpenCode config", async () => {
+      const configPath = join(tempDir, "opencode.json");
+
+      const openCodeConfig = {
+        $schema: "https://opencode.ai/config.json",
+        mcp: {
+          "server-to-keep": {
+            type: "local",
+            command: ["keep", "me"],
+            enabled: true,
+            environment: {}
+          },
+          "server-to-remove": {
+            type: "local",
+            command: ["remove", "me"],
+            enabled: true,
+            environment: {}
+          }
+        }
+      };
+
+      await fs.writeFile(configPath, JSON.stringify(openCodeConfig, null, 2));
+
+      const manager = new MCPConfigManager();
+      await manager.removeServer("opencode", "server-to-remove", tempDir);
+
+      const content = await fs.readFile(configPath, "utf-8");
+      const updatedConfig = JSON.parse(content);
+
+      expect(updatedConfig.mcp).toHaveProperty("server-to-keep");
+      expect(updatedConfig.mcp).not.toHaveProperty("server-to-remove");
     });
   });
 });

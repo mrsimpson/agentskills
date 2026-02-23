@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Node.js 22 or later
-- An MCP-compatible agent (Claude Desktop, Cline, Cursor, etc.)
+- An MCP-compatible agent (Claude Desktop, Cline, Cursor, OpenCode, etc.)
 
 ## 1. Install
 

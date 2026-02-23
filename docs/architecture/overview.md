@@ -12,7 +12,7 @@ graph TD
     B -->|agentskills install| C[.agentskills/skills/]
     C -->|loaded at startup| D[agentskills-mcp server]
     D -->|MCP Protocol / stdio| E[Claude Desktop]
-    D -->|MCP Protocol / stdio| F[Cline / Cursor / etc.]
+    D -->|MCP Protocol / stdio| F[Cline / Cursor / OpenCode / etc.]
 ```
 
 **Key principle**: The MCP server is **read-only**. It discovers, parses, and serves skill content. It never executes commands or interpolates arguments — that is the agent's responsibility.
@@ -85,11 +85,13 @@ Agent receives raw Markdown instructions
 The server exposes:
 
 **Tool: `use_skill`**
+
 - `skill_name`: enum of all loaded skill names
 - `arguments`: optional object for context
 - Returns: `{ instructions: "<raw body>" }`
 
 **Resources**
+
 - `skill://<name>` — full `SKILL.md` content as `text/markdown`
 - Template: `skill://{skillName}` — parameterized access
 

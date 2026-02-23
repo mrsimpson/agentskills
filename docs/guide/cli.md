@@ -27,12 +27,12 @@ Download and install all skills declared in `package.json`.
 agentskills install [options]
 ```
 
-| Option | Description |
-|---|---|
+| Option           | Description                                                               |
+| ---------------- | ------------------------------------------------------------------------- |
 | `--agent <name>` | Validate that required MCP servers are configured for the specified agent |
-| `--with-mcp` | Auto-install missing MCP servers and update the agent's config |
+| `--with-mcp`     | Auto-install missing MCP servers and update the agent's config            |
 
-**Supported agent names:** `claude`, `cline`, `continue`, `cursor`, `junie`, `kiro`, `zed`
+**Supported agent names:** `claude`, `cline`, `continue`, `cursor`, `junie`, `kiro`, `opencode`, `zed`
 
 **Examples:**
 
@@ -40,9 +40,10 @@ agentskills install [options]
 agentskills install                          # Install skills only
 agentskills install --agent claude           # Install + validate MCP dependencies
 agentskills install --with-mcp --agent cline # Install + auto-configure MCP servers
+agentskills install --with-mcp --agent opencode # Install + auto-configure for OpenCode
 ```
 
-Agent configs are written to the project directory (`.claude/`, `.kiro/`, etc.) so they can be version-controlled.
+Agent configs are written to the project directory (`.claude/`, `.kiro/`, `opencode.json`, etc.) so they can be version-controlled.
 
 ## `agentskills list`
 

@@ -42,7 +42,7 @@ export function createCLI(): Command {
     )
     .option(
       "--agent <name>",
-      "Specify MCP agent to configure (claude, cline, cursor, continue, junie, zed, vscode)"
+      "Specify MCP agent to configure (claude, cline, cursor, continue, junie, kiro, opencode, zed, vscode)"
     )
     .action(async (options) => {
       try {

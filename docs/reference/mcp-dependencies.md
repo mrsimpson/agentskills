@@ -29,15 +29,15 @@ requiresMcpServers:
 
 ## Field Reference
 
-| Field | Required | Description |
-|---|---|---|
-| `name` | yes | Identifier for the MCP server |
-| `description` | yes | Why this server is needed |
-| `command` | yes | Executable to run (e.g., `npx`, `node`) |
-| `package` | no | npm package name (used for auto-install) |
-| `args` | no | Arguments array; may contain `{{PARAM}}` placeholders |
-| `env` | no | Environment variables to set |
-| `parameters` | no | Parameter definitions for placeholder substitution |
+| Field         | Required | Description                                           |
+| ------------- | -------- | ----------------------------------------------------- |
+| `name`        | yes      | Identifier for the MCP server                         |
+| `description` | yes      | Why this server is needed                             |
+| `command`     | yes      | Executable to run (e.g., `npx`, `node`)               |
+| `package`     | no       | npm package name (used for auto-install)              |
+| `args`        | no       | Arguments array; may contain `{{PARAM}}` placeholders |
+| `env`         | no       | Environment variables to set                          |
+| `parameters`  | no       | Parameter definitions for placeholder substitution    |
 
 ### Parameter Specification
 
@@ -47,7 +47,7 @@ parameters:
     description: "What this parameter configures"
     required: true
     default: "default-value"
-    sensitive: false    # true for secrets/credentials
+    sensitive: false # true for secrets/credentials
     example: "example-value"
 ```
 
@@ -65,6 +65,7 @@ Reports any MCP servers declared by your skills that are not yet configured for 
 
 ```bash
 agentskills install --with-mcp --agent cline
+agentskills install --with-mcp --agent opencode  # For OpenCode
 ```
 
 Writes the server configuration to the agent's config file and prompts for required parameters.

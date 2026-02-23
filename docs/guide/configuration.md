@@ -21,9 +21,9 @@ Each key is the local name used to invoke the skill. Each value is a [source spe
 {
   "name": "my-project",
   "agentskills": {
-    "git-workflow":   "github:anthropics/agent-skills/skills/git-workflow",
-    "code-review":    "github:anthropics/agent-skills/skills/code-review",
-    "api-docs":       "file:./team-skills/api-documentation",
+    "git-workflow": "github:anthropics/agent-skills/skills/git-workflow",
+    "code-review": "github:anthropics/agent-skills/skills/code-review",
+    "api-docs": "file:./team-skills/api-documentation",
     "shared-linting": "git+https://github.com/myorg/skills.git#v2.1.0"
   }
 }
@@ -71,6 +71,7 @@ Or auto-install missing MCP servers:
 
 ```bash
 agentskills install --with-mcp --agent cline
+agentskills install --with-mcp --agent opencode  # For OpenCode
 ```
 
 See [MCP Server Dependencies](/reference/mcp-dependencies) for how to declare these in a skill's frontmatter.
