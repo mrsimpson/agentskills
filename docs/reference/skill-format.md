@@ -25,14 +25,45 @@ Instruction body in Markdown. This is what the agent receives
 when it calls `use_skill`.
 ````
 
+## JSON Schema
+
+A machine-readable schema is published alongside the docs and can be used for IDE validation and autocomplete.
+
+**Schema URL:**
+```
+https://mrsimpson.github.io/agentskills-mcp/skill-frontmatter-schema.json
+```
+
+### VS Code (YAML extension)
+
+Add to `.vscode/settings.json` to enable validation for all `SKILL.md` files in the workspace:
+
+```json
+{
+  "yaml.schemas": {
+    "https://mrsimpson.github.io/agentskills-mcp/skill-frontmatter-schema.json": "**/SKILL.md"
+  }
+}
+```
+
+### Inline schema hint
+
+Add a comment at the top of the frontmatter block (supported by some editors):
+
+```yaml
+# yaml-language-server: $schema=https://mrsimpson.github.io/agentskills-mcp/skill-frontmatter-schema.json
+name: my-skill
+description: ...
+```
+
 ## Frontmatter Fields
 
 ### Required
 
-| Field | Type | Description |
+| Field | Type | Constraints |
 |---|---|---|
-| `name` | string | Unique identifier (lowercase, hyphens allowed) |
-| `description` | string | Short summary shown in tool descriptions |
+| `name` | string | 1–64 chars · lowercase letters, numbers, hyphens · no leading/trailing/consecutive hyphens |
+| `description` | string | 1–1024 chars |
 
 ### Standard Optional Fields
 
@@ -92,9 +123,13 @@ Run `agentskills validate <path>` to check a skill file. Errors block installati
 
 **Errors** (must fix):
 - Missing `name` or `description`
-- Invalid name format or length
+- `name` outside 1–64 characters, or contains uppercase/spaces/special chars, or has leading/trailing/consecutive hyphens
+- `description` outside 1–1024 characters
+- `compatibility` exceeds 500 characters
+- `metadata` is not an object; `allowedTools` is not an array
 - Malformed YAML frontmatter
 
-**Warnings** (recommended):
-- Short description (aim for clarity)
-- Very long body content (aim for < 5000 tokens)
+**Warnings** (advisory):
+- `description` shorter than 50 characters
+- Missing `license` field
+- Body content exceeds ~5000 tokens (20 000 characters)
