@@ -75,7 +75,44 @@ _Tasks managed via `bd` CLI_
 
 ## Key Decisions
 
-_Important decisions will be documented here as they are made_
+### Solution Analysis
+
+**Option 1: Remove the validation check in registry.ts**
+
+- Pros: Quick fix, allows custom folder names
+- Cons: Breaks the design principle that folder name should match skill name; could cause confusion; lookups in registry use skill name not folder name
+
+**Option 2: Always use the actual skill name from SKILL.md as folder name (ignore custom name)**
+
+- Pros: Maintains consistency, simple implementation
+- Cons: User-provided name would be ignored; might break existing installations if users rely on custom names
+
+**Option 3: Use actual skill name as folder but store mapping for custom aliases**
+
+- Pros: Best user experience, maintains consistency
+- Cons: More complex, requires changing config format
+
+**Option 4: Use actual skill name from SKILL.md but allow it as an override when installing**
+
+- Pros: Best balance of simplicity and consistency
+- Cons: Requires two-pass installation (install to temp, read SKILL.md, move to final location)
+
+**Recommended Solution: Option 2** - Always use the actual skill name from SKILL.md as the folder name
+
+- The `name` parameter in `agentskills add` becomes just a key for package.json
+- The actual folder name is determined by parsing SKILL.md during installation
+- This ensures consistency and prevents the validation error
+- Registry lookups will work correctly since they use the skill name from SKILL.md
+
+### Implementation Plan
+
+1. Modify `installer.ts:install()` to:
+   - Extract to a temp directory first
+   - Parse SKILL.md to get the actual skill name
+   - Use the actual skill name (from SKILL.md) as the final folder name
+   - The `name` parameter still used as the key in package.json/config
+2. Update `installer.ts:extractManifest()` to be callable before final installation
+3. Keep the validation in `registry.ts` unchanged (it's correct behavior)
 
 ## Notes
 
