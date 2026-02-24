@@ -1,16 +1,16 @@
 {
   "version": "1.0",
-  "generated": "2026-02-23T17:20:43.851Z",
+  "generated": "2026-02-23T20:57:03.642Z",
   "skills": {
-    "commit": {
-      "spec": "github:mrsimpson/skills-coding/commit",
-      "resolvedVersion": "unknown",
-      "integrity": "github:mrsimpson/skills-coding/commit"
-    },
     "tdd": {
       "spec": "github:mrsimpson/skills-coding/tdd-with-agents",
       "resolvedVersion": "unknown",
       "integrity": "github:mrsimpson/skills-coding/tdd-with-agents"
+    },
+    "commit": {
+      "spec": "github:mrsimpson/skills-coding/commit",
+      "resolvedVersion": "unknown",
+      "integrity": "github:mrsimpson/skills-coding/commit"
     }
   }
 }
