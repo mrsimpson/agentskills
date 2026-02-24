@@ -209,7 +209,7 @@ export class MCPServer {
     }
 
     const instruction =
-      "IMPORTANT: Use the following skills by calling the `use_skill` MCP tool! Even if you think you know how to do something, check if there's a skill for it.\n";
+      "CRITICAL: Before proceeding with any task, CHECK if a skill exists for it!\nAvailable skills (call `use_skill` when you recognize these patterns):\n";
 
     const skillList = skills
       .map((skill) => `- ${skill.name}: ${skill.description}`)
