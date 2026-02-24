@@ -114,6 +114,15 @@ _Tasks managed via `bd` CLI_
 2. Update `installer.ts:extractManifest()` to be callable before final installation
 3. Keep the validation in `registry.ts` unchanged (it's correct behavior)
 
+### Implementation Details
+
+- Modified `installer.ts` to extract skills to a temporary directory first
+- After extraction, SKILL.md is parsed to get the actual skill name
+- The skill is then moved from the temp location to a directory named after the actual skill name
+- Added fallback logic for rename operation (copy + remove) in case of cross-device errors
+- Updated test `skill-installer.test.ts` to reflect new behavior where directory name matches skill name from SKILL.md
+- All 234 tests pass successfully
+
 ## Notes
 
 ### Bug Reproduction
