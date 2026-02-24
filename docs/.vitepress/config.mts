@@ -30,7 +30,11 @@ export default withMermaid(
               { text: "Getting Started", link: "/guide/getting-started" },
               { text: "Configuring Skills", link: "/guide/configuration" },
               { text: "CLI Reference", link: "/guide/cli" },
-              { text: "Connecting Agents", link: "/guide/mcp-clients" }
+              { text: "Connecting Agents", link: "/guide/mcp-clients" },
+              {
+                text: "Compared to Native Skills",
+                link: "/guide/compared-to-native"
+              }
             ]
           }
         ],
