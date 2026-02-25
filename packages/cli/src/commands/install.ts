@@ -32,14 +32,17 @@ import inquirer from "inquirer";
  * @param options.cwd - Working directory (default: process.cwd())
  * @param options.withMcp - Skip MCP validation (will be handled by auto-install)
  * @param options.agent - Explicit MCP agent/client specification
+ * @param options.global - Install only global skills instead of merged local + global (default: false)
  */
 export async function installCommand(options?: {
   cwd?: string;
   withMcp?: boolean;
   agent?: string;
+  global?: boolean;
 }): Promise<void> {
   const cwd = options?.cwd ?? process.cwd();
   const withMcp = options?.withMcp ?? false;
+  const scope = options?.global ? "global" : "merged";
 
   // Agent name mapping to client types
   const AGENT_MAP: Record<string, McpClientType> = {
@@ -86,7 +89,7 @@ export async function installCommand(options?: {
 
   try {
     // 1. Load package.json config
-    const configManager = new PackageConfigManager(cwd);
+    const configManager = new PackageConfigManager(cwd, scope);
     const config = await configManager.loadConfig();
 
     // Check if package.json exists (if source is defaults, it means no package.json was found)

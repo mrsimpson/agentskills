@@ -34,15 +34,18 @@ import chalk from "chalk";
  * @param spec - Spec/source of the skill (e.g., github:user/repo#v1.0.0)
  * @param options - Options for the add command
  * @param options.cwd - Working directory (default: process.cwd())
+ * @param options.global - Add to global config instead of local (default: false)
  */
 export async function addCommand(
   name: string,
   spec: string,
   options?: {
     cwd?: string;
+    global?: boolean;
   }
 ): Promise<void> {
   const cwd = options?.cwd ?? process.cwd();
+  const scope = options?.global ? "global" : "local";
 
   // 1. Validate inputs
   if (!name || name.trim() === "") {
@@ -83,11 +86,12 @@ export async function addCommand(
   }
 
   // 3. Add to package.json only after successful validation
-  const configManager = new PackageConfigManager(cwd);
+  const configManager = new PackageConfigManager(cwd, scope);
   await configManager.addSkill(name, spec);
 
   // 4. Inform the user
-  console.log(chalk.green(`✓ Added ${name} to package.json`));
+  const location = options?.global ? "global package.json" : "package.json";
+  console.log(chalk.green(`✓ Added ${name} to ${location}`));
   console.log(chalk.gray(`   Spec: ${spec}`));
   console.log(
     chalk.blue(`\nRun 'agentskills install' to install all configured skills.`)
