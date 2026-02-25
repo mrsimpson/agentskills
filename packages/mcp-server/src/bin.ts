@@ -47,8 +47,8 @@ async function main() {
       process.exit(1);
     }
 
-    // Read package.json configuration
-    const configManager = new PackageConfigManager(projectDir);
+    // Read package.json configuration (merged: local + global)
+    const configManager = new PackageConfigManager(projectDir, "merged");
     const config = await configManager.loadConfig();
 
     // Get skills directory from config (or use default)
