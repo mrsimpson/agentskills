@@ -393,7 +393,8 @@ describe("SkillInstaller", () => {
 
   describe("Clean installation", () => {
     it("should clean existing directory before install", async () => {
-      const existingDir = join(skillsDir, "existing-skill");
+      // The directory is named after the actual skill name from SKILL.md, not the name parameter
+      const existingDir = join(skillsDir, "test-skill");
       await fs.mkdir(existingDir, { recursive: true });
       await fs.writeFile(join(existingDir, "old-file.txt"), "old", "utf-8");
 

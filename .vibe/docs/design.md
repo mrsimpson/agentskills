@@ -134,21 +134,7 @@ See [Architecture Document](./architecture.md) for high-level system context and
 
 ### Installation Workflow
 
-**Commands**:
-
-```bash
-# Install all declared skills (like npm install)
-agentskills install
-
-# Add a new skill (updates package.json + installs)
-agentskills add github:anthropic/api-skill
-
-# List installed and discovered skills
-agentskills list
-
-# Validate skills
-agentskills validate [path]
-```
+**Directory Naming**: Skills are installed into directories named after the actual skill name from SKILL.md metadata, not the name parameter provided to the install command. This ensures consistency and prevents validation errors during server startup.
 
 **Directory Structure**:
 
@@ -162,50 +148,6 @@ agentskills validate [path]
       SKILL.md
   skills-lock.json          # Lock file (versions, integrity)
   cache/                    # Pacote cache
-```
-
-### Discovery Strategy
-
-**Load Order** (prevents double-loading):
-
-1. **Installed skills**: Read from `.agentskills/skills/` (declared in package.json)
-2. **Auto-discovered**: Scan paths from `autoDiscover` config (e.g., `.claude/skills`)
-3. **Priority**: Installed wins over auto-discovered if same name
-
-**Default Behavior** (no package.json):
-
-- Auto-discover from `.claude/skills/`, `~/.claude/skills/`
-- No installed skills
-- Zero-config startup works
-
-**With package.json**:
-
-- Install declared skills to `.agentskills/skills/`
-- Also scan auto-discover paths
-- Installed skills take precedence
-
-### Lock File
-
-**Purpose**: Reproducible skill installations (like package-lock.json)
-
-**Schema**:
-
-```json
-{
-  "version": "1.0",
-  "skills": {
-    "api-integration": {
-      "resolved": "github:anthropic/api-integration#v1.0.0",
-      "integrity": "sha512-...",
-      "source": "git",
-      "commitHash": "abc123..."
-    },
-    "database-query": {
-      "resolved": "file:./skills/db-query",
-      "source": "local"
-    }
-  }
-}
 ```
 
 ## SkillRegistry Design
@@ -305,40 +247,6 @@ The SkillRegistry is the **in-memory skill repository** providing the foundation
 
 See [Architecture Document](./architecture.md) for detailed schemas.
 
-## String Interpolation Design
-
-### Server Responsibilities
-
-**IMPORTANT**: The MCP server does NOT perform string interpolation. This is the client's responsibility.
-
-**Server Behavior**:
-
-- Return raw skill content with placeholders intact ($ARGUMENTS, $1, $2, etc.)
-- Include metadata about detected placeholders
-- Flag skills containing dynamic commands (`` !`command` ``)
-- Document placeholder syntax in tool descriptions
-
-**Client Responsibilities**:
-
-- Parse placeholder syntax ($ARGUMENTS, $N)
-- Substitute arguments provided by user
-- Handle session variables (${CLAUDE_SESSION_ID})
-- Execute dynamic commands if appropriate
-- Sanitize interpolated values
-
-### Placeholder Syntax
-
-**Standard Placeholders** (client implements):
-
-- `$ARGUMENTS` → all arguments as space-separated string
-- `$N` (e.g., `$1`, `$2`) → individual argument by index (1-indexed)
-- `$ARGUMENTS[N]` → alternative syntax for individual argument
-- `${CLAUDE_SESSION_ID}` → session identifier (client provides)
-
-**Dynamic Commands** (flagged by server):
-
-- `` !`command` `` → flag for dynamic execution (server returns raw, client decides if/how to execute)
-
 ### Security Considerations
 
 **Why Client-Side**:
@@ -380,41 +288,6 @@ See [Architecture Document](./architecture.md) for detailed schemas.
 - Future (v1.1+): Explicit reload mechanism or file watching
 
 **Where to Look**: `src/mcp/server.ts` for integration, tool handlers use registry
-
-## Future Enhancements
-
-### Hot Reload (v1.1)
-
-**Principles**:
-
-- Watch source directories with file system events
-- Debounce to avoid reload storms
-- Incremental updates (only reload changed files)
-- Notify MCP clients of changes
-- Atomic updates (swap registry only after successful reload)
-
-**Not in MVP**: Requires file watching infrastructure, reload coordination, and client notification protocol.
-
-### Remote Sources (v1.2)
-
-**Principles**:
-
-- Already supported via Pacote (git, npm, tarball)
-- Version management and update checking
-- Cache invalidation strategies
-- Integrity verification with lock file
-
-**Mostly Implemented**: Core installation works, need update commands and cache management.
-
-### Advanced Filtering (v1.3)
-
-**Principles**:
-
-- Full-text search across content
-- Tag-based categorization
-- User-defined metadata schemas
-- Faceted filtering
-- Saved filter presets
 
 ---
 

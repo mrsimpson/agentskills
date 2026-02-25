@@ -46,7 +46,12 @@ export class SkillInstaller {
   /**
    * Install a skill from a spec (GitHub, Git URL, local path, tarball, npm)
    *
-   * @param name - Name for the installed skill (directory name)
+   * The skill is first extracted to a temporary directory, then the actual skill name
+   * is read from SKILL.md, and finally the skill is moved to its permanent location
+   * using the actual skill name as the directory name. This ensures the directory name
+   * always matches the skill name in SKILL.md, preventing validation errors.
+   *
+   * @param name - Name key for package.json reference (not used as directory name)
    * @param spec - Package spec (e.g., "github:user/repo#tag", "file:./path", "https://...")
    * @returns InstallResult with success/failure information
    */
@@ -85,16 +90,13 @@ export class SkillInstaller {
       return this.createFailure(name, spec, "INVALID_SPEC", helpfulMessage);
     }
 
-    const installPath = join(this.skillsDir, name);
+    // Create a temporary directory for initial extraction
+    const tempInstallPath = join(
+      this.skillsDir,
+      `.temp-install-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
 
     try {
-      // Clean existing directory if it exists
-      try {
-        await fs.rm(installPath, { recursive: true, force: true });
-      } catch {
-        // Ignore if directory doesn't exist
-      }
-
       // Ensure parent directory exists
       await fs.mkdir(this.skillsDir, { recursive: true });
 
@@ -114,15 +116,15 @@ export class SkillInstaller {
       let gitFallbackData: { version: string; integrity: string } | null = null;
 
       if (spec.startsWith("file:")) {
-        await this.copyLocalDirectory(spec, installPath);
+        await this.copyLocalDirectory(spec, tempInstallPath);
       } else if (subdir) {
         // Extract the full repo to a temp directory, then copy the subdirectory
-        await this.extractSubdirectory(baseSpec, subdir, installPath, opts);
+        await this.extractSubdirectory(baseSpec, subdir, tempInstallPath, opts);
       } else {
         // Use pacote.extract to download and extract the package
         // For git repos without package.json, fall back to git clone
         try {
-          await pacote.extract(baseSpec, installPath, opts);
+          await pacote.extract(baseSpec, tempInstallPath, opts);
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : String(error);
@@ -137,7 +139,10 @@ export class SkillInstaller {
               spec.includes("bitbucket.org");
 
             if (isGitRepo) {
-              gitFallbackData = await this.gitCloneFallback(spec, installPath);
+              gitFallbackData = await this.gitCloneFallback(
+                spec,
+                tempInstallPath
+              );
             } else {
               throw error;
             }
@@ -148,11 +153,11 @@ export class SkillInstaller {
       }
 
       // Verify SKILL.md exists
-      const skillMdPath = join(installPath, "SKILL.md");
+      const skillMdPath = join(tempInstallPath, "SKILL.md");
       try {
         await fs.access(skillMdPath);
       } catch {
-        await fs.rm(installPath, { recursive: true, force: true });
+        await fs.rm(tempInstallPath, { recursive: true, force: true });
         return this.createFailure(
           name,
           spec,
@@ -161,16 +166,42 @@ export class SkillInstaller {
         );
       }
 
-      // Extract manifest from SKILL.md
-      const manifest = await this.extractManifest(installPath);
+      // Extract manifest from SKILL.md to get the actual skill name
+      const manifest = await this.extractManifest(tempInstallPath);
       if (!manifest) {
-        await fs.rm(installPath, { recursive: true, force: true });
+        await fs.rm(tempInstallPath, { recursive: true, force: true });
         return this.createFailure(
           name,
           spec,
           "INVALID_SKILL_FORMAT",
           "Failed to extract valid skill metadata from SKILL.md"
         );
+      }
+
+      // Use the actual skill name from SKILL.md as the directory name
+      const actualSkillName = manifest.name;
+      const finalInstallPath = join(this.skillsDir, actualSkillName);
+
+      // Clean existing directory if it exists
+      try {
+        await fs.rm(finalInstallPath, { recursive: true, force: true });
+      } catch {
+        // Ignore if directory doesn't exist
+      }
+
+      // Move from temp location to final location
+      try {
+        await fs.rename(tempInstallPath, finalInstallPath);
+      } catch {
+        // If rename fails (e.g., cross-device), fall back to copy and remove
+        try {
+          await this.copyDir(tempInstallPath, finalInstallPath);
+          await fs.rm(tempInstallPath, { recursive: true, force: true });
+        } catch (copyError) {
+          // Clean up temp directory on failure
+          await fs.rm(tempInstallPath, { recursive: true, force: true });
+          throw copyError;
+        }
       }
 
       // Get package metadata for integrity and version
@@ -184,11 +215,11 @@ export class SkillInstaller {
       } else if (spec.startsWith("file:")) {
         // For local files, use a hash of the path or timestamp
         resolvedVersion = "local";
-        integrity = `file:${installPath}`;
+        integrity = `file:${finalInstallPath}`;
 
         // Try to get version from package.json
         try {
-          const packageJsonPath = join(installPath, "package.json");
+          const packageJsonPath = join(finalInstallPath, "package.json");
           const packageJsonContent = await fs.readFile(
             packageJsonPath,
             "utf-8"
@@ -222,17 +253,17 @@ export class SkillInstaller {
 
       return {
         success: true,
-        name,
+        name: actualSkillName,
         spec,
         resolvedVersion,
         integrity,
-        installPath,
+        installPath: finalInstallPath,
         manifest
       };
     } catch (error) {
       // Clean up on error
       try {
-        await fs.rm(installPath, { recursive: true, force: true });
+        await fs.rm(tempInstallPath, { recursive: true, force: true });
       } catch {
         // Ignore cleanup errors
       }
