@@ -22,6 +22,7 @@ export type {
   SkillLockFile,
   SkillLockEntry,
   PackageConfig,
+  PackageConfigScope,
   McpClientType,
   McpConfig,
   McpServerConfig,

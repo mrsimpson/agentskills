@@ -23,9 +23,13 @@ export function createCLI(): Command {
   // Create "list" command
   const listCommandDef = new Command("list")
     .description("List all configured skills")
-    .action(async () => {
+    .option(
+      "-g, --global",
+      "List only global skills (default: show merged local + global)"
+    )
+    .action(async (options) => {
       try {
-        const output = await listCommand();
+        const output = await listCommand({ global: options.global });
         console.log(output);
       } catch (error) {
         console.error(error instanceof Error ? error.message : String(error));
@@ -44,12 +48,17 @@ export function createCLI(): Command {
       "--agent <name>",
       "Specify MCP agent to configure (claude, cline, cursor, continue, junie, kiro, opencode, zed, vscode)"
     )
+    .option(
+      "-g, --global",
+      "Install only global skills (default: install merged local + global)"
+    )
     .action(async (options) => {
       try {
         await installCommand({
           cwd: process.cwd(),
           withMcp: options.withMcp,
-          agent: options.agent
+          agent: options.agent,
+          global: options.global
         });
       } catch (error) {
         console.error(error instanceof Error ? error.message : String(error));
@@ -64,6 +73,10 @@ export function createCLI(): Command {
     )
     .argument("<name>", "Skill name (used as the install directory)")
     .argument("<spec>", "Skill source specifier (see supported formats below)")
+    .option(
+      "-g, --global",
+      "Add to global config instead of local package.json"
+    )
     .showHelpAfterError("(add --help for additional information)")
     .addHelpText(
       "after",
@@ -106,12 +119,14 @@ Supported spec formats:
 Examples:
   $ agentskills add git-workflow github:anthropics/agent-skills/skills/git-workflow
   $ agentskills add my-skill git+https://github.com/org/repo.git#v2.0.0::path:skills/my-skill
-  $ agentskills add local file:./team-skills/custom`
+  $ agentskills add local file:./team-skills/custom
+  $ agentskills add --global common-skill github:org/skills/common`
     )
-    .action(async (name, spec) => {
+    .action(async (name, spec, options) => {
       try {
         await addCommand(name, spec, {
-          cwd: process.cwd()
+          cwd: process.cwd(),
+          global: options.global
         });
       } catch (error) {
         console.error(error instanceof Error ? error.message : String(error));

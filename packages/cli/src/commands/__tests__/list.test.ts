@@ -99,6 +99,6 @@ Test`
 
   it("should handle missing package.json", async () => {
     const output = await listCommand();
-    expect(output).toContain("No package.json found");
+    expect(output).toContain("No skills configured");
   });
 });
