@@ -214,6 +214,11 @@ export interface SkillLockFile {
 }
 
 /**
+ * Scope for package configuration operations
+ */
+export type PackageConfigScope = "local" | "global" | "merged";
+
+/**
  * Package configuration for agent skills
  */
 export interface PackageConfig {
@@ -229,10 +234,16 @@ export interface PackageConfig {
   };
 
   // Where config was loaded from
-  source: {
-    type: "file" | "defaults";
-    path?: string;
-  };
+  source:
+    | {
+        type: "file" | "defaults";
+        path?: string;
+      }
+    | {
+        type: "merged";
+        global?: string; // Path to global package.json (if exists)
+        local?: string; // Path to local package.json (if exists)
+      };
 }
 
 /**

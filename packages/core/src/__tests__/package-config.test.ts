@@ -3,6 +3,7 @@ import { promises as fs } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { PackageConfigManager } from "../package-config.js";
+import * as globalConfigPaths from "../global-config-paths.js";
 
 interface PackageConfig {
   skills: Record<string, string>;
@@ -12,10 +13,16 @@ interface PackageConfig {
     maxSkillSize: number;
     logLevel: "error" | "warn" | "info" | "debug";
   };
-  source: {
-    type: "file" | "defaults";
-    path?: string;
-  };
+  source:
+    | {
+        type: "file" | "defaults";
+        path?: string;
+      }
+    | {
+        type: "merged";
+        global?: string;
+        local?: string;
+      };
 }
 
 describe("PackageConfigManager", () => {
@@ -382,6 +389,266 @@ describe("PackageConfigManager", () => {
       expect(config.config.skillsDirectory).toBe("custom");
       expect(config.config.maxSkillSize).toBe(8000);
       expect(config.config.logLevel).toBe("debug");
+    });
+  });
+
+  describe("Scope parameter and global configuration", () => {
+    let globalTempDir: string;
+    let globalPackageJsonPath: string;
+
+    beforeEach(async () => {
+      // Setup a mock global config directory
+      globalTempDir = join(tempDir, "global");
+      globalPackageJsonPath = join(globalTempDir, "package.json");
+      await fs.mkdir(globalTempDir, { recursive: true });
+
+      // Mock the global config path function
+      vi.spyOn(globalConfigPaths, "getGlobalPackageJsonPath").mockReturnValue(
+        globalPackageJsonPath
+      );
+      vi.spyOn(globalConfigPaths, "getGlobalConfigDir").mockReturnValue(
+        globalTempDir
+      );
+    });
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it("should default to 'merged' scope", () => {
+      const manager = new PackageConfigManager(projectRoot);
+      expect(manager.getScope()).toBe("merged");
+    });
+
+    it("should accept 'local' scope", () => {
+      const manager = new PackageConfigManager(projectRoot, "local");
+      expect(manager.getScope()).toBe("local");
+    });
+
+    it("should accept 'global' scope", () => {
+      const manager = new PackageConfigManager(projectRoot, "global");
+      expect(manager.getScope()).toBe("global");
+    });
+
+    it("should load global config when it exists", async () => {
+      await fs.writeFile(
+        globalPackageJsonPath,
+        JSON.stringify({
+          name: "global-config",
+          agentskills: {
+            "global-skill": "github:user/global#v1.0.0"
+          }
+        }),
+        "utf-8"
+      );
+
+      const manager = new PackageConfigManager(projectRoot);
+      const config = await manager.loadGlobalConfig();
+
+      expect(config.source.type).toBe("file");
+      expect(config.source).toHaveProperty("path", globalPackageJsonPath);
+      expect(config.skills).toEqual({
+        "global-skill": "github:user/global#v1.0.0"
+      });
+    });
+
+    it("should return defaults when global config doesn't exist", async () => {
+      const manager = new PackageConfigManager(projectRoot);
+      const config = await manager.loadGlobalConfig();
+
+      expect(config.source.type).toBe("defaults");
+      expect(config.skills).toEqual({});
+    });
+
+    it("should merge global and local configs with local taking precedence", async () => {
+      // Setup global config
+      await fs.writeFile(
+        globalPackageJsonPath,
+        JSON.stringify({
+          agentskills: {
+            "global-skill": "github:user/global#v1.0.0",
+            "shared-skill": "github:user/global-version#v1.0.0"
+          },
+          agentskillsConfig: {
+            maxSkillSize: 3000,
+            logLevel: "error"
+          }
+        }),
+        "utf-8"
+      );
+
+      // Setup local config
+      await fs.writeFile(
+        packageJsonPath,
+        JSON.stringify({
+          agentskills: {
+            "local-skill": "github:user/local#v1.0.0",
+            "shared-skill": "github:user/local-version#v2.0.0"
+          },
+          agentskillsConfig: {
+            maxSkillSize: 8000
+          }
+        }),
+        "utf-8"
+      );
+
+      const manager = new PackageConfigManager(projectRoot);
+      const config = await manager.loadMergedConfig();
+
+      expect(config.source.type).toBe("merged");
+      if (config.source.type === "merged") {
+        expect(config.source.global).toBe(globalPackageJsonPath);
+        expect(config.source.local).toBe(packageJsonPath);
+      }
+
+      // Local skill + global skill + local override of shared skill
+      expect(config.skills).toEqual({
+        "global-skill": "github:user/global#v1.0.0",
+        "local-skill": "github:user/local#v1.0.0",
+        "shared-skill": "github:user/local-version#v2.0.0" // Local wins
+      });
+
+      // Local config values override global
+      expect(config.config.maxSkillSize).toBe(8000); // Local wins
+      expect(config.config.logLevel).toBe("error"); // From global (not overridden locally)
+    });
+
+    it("should handle merged config when only global exists", async () => {
+      await fs.writeFile(
+        globalPackageJsonPath,
+        JSON.stringify({
+          agentskills: {
+            "global-skill": "github:user/global#v1.0.0"
+          }
+        }),
+        "utf-8"
+      );
+
+      const manager = new PackageConfigManager(projectRoot);
+      const config = await manager.loadMergedConfig();
+
+      expect(config.source.type).toBe("merged");
+      if (config.source.type === "merged") {
+        expect(config.source.global).toBe(globalPackageJsonPath);
+        expect(config.source.local).toBeUndefined();
+      }
+      expect(config.skills).toEqual({
+        "global-skill": "github:user/global#v1.0.0"
+      });
+    });
+
+    it("should handle merged config when only local exists", async () => {
+      await fs.writeFile(
+        packageJsonPath,
+        JSON.stringify({
+          agentskills: {
+            "local-skill": "github:user/local#v1.0.0"
+          }
+        }),
+        "utf-8"
+      );
+
+      const manager = new PackageConfigManager(projectRoot);
+      const config = await manager.loadMergedConfig();
+
+      expect(config.source.type).toBe("merged");
+      if (config.source.type === "merged") {
+        expect(config.source.global).toBeUndefined();
+        expect(config.source.local).toBe(packageJsonPath);
+      }
+      expect(config.skills).toEqual({
+        "local-skill": "github:user/local#v1.0.0"
+      });
+    });
+
+    it("should return defaults when neither global nor local exist", async () => {
+      const manager = new PackageConfigManager(projectRoot);
+      const config = await manager.loadMergedConfig();
+
+      expect(config.source.type).toBe("defaults");
+      expect(config.skills).toEqual({});
+    });
+
+    it("should write to global package.json when scope is 'global'", async () => {
+      const manager = new PackageConfigManager(projectRoot, "global");
+      await manager.addSkill("global-skill", "github:user/skill#v1.0.0");
+
+      const content = await fs.readFile(globalPackageJsonPath, "utf-8");
+      const packageJson = JSON.parse(content);
+
+      expect(packageJson.agentskills).toEqual({
+        "global-skill": "github:user/skill#v1.0.0"
+      });
+
+      // Verify local doesn't exist
+      await expect(fs.access(packageJsonPath)).rejects.toThrow();
+    });
+
+    it("should write to local package.json when scope is 'local'", async () => {
+      const manager = new PackageConfigManager(projectRoot, "local");
+      await manager.addSkill("local-skill", "github:user/skill#v1.0.0");
+
+      const content = await fs.readFile(packageJsonPath, "utf-8");
+      const packageJson = JSON.parse(content);
+
+      expect(packageJson.agentskills).toEqual({
+        "local-skill": "github:user/skill#v1.0.0"
+      });
+
+      // Verify global doesn't exist
+      await expect(fs.access(globalPackageJsonPath)).rejects.toThrow();
+    });
+
+    it("should write to local package.json when scope is 'merged'", async () => {
+      const manager = new PackageConfigManager(projectRoot, "merged");
+      await manager.addSkill("merged-skill", "github:user/skill#v1.0.0");
+
+      const content = await fs.readFile(packageJsonPath, "utf-8");
+      const packageJson = JSON.parse(content);
+
+      expect(packageJson.agentskills).toEqual({
+        "merged-skill": "github:user/skill#v1.0.0"
+      });
+    });
+
+    it("should create global config directory if it doesn't exist", async () => {
+      // Remove the global directory
+      await fs.rm(globalTempDir, { recursive: true, force: true });
+
+      const manager = new PackageConfigManager(projectRoot, "global");
+      await manager.addSkill("new-global", "github:user/skill#v1.0.0");
+
+      // Verify the directory was created
+      const stats = await fs.stat(globalTempDir);
+      expect(stats.isDirectory()).toBe(true);
+
+      // Verify the file was created
+      const content = await fs.readFile(globalPackageJsonPath, "utf-8");
+      const packageJson = JSON.parse(content);
+      expect(packageJson.agentskills).toHaveProperty("new-global");
+    });
+
+    it("should remove skills from global config when scope is 'global'", async () => {
+      await fs.writeFile(
+        globalPackageJsonPath,
+        JSON.stringify({
+          agentskills: {
+            "skill-to-remove": "github:user/skill#v1.0.0",
+            "skill-to-keep": "github:user/keep#v1.0.0"
+          }
+        }),
+        "utf-8"
+      );
+
+      const manager = new PackageConfigManager(projectRoot, "global");
+      await manager.removeSkill("skill-to-remove");
+
+      const content = await fs.readFile(globalPackageJsonPath, "utf-8");
+      const packageJson = JSON.parse(content);
+
+      expect(packageJson.agentskills).toEqual({
+        "skill-to-keep": "github:user/keep#v1.0.0"
+      });
     });
   });
 });
