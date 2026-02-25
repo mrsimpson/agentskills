@@ -179,6 +179,7 @@ Agent ← MCP Protocol ← agentskills-mcp (server) ← skill registry
 
 - 🔌 **MCP Protocol Support** - Works with Claude Desktop, Cline, Continue, Cursor, Junie, Kiro, OpenCode, Zed, and other MCP clients
 - 📦 **Package Manager Integration** - Declare skills in `package.json`, version control your configuration
+- 🌍 **Global Configuration** - Share common skills across all projects with global package.json
 - 🚀 **Multiple Sources** - Install from GitHub repos, local paths, or tarball URLs
 - 🔧 **MCP Server Dependencies** - Skills declare required MCP servers, auto-configured for your agent
 - ✅ **Validation** - Built-in parsing and validation for Agent Skills format
@@ -229,6 +230,47 @@ The `path:` attribute syntax (`#ref::path:subdir`) follows the [npm/pacote stand
 
 Commit this to your repo, and your entire team uses the same skills configuration.
 
+### Global Configuration
+
+You can configure skills globally (across all projects) in addition to project-specific configurations:
+
+**Global Config Location:**
+
+- Unix/macOS: `~/.config/agentskills-mcp/package.json`
+- Windows: `%APPDATA%\agentskills-mcp\package.json`
+
+**Configuration Merging:**
+
+By default, agentskills merges both global and local configurations with field-level precedence:
+
+- **Skills**: If the same skill name exists in both configs, the local spec takes precedence
+- **Config fields**: Local values override global values for the same field
+- **MCP Server**: Automatically uses merged configuration
+
+**Example Use Case:**
+
+```json
+// Global config (~/.config/agentskills-mcp/package.json)
+{
+  "agentskills": {
+    "git-workflow": "github:anthropics/agent-skills/skills/git-workflow",
+    "code-review": "github:anthropics/agent-skills/skills/code-review"
+  }
+}
+```
+
+```json
+// Project config (./package.json)
+{
+  "agentskills": {
+    "project-specific": "file:./custom-skills/deployment",
+    "git-workflow": "github:myorg/custom-git-workflow#v2.0.0" // Overrides global
+  }
+}
+```
+
+Result: The project gets all three skills, with the local `git-workflow` spec overriding the global one.
+
 ## CLI Commands
 
 ### Install all configured skills
@@ -241,6 +283,7 @@ Options:
 
 - `--agent <name>` - Validate MCP server dependencies for specified agent (claude, cline, continue, cursor, junie, kiro, zed)
 - `--with-mcp` - Auto-install missing MCP servers and update agent config
+- `-g, --global` - Install only global skills (default: install merged local + global)
 
 ### Add a new skill
 
@@ -253,10 +296,40 @@ and skill metadata) before writing anything. The skill is added to `package.json
 validation succeeds. Run `agentskills install` afterwards to download and install all
 configured skills.
 
+Options:
+
+- `-g, --global` - Add to global config instead of local package.json
+
+Examples:
+
+```bash
+# Add to local project
+agentskills add git-workflow github:anthropics/agent-skills/skills/git-workflow
+
+# Add to global config (available to all projects)
+agentskills add --global code-review github:anthropics/agent-skills/skills/code-review
+```
+
 ### List configured skills
 
 ```bash
 agentskills list
+```
+
+By default, shows merged skills from both local and global configurations with source indicators.
+
+Options:
+
+- `-g, --global` - Show only global skills
+
+Examples:
+
+```bash
+# Show all skills (local + global with source indicators)
+agentskills list
+
+# Show only global skills
+agentskills list --global
 ```
 
 ### Validate a skill file
