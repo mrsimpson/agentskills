@@ -164,8 +164,11 @@ export class SkillInstaller {
             tempInstallPath
           );
         }
+      } else if (subdir) {
+        // For non-git sources with subdirectories (npm packages with ::path:), use extractSubdirectory
+        await this.extractSubdirectory(baseSpec, subdir, tempInstallPath, opts);
       } else {
-        // For non-git sources (npm packages, tarballs, etc.), use pacote
+        // For non-git sources (npm packages, tarballs, etc.) without subdirectories, use pacote
         await pacote.extract(baseSpec, tempInstallPath, opts);
       }
 
