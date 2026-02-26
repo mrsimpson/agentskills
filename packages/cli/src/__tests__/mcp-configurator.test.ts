@@ -28,13 +28,13 @@ describe('mcp-configurator', () => {
   describe('getAgentConfigPath', () => {
     it('should return claude config path for claude agent', () => {
       const configPath = getAgentConfigPath('claude', tempDir);
-      expect(configPath).toMatch(/\.claude$/);
+      expect(configPath).toMatch(/\.claude\/mcp\.json$/);
       expect(configPath).toContain(tempDir);
     });
 
     it('should return cline config path for cline agent', () => {
       const configPath = getAgentConfigPath('cline', tempDir);
-      expect(configPath).toMatch(/\.cline$/);
+      expect(configPath).toMatch(/\.cline\/mcp\.json$/);
       expect(configPath).toContain(tempDir);
     });
 
@@ -52,7 +52,7 @@ describe('mcp-configurator', () => {
 
     it('should return kiro config path for kiro agent', () => {
       const configPath = getAgentConfigPath('kiro', tempDir);
-      expect(configPath).toMatch(/\.kiro$/);
+      expect(configPath).toMatch(/\.kiro\/mcp\.json$/);
       expect(configPath).toContain(tempDir);
     });
 
@@ -63,7 +63,7 @@ describe('mcp-configurator', () => {
 
     it('should return junie config path for junie agent', () => {
       const configPath = getAgentConfigPath('junie', tempDir);
-      expect(configPath).toMatch(/\.junie$/);
+      expect(configPath).toMatch(/\.junie\/mcp\.json$/);
       expect(configPath).toContain(tempDir);
     });
 
@@ -77,13 +77,13 @@ describe('mcp-configurator', () => {
 
   describe('readAgentConfig', () => {
     it('should return empty config if file does not exist', async () => {
-      const configPath = path.join(tempDir, '.claude');
+      const configPath = path.join(tempDir, '.claude', 'mcp.json');
       const config = await readAgentConfig(configPath);
       expect(config).toEqual({});
     });
 
     it('should read existing config file', async () => {
-      const configPath = path.join(tempDir, '.claude');
+      const configPath = path.join(tempDir, '.claude', 'mcp.json');
       const existingConfig: McpConfig = {
         mcpServers: {
           existing: {
@@ -101,7 +101,7 @@ describe('mcp-configurator', () => {
     });
 
     it('should handle invalid JSON gracefully', async () => {
-      const configPath = path.join(tempDir, '.claude');
+      const configPath = path.join(tempDir, '.claude', 'mcp.json');
       fs.mkdirSync(path.dirname(configPath), { recursive: true });
       fs.writeFileSync(configPath, 'invalid json {');
 
@@ -109,7 +109,7 @@ describe('mcp-configurator', () => {
     });
 
     it('should handle permission errors', async () => {
-      const configPath = path.join(tempDir, '.claude');
+      const configPath = path.join(tempDir, '.claude', 'mcp.json');
       fs.mkdirSync(path.dirname(configPath), { recursive: true });
       fs.writeFileSync(configPath, '{}');
       fs.chmodSync(configPath, 0o000);
@@ -124,7 +124,7 @@ describe('mcp-configurator', () => {
 
   describe('writeAgentConfig', () => {
     it('should write config to file with proper JSON formatting', async () => {
-      const configPath = path.join(tempDir, '.claude');
+      const configPath = path.join(tempDir, '.claude', 'mcp.json');
       const config: McpConfig = {
         mcpServers: {
           agentskills: {
@@ -161,7 +161,7 @@ describe('mcp-configurator', () => {
     });
 
     it('should use proper JSON indentation (2 spaces)', async () => {
-      const configPath = path.join(tempDir, '.claude');
+      const configPath = path.join(tempDir, '.claude', 'mcp.json');
       const config: McpConfig = {
         mcpServers: {
           agentskills: {
@@ -180,7 +180,7 @@ describe('mcp-configurator', () => {
     });
 
     it('should handle write permission errors', async () => {
-      const configPath = path.join(tempDir, '.claude');
+      const configPath = path.join(tempDir, '.claude', 'mcp.json');
       fs.mkdirSync(path.dirname(configPath), { recursive: true });
       fs.chmodSync(path.dirname(configPath), 0o000);
 
@@ -205,7 +205,7 @@ describe('mcp-configurator', () => {
     it('should create MCP config for claude agent', async () => {
       await configureAgentMcp('claude', tempDir);
 
-      const configPath = path.join(tempDir, '.claude');
+      const configPath = path.join(tempDir, '.claude', 'mcp.json');
       expect(fs.existsSync(configPath)).toBe(true);
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       expect(config.mcpServers?.agentskills).toBeDefined();
@@ -216,7 +216,7 @@ describe('mcp-configurator', () => {
     it('should create MCP config for cline agent', async () => {
       await configureAgentMcp('cline', tempDir);
 
-      const configPath = path.join(tempDir, '.cline');
+      const configPath = path.join(tempDir, '.cline', 'mcp.json');
       expect(fs.existsSync(configPath)).toBe(true);
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
       expect(config.mcpServers?.agentskills).toBeDefined();
@@ -242,7 +242,7 @@ describe('mcp-configurator', () => {
     });
 
     it('should merge with existing config without removing other servers', async () => {
-      const configPath = path.join(tempDir, '.claude');
+      const configPath = path.join(tempDir, '.claude', 'mcp.json');
       const existingConfig: McpConfig = {
         mcpServers: {
           existing: {
@@ -263,7 +263,7 @@ describe('mcp-configurator', () => {
     });
 
     it('should update existing agentskills server config', async () => {
-      const configPath = path.join(tempDir, '.claude');
+      const configPath = path.join(tempDir, '.claude', 'mcp.json');
       const existingConfig: McpConfig = {
         mcpServers: {
           agentskills: {
@@ -301,7 +301,7 @@ describe('mcp-configurator', () => {
     });
 
     it('should not overwrite other config fields when merging', async () => {
-      const configPath = path.join(tempDir, '.claude');
+      const configPath = path.join(tempDir, '.claude', 'mcp.json');
       const existingConfig: McpConfig = {
         mcpServers: {
           other: { command: 'cmd', args: [] },
@@ -327,15 +327,15 @@ describe('mcp-configurator', () => {
         configureAgentMcp('cursor', tempDir),
       ]);
 
-      expect(fs.existsSync(path.join(tempDir, '.claude'))).toBe(true);
-      expect(fs.existsSync(path.join(tempDir, '.cline'))).toBe(true);
+      expect(fs.existsSync(path.join(tempDir, '.claude', 'mcp.json'))).toBe(true);
+      expect(fs.existsSync(path.join(tempDir, '.cline', 'mcp.json'))).toBe(true);
       expect(fs.existsSync(path.join(tempDir, '.cursor', 'mcp.json'))).toBe(true);
     });
   });
 
   describe('config format validation', () => {
     it('should write valid MCP server config format', async () => {
-      const configPath = path.join(tempDir, '.claude');
+      const configPath = path.join(tempDir, '.claude', 'mcp.json');
       const config: McpConfig = {
         mcpServers: {
           agentskills: {
