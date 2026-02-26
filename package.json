@@ -84,6 +84,6 @@
     "commit": "github:mrsimpson/skills-coding/commit",
     "tdd": "github:mrsimpson/skills-coding/tdd-with-agents",
     "knowledge": "github:mrsimpson/agentic-knowledge-mcp/skill",
-    "test-knowledge": "github:mrsimpson/agentic-knowledge-mcp/skill"
+    "responsible-vibe": "@codemcp/workflows::path:/skill"
   }
 }
