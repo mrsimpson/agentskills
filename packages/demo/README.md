@@ -26,11 +26,21 @@ node ../cli/dist/index.js add example-skill file:./local-skills/example-skill
 ```
 
 This will:
+<<<<<<< HEAD
+=======
+
+> > > > > > > 5ec49a1 (feat(cli): Add skills mcp setup command for MCP server configuration)
+
 - Add `example-skill` to `package.json` under `agentskills` field
 - Install it to `.agentskills/skills/example-skill/`
 - Generate a lock file at `.agentskills/skills-lock.json`
 
 **Expected output:**
+<<<<<<< HEAD
+=======
+
+> > > > > > > 5ec49a1 (feat(cli): Add skills mcp setup command for MCP server configuration)
+
 ```
 ✓ Added example-skill to package.json
 [spinner] Installing example-skill...
@@ -47,6 +57,11 @@ cat package.json
 ```
 
 You should see:
+<<<<<<< HEAD
+=======
+
+> > > > > > > 5ec49a1 (feat(cli): Add skills mcp setup command for MCP server configuration)
+
 ```json
 {
   "name": "agentskills-demo",
@@ -75,6 +90,11 @@ node ../cli/dist/index.js install
 ```
 
 **Expected output:**
+<<<<<<< HEAD
+=======
+
+> > > > > > > 5ec49a1 (feat(cli): Add skills mcp setup command for MCP server configuration)
+
 ```
 📦 Installing skills...
 ✓ example-skill (file:./local-skills/example-skill)

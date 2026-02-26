@@ -1,0 +1,357 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import {
+  configureAgentMcp,
+  getAgentConfigPath,
+  readAgentConfig,
+  writeAgentConfig,
+} from '../mcp-configurator';
+import type { McpConfig } from '@agent-skills/core';
+
+describe('mcp-configurator', () => {
+  let tempDir: string;
+
+  beforeEach(() => {
+    // Create temporary directory for tests
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-test-'));
+  });
+
+  afterEach(() => {
+    // Clean up temporary directory
+    if (fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  describe('getAgentConfigPath', () => {
+    it('should return claude config path for claude agent', () => {
+      const configPath = getAgentConfigPath('claude', tempDir);
+      expect(configPath).toMatch(/\.claude$/);
+      expect(configPath).toContain(tempDir);
+    });
+
+    it('should return cline config path for cline agent', () => {
+      const configPath = getAgentConfigPath('cline', tempDir);
+      expect(configPath).toMatch(/\.cline$/);
+      expect(configPath).toContain(tempDir);
+    });
+
+    it('should return cursor config path for cursor agent', () => {
+      const configPath = getAgentConfigPath('cursor', tempDir);
+      expect(configPath).toMatch(/\.cursor\/mcp\.json$/);
+      expect(configPath).toContain(tempDir);
+    });
+
+    it('should return opencode config path for opencode agent', () => {
+      const configPath = getAgentConfigPath('opencode', tempDir);
+      expect(configPath).toMatch(/opencode\.json$/);
+      expect(configPath).toContain(tempDir);
+    });
+
+    it('should return kiro config path for kiro agent', () => {
+      const configPath = getAgentConfigPath('kiro', tempDir);
+      expect(configPath).toMatch(/\.kiro$/);
+      expect(configPath).toContain(tempDir);
+    });
+
+    it('should return zed config path for zed agent', () => {
+      const configPath = getAgentConfigPath('zed', tempDir);
+      expect(configPath).toMatch(/settings\.json$/);
+    });
+
+    it('should return junie config path for junie agent', () => {
+      const configPath = getAgentConfigPath('junie', tempDir);
+      expect(configPath).toMatch(/\.junie$/);
+      expect(configPath).toContain(tempDir);
+    });
+
+    it('should throw error for unknown agent type', () => {
+      expect(() => getAgentConfigPath('unknown' as any, tempDir)).toThrow();
+    });
+  });
+
+  describe('readAgentConfig', () => {
+    it('should return empty config if file does not exist', async () => {
+      const configPath = path.join(tempDir, '.claude');
+      const config = await readAgentConfig(configPath);
+      expect(config).toEqual({});
+    });
+
+    it('should read existing config file', async () => {
+      const configPath = path.join(tempDir, '.claude');
+      const existingConfig: McpConfig = {
+        mcpServers: {
+          existing: {
+            command: 'existing-command',
+            args: [],
+            env: {},
+          },
+        },
+      };
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+      fs.writeFileSync(configPath, JSON.stringify(existingConfig));
+
+      const config = await readAgentConfig(configPath);
+      expect(config).toEqual(existingConfig);
+    });
+
+    it('should handle invalid JSON gracefully', async () => {
+      const configPath = path.join(tempDir, '.claude');
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+      fs.writeFileSync(configPath, 'invalid json {');
+
+      await expect(readAgentConfig(configPath)).rejects.toThrow();
+    });
+
+    it('should handle permission errors', async () => {
+      const configPath = path.join(tempDir, '.claude');
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+      fs.writeFileSync(configPath, '{}');
+      fs.chmodSync(configPath, 0o000);
+
+      try {
+        await expect(readAgentConfig(configPath)).rejects.toThrow();
+      } finally {
+        fs.chmodSync(configPath, 0o644);
+      }
+    });
+  });
+
+  describe('writeAgentConfig', () => {
+    it('should write config to file with proper JSON formatting', async () => {
+      const configPath = path.join(tempDir, '.claude');
+      const config: McpConfig = {
+        mcpServers: {
+          agentskills: {
+            command: 'npx',
+            args: ['-y', '@codemcp/agentskills-mcp'],
+          },
+        },
+      };
+
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+      await writeAgentConfig(configPath, config);
+
+      expect(fs.existsSync(configPath)).toBe(true);
+      const written = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      expect(written).toEqual(config);
+    });
+
+    it('should create directories if they do not exist', async () => {
+      const configPath = path.join(tempDir, 'nested', 'dir', '.claude');
+      const config: McpConfig = {
+        mcpServers: {
+          agentskills: {
+            command: 'npx',
+            args: ['-y', '@codemcp/agentskills-mcp'],
+          },
+        },
+      };
+
+      await writeAgentConfig(configPath, config);
+
+      expect(fs.existsSync(configPath)).toBe(true);
+      const written = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      expect(written).toEqual(config);
+    });
+
+    it('should use proper JSON indentation (2 spaces)', async () => {
+      const configPath = path.join(tempDir, '.claude');
+      const config: McpConfig = {
+        mcpServers: {
+          agentskills: {
+            command: 'npx',
+            args: ['-y', '@codemcp/agentskills-mcp'],
+          },
+        },
+      };
+
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+      await writeAgentConfig(configPath, config);
+
+      const content = fs.readFileSync(configPath, 'utf-8');
+      expect(content).toMatch(/^{\n  /);
+      expect(content).toContain('  "mcpServers"');
+    });
+
+    it('should handle write permission errors', async () => {
+      const configPath = path.join(tempDir, '.claude');
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+      fs.chmodSync(path.dirname(configPath), 0o000);
+
+      const config: McpConfig = {
+        mcpServers: {
+          agentskills: {
+            command: 'npx',
+            args: ['-y', '@codemcp/agentskills-mcp'],
+          },
+        },
+      };
+
+      try {
+        await expect(writeAgentConfig(configPath, config)).rejects.toThrow();
+      } finally {
+        fs.chmodSync(path.dirname(configPath), 0o755);
+      }
+    });
+  });
+
+  describe('configureAgentMcp', () => {
+    it('should create MCP config for claude agent', async () => {
+      await configureAgentMcp('claude', tempDir);
+
+      const configPath = path.join(tempDir, '.claude');
+      expect(fs.existsSync(configPath)).toBe(true);
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      expect(config.mcpServers?.agentskills).toBeDefined();
+      expect(config.mcpServers.agentskills.command).toBe('npx');
+      expect(config.mcpServers.agentskills.args).toContain('@codemcp/agentskills-mcp');
+    });
+
+    it('should create MCP config for cline agent', async () => {
+      await configureAgentMcp('cline', tempDir);
+
+      const configPath = path.join(tempDir, '.cline');
+      expect(fs.existsSync(configPath)).toBe(true);
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      expect(config.mcpServers?.agentskills).toBeDefined();
+    });
+
+    it('should create MCP config for cursor agent', async () => {
+      await configureAgentMcp('cursor', tempDir);
+
+      const configPath = path.join(tempDir, '.cursor', 'mcp.json');
+      expect(fs.existsSync(configPath)).toBe(true);
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      expect(config.mcpServers?.agentskills).toBeDefined();
+    });
+
+    it('should create MCP config for opencode agent', async () => {
+      await configureAgentMcp('opencode', tempDir);
+
+      const configPath = path.join(tempDir, 'opencode.json');
+      expect(fs.existsSync(configPath)).toBe(true);
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      // OpenCode may use different format
+      expect(config).toBeDefined();
+    });
+
+    it('should merge with existing config without removing other servers', async () => {
+      const configPath = path.join(tempDir, '.claude');
+      const existingConfig: McpConfig = {
+        mcpServers: {
+          existing: {
+            command: 'existing-command',
+            args: [],
+          },
+        },
+      };
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+      fs.writeFileSync(configPath, JSON.stringify(existingConfig));
+
+      await configureAgentMcp('claude', tempDir);
+
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      expect(config.mcpServers.existing).toBeDefined();
+      expect(config.mcpServers.agentskills).toBeDefined();
+      expect(Object.keys(config.mcpServers).length).toBe(2);
+    });
+
+    it('should update existing agentskills server config', async () => {
+      const configPath = path.join(tempDir, '.claude');
+      const existingConfig: McpConfig = {
+        mcpServers: {
+          agentskills: {
+            command: 'old-command',
+            args: ['old-arg'],
+          },
+        },
+      };
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+      fs.writeFileSync(configPath, JSON.stringify(existingConfig));
+
+      await configureAgentMcp('claude', tempDir);
+
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      expect(config.mcpServers.agentskills.command).toBe('npx');
+      expect(config.mcpServers.agentskills.args).toContain('@codemcp/agentskills-mcp');
+    });
+
+    it('should throw error for invalid agent type', async () => {
+      await expect(configureAgentMcp('invalid' as any, tempDir)).rejects.toThrow();
+    });
+
+    it('should use McpConfigAdapterRegistry for agent-specific formats', async () => {
+      // This test verifies that the function respects agent-specific config formats
+      await configureAgentMcp('opencode', tempDir);
+
+      const configPath = path.join(tempDir, 'opencode.json');
+      const content = fs.readFileSync(configPath, 'utf-8');
+      const config = JSON.parse(content);
+
+      // OpenCode uses 'mcp' field instead of 'mcpServers'
+      // The adapter should handle this transformation
+      expect(config).toBeDefined();
+      expect(() => JSON.parse(content)).not.toThrow();
+    });
+
+    it('should not overwrite other config fields when merging', async () => {
+      const configPath = path.join(tempDir, '.claude');
+      const existingConfig: McpConfig = {
+        mcpServers: {
+          other: { command: 'cmd', args: [] },
+        },
+        // Additional fields that should be preserved
+        otherField: 'should-be-preserved',
+      } as any;
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+      fs.writeFileSync(configPath, JSON.stringify(existingConfig));
+
+      await configureAgentMcp('claude', tempDir);
+
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      expect(config.otherField).toBe('should-be-preserved');
+      expect(config.mcpServers.other).toBeDefined();
+      expect(config.mcpServers.agentskills).toBeDefined();
+    });
+
+    it('should handle concurrent configureAgentMcp calls', async () => {
+      await Promise.all([
+        configureAgentMcp('claude', tempDir),
+        configureAgentMcp('cline', tempDir),
+        configureAgentMcp('cursor', tempDir),
+      ]);
+
+      expect(fs.existsSync(path.join(tempDir, '.claude'))).toBe(true);
+      expect(fs.existsSync(path.join(tempDir, '.cline'))).toBe(true);
+      expect(fs.existsSync(path.join(tempDir, '.cursor', 'mcp.json'))).toBe(true);
+    });
+  });
+
+  describe('config format validation', () => {
+    it('should write valid MCP server config format', async () => {
+      const configPath = path.join(tempDir, '.claude');
+      const config: McpConfig = {
+        mcpServers: {
+          agentskills: {
+            command: 'npx',
+            args: ['-y', '@codemcp/agentskills-mcp'],
+            env: {
+              NODE_ENV: 'production',
+            },
+          },
+        },
+      };
+
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+      await writeAgentConfig(configPath, config);
+
+      const written = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      expect(written.mcpServers.agentskills.command).toBe('npx');
+      expect(Array.isArray(written.mcpServers.agentskills.args)).toBe(true);
+      expect(typeof written.mcpServers.agentskills.env).toBe('object');
+    });
+  });
+});

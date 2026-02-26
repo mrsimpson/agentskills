@@ -72,13 +72,13 @@ Skills published as npm packages must include a `SKILL.md` at the package root. 
 
 ## Summary Table
 
-| Format | Example |
-|---|---|
-| GitHub shorthand | `github:user/repo/path/to/skill` |
-| GitHub shorthand + ref | `github:user/repo/path/to/skill#v1.0.0` |
-| GitHub with path attr | `github:user/repo#v1.0.0::path:skills/my-skill` |
-| Git URL | `git+https://github.com/org/repo.git#v1.0.0` |
-| Git URL + path | `git+https://github.com/org/repo.git#v1.0.0::path:skills/skill` |
-| Local path | `file:./skills/custom-skill` |
-| Tarball URL | `https://example.com/skill.tgz` |
-| npm package | `@org/my-skill` or `my-skill@1.2.0` |
+| Format                 | Example                                                         |
+| ---------------------- | --------------------------------------------------------------- |
+| GitHub shorthand       | `github:user/repo/path/to/skill`                                |
+| GitHub shorthand + ref | `github:user/repo/path/to/skill#v1.0.0`                         |
+| GitHub with path attr  | `github:user/repo#v1.0.0::path:skills/my-skill`                 |
+| Git URL                | `git+https://github.com/org/repo.git#v1.0.0`                    |
+| Git URL + path         | `git+https://github.com/org/repo.git#v1.0.0::path:skills/skill` |
+| Local path             | `file:./skills/custom-skill`                                    |
+| Tarball URL            | `https://example.com/skill.tgz`                                 |
+| npm package            | `@org/my-skill` or `my-skill@1.2.0`                             |

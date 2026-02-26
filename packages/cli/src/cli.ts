@@ -14,6 +14,7 @@ import { removeCommand, parseRemoveOptions } from './remove.ts';
 import { runSync, parseSyncOptions } from './sync.ts';
 import { track } from './telemetry.ts';
 import { fetchSkillFolderHash, getGitHubToken } from './skill-lock.ts';
+import { runMcpSetup, parseMcpOptions } from './mcp.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -205,6 +206,41 @@ ${BOLD}Examples:${RESET}
   ${DIM}$${RESET} skills remove --skill '*' -a cursor      ${DIM}# remove all skills from cursor${RESET}
 
 Discover more skills at ${TEXT}https://skills.sh/${RESET}
+`);
+}
+
+function showMcpHelp(): void {
+  console.log(`
+${BOLD}Usage:${RESET} skills mcp setup [options]
+
+${BOLD}Description:${RESET}
+  Configure MCP (Model Context Protocol) server for agent environments.
+  Supports both interactive (TUI) and command-line (CLI) modes.
+
+${BOLD}Subcommands:${RESET}
+  setup               Configure MCP server for agents (default if no subcommand)
+
+${BOLD}Options:${RESET}
+  -a, --agent         Specify agents to configure (space-separated)
+                      Use '*' to configure all detected agents
+
+${BOLD}Modes:${RESET}
+  ${DIM}Interactive (TUI):${RESET} skills mcp setup
+    Shows a multi-select menu to choose which agents to configure
+
+  ${DIM}Command-line (CLI):${RESET} skills mcp setup --agent <agents>
+    Configures specified agents without interaction
+
+${BOLD}Examples:${RESET}
+  ${DIM}$${RESET} skills mcp setup                           ${DIM}# interactive selection${RESET}
+  ${DIM}$${RESET} skills mcp setup --agent claude-code       ${DIM}# configure Claude${RESET}
+  ${DIM}$${RESET} skills mcp setup --agent claude-code cline ${DIM}# configure multiple${RESET}
+  ${DIM}$${RESET} skills mcp setup --agent '*'               ${DIM}# configure all agents${RESET}
+
+${BOLD}Supported Agents:${RESET}
+  claude-code, cline, cursor, kiro-cli, junie, opencode, and more
+
+Discover more at ${TEXT}https://skills.sh/${RESET}
 `);
 }
 
@@ -641,6 +677,24 @@ async function main(): Promise<void> {
     case 'upgrade':
       runUpdate();
       break;
+    case 'mcp': {
+      if (!restArgs[0] || restArgs[0] === '--help' || restArgs[0] === '-h') {
+        showMcpHelp();
+        break;
+      }
+      const subcommand = restArgs[0];
+      const mcpArgs = restArgs.slice(1);
+
+      if (subcommand === 'setup') {
+        showLogo();
+        const options = parseMcpOptions(mcpArgs);
+        await runMcpSetup(options);
+      } else {
+        console.error(`Unknown mcp subcommand: ${subcommand}`);
+        showMcpHelp();
+      }
+      break;
+    }
     case '--help':
     case '-h':
       showHelp();

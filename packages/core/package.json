@@ -1,6 +1,6 @@
 {
   "name": "@codemcp/agentskills-core",
-  "version": "1.6.2",
+  "version": "1.6.1",
   "description": "Core functionality for Agent Skills parsing, validation, and discovery",
   "type": "module",
   "main": "dist/index.js",
