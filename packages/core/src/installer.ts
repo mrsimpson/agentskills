@@ -684,7 +684,7 @@ export class SkillInstaller {
     await fs.rm(join(installPath, ".git"), { recursive: true, force: true });
 
     return {
-      version: commitHash.substring(0, 7), // Use short hash as version
+      version: ref !== "HEAD" ? ref : commitHash.substring(0, 7), // Use ref if specified, otherwise short hash
       integrity: `git:${commitHash}`
     };
   }

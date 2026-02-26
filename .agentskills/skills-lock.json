@@ -1,16 +1,26 @@
 {
   "version": "1.0",
-  "generated": "2026-02-23T20:57:03.642Z",
+  "generated": "2026-02-26T14:57:40.112Z",
   "skills": {
     "tdd": {
       "spec": "github:mrsimpson/skills-coding/tdd-with-agents",
-      "resolvedVersion": "unknown",
-      "integrity": "github:mrsimpson/skills-coding/tdd-with-agents"
+      "resolvedVersion": "e602a5b",
+      "integrity": "git:e602a5b4c3dbd33658b5dd668d7ffadddf8746ca"
     },
     "commit": {
       "spec": "github:mrsimpson/skills-coding/commit",
-      "resolvedVersion": "unknown",
-      "integrity": "github:mrsimpson/skills-coding/commit"
+      "resolvedVersion": "e602a5b",
+      "integrity": "git:e602a5b4c3dbd33658b5dd668d7ffadddf8746ca"
+    },
+    "knowledge": {
+      "spec": "github:mrsimpson/agentic-knowledge-mcp/skill",
+      "resolvedVersion": "2d484c6",
+      "integrity": "git:2d484c60d0655ac05d83b61e69da34ca7a15c36e"
+    },
+    "test-knowledge": {
+      "spec": "github:mrsimpson/agentic-knowledge-mcp/skill",
+      "resolvedVersion": "2d484c6",
+      "integrity": "git:2d484c60d0655ac05d83b61e69da34ca7a15c36e"
     }
   }
 }
