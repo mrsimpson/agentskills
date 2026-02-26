@@ -342,25 +342,6 @@ if [ "$BEHIND" -gt 0 ]; then
 fi
 ```
 
-Run monthly or quarterly to stay current.
-
-## FAQ
-
-**Q: How often should we upgrade?**
-A: Whenever Vercel releases important features or security fixes. Monthly or quarterly is reasonable.
-
-**Q: Will upgrading break our MCP mode?**
-A: Unlikely. Our changes are isolated and additive. In worst case, we'd need to re-apply our blocks.
-
-**Q: What if Vercel changes `InstallMode` type?**
-A: Our `'mcp-server'` value will still work. If they completely restructure installer functions, we'd need to adapt our blocks.
-
-**Q: Should we contribute our MCP mode upstream?**
-A: Possibly! But our MCP Server is specific to this project. If broader interest exists, we could propose it.
-
-**Q: Can we automate this process?**
-A: Yes, create a script that runs `git subtree pull`, handles known conflicts, and runs tests. See `scripts/` for examples.
-
 ## References
 
 - [Vercel skills repo](https://github.com/vercel-labs/skills)

@@ -303,8 +303,15 @@ See the [Agent Skills standard](https://agentskills.io) for full specification.
 This is a monorepo containing three packages:
 
 - **[@codemcp/agentskills-core](./packages/core)** - Core parsing, validation, and installation logic
-- **[@codemcp/agentskills-cli](./packages/cli)** - Command-line interface for skill management
+- **[@codemcp/agentskills-cli](./packages/cli)** - Command-line interface for skill management (based on Vercel's skills CLI)
 - **[@codemcp/agentskills-mcp](./packages/mcp-server)** - MCP protocol server implementation
+
+### Architecture & Integration
+
+Learn more about how the pieces fit together:
+
+- **[Vercel CLI Integration Guide](./docs/architecture/cli-integration.md)** - Why we use Vercel's CLI, how MCP Server mode extends it, and the path separation strategy
+- **[Upgrading the CLI](./docs/guide/upgrading-cli.md)** - Step-by-step procedures for pulling upstream updates and handling merge conflicts
 
 ## Development
 
