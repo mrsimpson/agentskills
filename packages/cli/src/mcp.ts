@@ -2,7 +2,7 @@ import { homedir } from 'os';
 import type { AgentType } from './types.ts';
 import { configureAgentMcp } from './mcp-configurator.ts';
 import { agents, detectInstalledAgents } from './agents.ts';
-import { multiselect, cancel } from '@clack/prompts';
+import { multiselect, select, cancel } from '@clack/prompts';
 
 /**
  * Options parsed from mcp setup command
@@ -73,9 +73,9 @@ export async function runMcpSetup(
 }
 
 /**
- * TUI mode - interactive agent selection
+ * TUI mode - interactive agent selection and scope selection
  * @param cwd Current working directory (or home directory if global)
- * @param scope 'local' for project, 'global' for home directory
+ * @param scope 'local' for project, 'global' for home directory (can be overridden by TUI selection)
  */
 async function setupTuiMode(cwd: string, scope: 'local' | 'global' = 'local'): Promise<void> {
   // Detect installed agents
@@ -86,7 +86,32 @@ async function setupTuiMode(cwd: string, scope: 'local' | 'global' = 'local'): P
     return;
   }
 
-  // Show interactive multi-select prompt using @clack/prompts
+  // First, ask user to choose configuration scope
+  const selectedScope = await select({
+    message: 'Where should MCP configs be stored?',
+    options: [
+      {
+        value: 'local',
+        label: 'Local (Project directory) - shared via Git',
+      },
+      {
+        value: 'global',
+        label: 'Global (Home directory) - personal settings only',
+      },
+    ],
+  });
+
+  // Handle cancellation
+  if (typeof selectedScope === 'symbol') {
+    cancel('Operation cancelled');
+    return;
+  }
+
+  scope = selectedScope as 'local' | 'global';
+  const home = homedir();
+  const configCwd = scope === 'global' ? home : cwd;
+
+  // Show interactive multi-select prompt for agents using @clack/prompts
   const selectedAgents = await multiselect({
     message: 'Select agents to configure for MCP:',
     options: installedAgents.map((agentType) => ({
@@ -112,7 +137,7 @@ async function setupTuiMode(cwd: string, scope: 'local' | 'global' = 'local'): P
 
   for (const agentType of selectedAgents) {
     try {
-      await configureAgentMcp(agentType as AgentType, cwd, scope);
+      await configureAgentMcp(agentType as AgentType, configCwd, scope);
       console.log(`✓ Configured ${agents[agentType as any]?.displayName || agentType}`);
       successCount++;
     } catch (error) {
@@ -121,13 +146,14 @@ async function setupTuiMode(cwd: string, scope: 'local' | 'global' = 'local'): P
     }
   }
 
-  // Show summary
+  // Show summary with scope information
   console.log('');
+  const scopeLabel = scope === 'global' ? 'global (home directory)' : 'local (project directory)';
   if (successCount > 0) {
-    console.log(`✓ Successfully configured ${successCount} agent(s)`);
+    console.log(`✓ Successfully configured ${successCount} agent(s) in ${scopeLabel}`);
   }
   if (failureCount > 0) {
-    console.error(`✗ Failed to configure ${failureCount} agent(s)`);
+    console.error(`✗ Failed to configure ${failureCount} agent(s) in ${scopeLabel}`);
   }
 }
 
