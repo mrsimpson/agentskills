@@ -72,6 +72,15 @@ export function getCanonicalSkillsDir(global: boolean, cwd?: string): string {
 }
 
 /**
+ * Gets the canonical skills directory for MCP server mode
+ * Uses .agentskills/skills to match MCP server's default path
+ */
+export function getMCPCanonicalSkillsDir(global: boolean, cwd?: string): string {
+  const baseDir = global ? homedir() : cwd || process.cwd();
+  return join(baseDir, '.agentskills', 'skills');
+}
+
+/**
  * Gets the base directory for an agent's skills, respecting universal agents.
  * Universal agents always use the canonical directory, which prevents
  * redundant symlinks and double-listing of skills.
@@ -231,15 +240,18 @@ export async function installSkillForAgent(
   const rawSkillName = skill.name || basename(skill.path);
   const skillName = sanitizeName(rawSkillName);
 
-  // Canonical location: .agents/skills/<skill-name>
-  const canonicalBase = getCanonicalSkillsDir(isGlobal, cwd);
+  const installMode = options.mode ?? 'symlink';
+
+  // Canonical location: use MCP path for MCP server mode, standard path otherwise
+  const canonicalBase =
+    installMode === 'mcp-server'
+      ? getMCPCanonicalSkillsDir(isGlobal, cwd)
+      : getCanonicalSkillsDir(isGlobal, cwd);
   const canonicalDir = join(canonicalBase, skillName);
 
   // Agent-specific location (for symlink)
   const agentBase = getAgentBaseDir(agentType, isGlobal, cwd);
   const agentDir = join(agentBase, skillName);
-
-  const installMode = options.mode ?? 'symlink';
 
   // Validate paths
   if (!isPathSafe(canonicalBase, canonicalDir)) {
@@ -470,8 +482,11 @@ export async function installMintlifySkillForAgent(
   // Use mintlify-proj as the skill directory name (e.g., "bun.com")
   const skillName = sanitizeName(skill.mintlifySite);
 
-  // Canonical location: .agents/skills/<skill-name>
-  const canonicalBase = getCanonicalSkillsDir(isGlobal, cwd);
+  // Canonical location: use MCP path for MCP server mode, standard path otherwise
+  const canonicalBase =
+    installMode === 'mcp-server'
+      ? getMCPCanonicalSkillsDir(isGlobal, cwd)
+      : getCanonicalSkillsDir(isGlobal, cwd);
   const canonicalDir = join(canonicalBase, skillName);
 
   // Agent-specific location (for symlink)
@@ -601,8 +616,11 @@ export async function installRemoteSkillForAgent(
   // Use installName as the skill directory name
   const skillName = sanitizeName(skill.installName);
 
-  // Canonical location: .agents/skills/<skill-name>
-  const canonicalBase = getCanonicalSkillsDir(isGlobal, cwd);
+  // Canonical location: use MCP path for MCP server mode, standard path otherwise
+  const canonicalBase =
+    installMode === 'mcp-server'
+      ? getMCPCanonicalSkillsDir(isGlobal, cwd)
+      : getCanonicalSkillsDir(isGlobal, cwd);
   const canonicalDir = join(canonicalBase, skillName);
 
   // Agent-specific location (for symlink)
@@ -733,8 +751,11 @@ export async function installWellKnownSkillForAgent(
   // Use installName as the skill directory name
   const skillName = sanitizeName(skill.installName);
 
-  // Canonical location: .agents/skills/<skill-name>
-  const canonicalBase = getCanonicalSkillsDir(isGlobal, cwd);
+  // Canonical location: use MCP path for MCP server mode, standard path otherwise
+  const canonicalBase =
+    installMode === 'mcp-server'
+      ? getMCPCanonicalSkillsDir(isGlobal, cwd)
+      : getCanonicalSkillsDir(isGlobal, cwd);
   const canonicalDir = join(canonicalBase, skillName);
 
   // Agent-specific location (for symlink)
