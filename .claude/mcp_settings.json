@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "agentskills": {
+      "command": "npx",
+      "args": ["-y", "@codemcp/agentskills-mcp"],
+      "env": {}
+    },
+    "agentic-knowledge": {
+      "command": "npx",
+      "args": ["-y", "@codemcp/knowledge"]
+    },
+    "responsible-vibe-workflows": {
+      "command": "npx",
+      "args": ["-y", "@codemcp/workflows"]
+    }
+  }
+}
