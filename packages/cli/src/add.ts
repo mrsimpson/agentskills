@@ -247,29 +247,40 @@ function ensureUniversalAgents(targetAgents: AgentType[]): AgentType[] {
 function buildResultLines(
   results: Array<{
     agent: string;
+    mode?: InstallMode;
     symlinkFailed?: boolean;
   }>,
   targetAgents: AgentType[]
 ): string[] {
   const lines: string[] = [];
 
-  // Split target agents by type
-  const { universal, symlinked: symlinkAgents } = splitAgentsByType(targetAgents);
+  // Check if this is MCP mode (check the mode field)
+  const isMcpMode = results.length > 0 && results[0]!.mode === 'mcp-server';
 
-  // For symlink results, also track which ones actually succeeded vs failed
-  const successfulSymlinks = results
-    .filter((r) => !r.symlinkFailed && !universal.includes(r.agent))
-    .map((r) => r.agent);
-  const failedSymlinks = results.filter((r) => r.symlinkFailed).map((r) => r.agent);
+  if (isMcpMode) {
+    // MCP Server mode - show configuration instructions
+    lines.push(`  ${pc.dim('Important:')} Make sure your agent has configured`);
+    lines.push(`  ${pc.cyan('@codemcp/agentskills-mcp')} as MCP server.`);
+    lines.push(`  Then, the skill will automatically be picked up`);
+  } else {
+    // Split target agents by type
+    const { universal, symlinked: symlinkAgents } = splitAgentsByType(targetAgents);
 
-  if (universal.length > 0) {
-    lines.push(`  ${pc.green('universal:')} ${formatList(universal)}`);
-  }
-  if (successfulSymlinks.length > 0) {
-    lines.push(`  ${pc.dim('symlinked:')} ${formatList(successfulSymlinks)}`);
-  }
-  if (failedSymlinks.length > 0) {
-    lines.push(`  ${pc.yellow('copied:')} ${formatList(failedSymlinks)}`);
+    // For symlink results, also track which ones actually succeeded vs failed
+    const successfulSymlinks = results
+      .filter((r) => !r.symlinkFailed && !universal.includes(r.agent))
+      .map((r) => r.agent);
+    const failedSymlinks = results.filter((r) => r.symlinkFailed).map((r) => r.agent);
+
+    if (universal.length > 0) {
+      lines.push(`  ${pc.green('universal:')} ${formatList(universal)}`);
+    }
+    if (successfulSymlinks.length > 0) {
+      lines.push(`  ${pc.dim('symlinked:')} ${formatList(successfulSymlinks)}`);
+    }
+    if (failedSymlinks.length > 0) {
+      lines.push(`  ${pc.yellow('copied:')} ${formatList(failedSymlinks)}`);
+    }
   }
 
   return lines;
@@ -362,7 +373,7 @@ async function selectAgentsInteractive(options: {
 
   // Universal agents shown as locked section
   const universalSection = {
-    title: 'Universal (.agents/skills)',
+    title: 'Universal (.agentskills/skills)',
     items: universalAgents.map((a) => ({
       value: a,
       label: agents[a].displayName,
@@ -484,68 +495,9 @@ async function handleRemoteSkill(
   }
 
   // Detect agents - universal agents are always included
-  let targetAgents: AgentType[];
-  const validAgents = Object.keys(agents);
+  // MCP mode: install to canonical location, use universal agents only
   const universalAgents = getUniversalAgents();
-
-  if (options.agent?.includes('*')) {
-    // --agent '*' selects all agents
-    targetAgents = validAgents as AgentType[];
-    p.log.info(`Installing to all ${targetAgents.length} agents`);
-  } else if (options.agent && options.agent.length > 0) {
-    const invalidAgents = options.agent.filter((a) => !validAgents.includes(a));
-
-    if (invalidAgents.length > 0) {
-      p.log.error(`Invalid agents: ${invalidAgents.join(', ')}`);
-      p.log.info(`Valid agents: ${validAgents.join(', ')}`);
-      process.exit(1);
-    }
-
-    targetAgents = options.agent as AgentType[];
-  } else {
-    spinner.start('Loading agents...');
-    const installedAgents = await detectInstalledAgents();
-    const totalAgents = Object.keys(agents).length;
-    spinner.stop(`${totalAgents} agents`);
-
-    if (installedAgents.length === 0) {
-      if (options.yes) {
-        // With -y and no detected agents, install to universal agents only
-        targetAgents = universalAgents;
-        p.log.info(`Installing to universal agents`);
-      } else {
-        // Interactive selection with universal agents locked
-        const selected = await selectAgentsInteractive({ global: options.global });
-
-        if (p.isCancel(selected)) {
-          p.cancel('Installation cancelled');
-          process.exit(0);
-        }
-
-        targetAgents = selected as AgentType[];
-      }
-    } else if (installedAgents.length === 1 || options.yes) {
-      // Auto-select detected agents + ensure universal agents are included
-      targetAgents = ensureUniversalAgents(installedAgents);
-      const { universal, symlinked } = splitAgentsByType(targetAgents);
-      if (symlinked.length > 0) {
-        p.log.info(
-          `Installing to: ${pc.green('universal')} + ${symlinked.map((a) => pc.cyan(a)).join(', ')}`
-        );
-      } else {
-        p.log.info(`Installing to: ${pc.green('universal agents')}`);
-      }
-    } else {
-      const selected = await selectAgentsInteractive({ global: options.global });
-
-      if (p.isCancel(selected)) {
-        p.cancel('Installation cancelled');
-        process.exit(0);
-      }
-
-      targetAgents = selected as AgentType[];
-    }
-  }
+  const targetAgents = universalAgents;
 
   let installGlobally = options.global ?? false;
 
@@ -577,34 +529,8 @@ async function handleRemoteSkill(
     installGlobally = scope as boolean;
   }
 
-  // Determine install mode (symlink vs copy)
-  let installMode: InstallMode = options.copy ? 'copy' : 'symlink';
-
-  if (!options.copy && !options.yes) {
-    const modeChoice = await p.select({
-      message: 'Installation method',
-      options: [
-        {
-          value: 'symlink',
-          label: 'Symlink (Recommended)',
-          hint: 'Single source of truth, easy updates',
-        },
-        { value: 'copy', label: 'Copy to all agents', hint: 'Independent copies for each agent' },
-        {
-          value: 'mcp-server',
-          label: 'MCP Server (Cross-Client)',
-          hint: 'Expose via @codemcp/agentskills-mcp to all MCP clients',
-        },
-      ],
-    });
-
-    if (p.isCancel(modeChoice)) {
-      p.cancel('Installation cancelled');
-      process.exit(0);
-    }
-
-    installMode = modeChoice as InstallMode;
-  }
+  // MCP mode: always use MCP server installation
+  const installMode: InstallMode = 'mcp-server';
 
   const cwd = process.cwd();
 
@@ -1028,34 +954,8 @@ async function handleWellKnownSkills(
     installGlobally = scope as boolean;
   }
 
-  // Determine install mode (symlink vs copy)
-  let installMode: InstallMode = options.copy ? 'copy' : 'symlink';
-
-  if (!options.copy && !options.yes) {
-    const modeChoice = await p.select({
-      message: 'Installation method',
-      options: [
-        {
-          value: 'symlink',
-          label: 'Symlink (Recommended)',
-          hint: 'Single source of truth, easy updates',
-        },
-        { value: 'copy', label: 'Copy to all agents', hint: 'Independent copies for each agent' },
-        {
-          value: 'mcp-server',
-          label: 'MCP Server (Cross-Client)',
-          hint: 'Expose via @codemcp/agentskills-mcp to all MCP clients',
-        },
-      ],
-    });
-
-    if (p.isCancel(modeChoice)) {
-      p.cancel('Installation cancelled');
-      process.exit(0);
-    }
-
-    installMode = modeChoice as InstallMode;
-  }
+  // MCP mode: always use MCP server installation
+  const installMode: InstallMode = 'mcp-server';
 
   const cwd = process.cwd();
 
@@ -1867,79 +1767,8 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
         )
       : Promise.resolve(null);
 
-    let targetAgents: AgentType[];
-    const validAgents = Object.keys(agents);
-
-    if (options.agent?.includes('*')) {
-      // --agent '*' selects all agents
-      targetAgents = validAgents as AgentType[];
-      p.log.info(`Installing to all ${targetAgents.length} agents`);
-    } else if (options.agent && options.agent.length > 0) {
-      const invalidAgents = options.agent.filter((a) => !validAgents.includes(a));
-
-      if (invalidAgents.length > 0) {
-        p.log.error(`Invalid agents: ${invalidAgents.join(', ')}`);
-        p.log.info(`Valid agents: ${validAgents.join(', ')}`);
-        await cleanup(tempDir);
-        process.exit(1);
-      }
-
-      targetAgents = options.agent as AgentType[];
-    } else {
-      spinner.start('Loading agents...');
-      const installedAgents = await detectInstalledAgents();
-      const totalAgents = Object.keys(agents).length;
-      spinner.stop(`${totalAgents} agents`);
-
-      if (installedAgents.length === 0) {
-        if (options.yes) {
-          targetAgents = validAgents as AgentType[];
-          p.log.info('Installing to all agents');
-        } else {
-          p.log.info('Select agents to install skills to');
-
-          const allAgentChoices = Object.entries(agents).map(([key, config]) => ({
-            value: key as AgentType,
-            label: config.displayName,
-          }));
-
-          // Use helper to prompt with search
-          const selected = await promptForAgents(
-            'Which agents do you want to install to?',
-            allAgentChoices
-          );
-
-          if (p.isCancel(selected)) {
-            p.cancel('Installation cancelled');
-            await cleanup(tempDir);
-            process.exit(0);
-          }
-
-          targetAgents = selected as AgentType[];
-        }
-      } else if (installedAgents.length === 1 || options.yes) {
-        // Auto-select detected agents + ensure universal agents are included
-        targetAgents = ensureUniversalAgents(installedAgents);
-        if (installedAgents.length === 1) {
-          const firstAgent = installedAgents[0]!;
-          p.log.info(`Installing to: ${pc.cyan(agents[firstAgent].displayName)}`);
-        } else {
-          p.log.info(
-            `Installing to: ${installedAgents.map((a) => pc.cyan(agents[a].displayName)).join(', ')}`
-          );
-        }
-      } else {
-        const selected = await selectAgentsInteractive({ global: options.global });
-
-        if (p.isCancel(selected)) {
-          p.cancel('Installation cancelled');
-          await cleanup(tempDir);
-          process.exit(0);
-        }
-
-        targetAgents = selected as AgentType[];
-      }
-    }
+    // MCP mode: install to canonical location, use universal agents only
+    const targetAgents = getUniversalAgents();
 
     let installGlobally = options.global ?? false;
 
@@ -1972,30 +1801,8 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
       installGlobally = scope as boolean;
     }
 
-    // Determine install mode (symlink vs copy)
-    let installMode: InstallMode = options.copy ? 'copy' : 'symlink';
-
-    if (!options.copy && !options.yes) {
-      const modeChoice = await p.select({
-        message: 'Installation method',
-        options: [
-          {
-            value: 'symlink',
-            label: 'Symlink (Recommended)',
-            hint: 'Single source of truth, easy updates',
-          },
-          { value: 'copy', label: 'Copy to all agents', hint: 'Independent copies for each agent' },
-        ],
-      });
-
-      if (p.isCancel(modeChoice)) {
-        p.cancel('Installation cancelled');
-        await cleanup(tempDir);
-        process.exit(0);
-      }
-
-      installMode = modeChoice as InstallMode;
-    }
+    // MCP mode: always use MCP server installation
+    const installMode: InstallMode = 'mcp-server';
 
     const cwd = process.cwd();
 
