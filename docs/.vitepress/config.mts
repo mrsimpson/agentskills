@@ -34,6 +34,10 @@ export default withMermaid(
               {
                 text: "Compared to Native Skills",
                 link: "/guide/compared-to-native"
+              },
+              {
+                text: "Upgrading the CLI",
+                link: "/guide/upgrading-cli"
               }
             ]
           }
@@ -60,7 +64,8 @@ export default withMermaid(
             items: [
               { text: "System Overview", link: "/architecture/overview" },
               { text: "Package Structure", link: "/architecture/packages" },
-              { text: "Design Decisions", link: "/architecture/decisions" }
+              { text: "Design Decisions", link: "/architecture/decisions" },
+              { text: "CLI Integration", link: "/architecture/cli-integration" }
             ]
           }
         ]
