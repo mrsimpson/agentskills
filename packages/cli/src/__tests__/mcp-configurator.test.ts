@@ -67,8 +67,11 @@ describe('mcp-configurator', () => {
       expect(configPath).toContain(tempDir);
     });
 
-    it('should throw error for unknown agent type', () => {
-      expect(() => getAgentConfigPath('unknown' as any, tempDir)).toThrow();
+    it('should support unknown agent types with fallback path', () => {
+      // Unknown agent types get a sanitized config path
+      const configPath = getAgentConfigPath('unknown-agent' as any, tempDir);
+      expect(configPath).toContain('.unknown-agent');
+      expect(configPath).toContain(tempDir);
     });
   });
 

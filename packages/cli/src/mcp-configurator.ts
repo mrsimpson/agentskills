@@ -67,27 +67,25 @@ export function getAgentConfigPath(agentType: AgentType | string, cwd: string): 
 
   switch (mappedType) {
     case 'claude-desktop':
-      // Claude Desktop uses a file in the project directory
-      return join(cwd, '.claude', 'claude_desktop_config.json');
+      return join(cwd, '.claude');
     case 'cline':
-      return join(cwd, '.cline', 'cline_mcp_config.json');
+      return join(cwd, '.cline');
     case 'cursor':
       return join(cwd, '.cursor', 'mcp.json');
     case 'kiro':
-      return join(cwd, '.kiro', 'kiro_config.json');
+      return join(cwd, '.kiro');
     case 'junie':
-      return join(cwd, '.junie', 'junie_config.json');
+      return join(cwd, '.junie');
     case 'opencode':
       return join(cwd, 'opencode.json');
     case 'zed':
       return join(home, '.config', 'zed', 'settings.json');
     case 'continue':
-      return join(cwd, '.continue', 'config.json');
-    // For other agents, use a generic config path
+      return join(cwd, '.continue');
     default:
-      // Try to infer from agent name if possible
+      // For other agents, try to infer config path
       const sanitized = mappedType.replace(/[^a-z0-9-]/gi, '_').toLowerCase();
-      return join(cwd, `.${sanitized}`, `${sanitized}_config.json`);
+      return join(cwd, `.${sanitized}`);
   }
 }
 
