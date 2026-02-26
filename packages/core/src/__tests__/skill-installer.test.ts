@@ -13,11 +13,51 @@ vi.mock("pacote", () => ({
   }
 }));
 
+vi.mock("child_process", async () => {
+  const actual =
+    await vi.importActual<typeof import("child_process")>("child_process");
+  return {
+    ...actual,
+    execFile: vi.fn()
+  };
+});
+
 describe("SkillInstaller", () => {
   let tempDir: string;
   let skillsDir: string;
   let cacheDir: string;
   let installer: SkillInstaller;
+
+  // Helper to mock git clone for a specific spec
+  const mockGitClone = async (args: string[], dest: string, spec: string) => {
+    // Determine skill name from spec
+    const skillName =
+      spec.match(
+        /skill-\w+|test-skill|cached-skill|existing-skill|nested-skill/
+      )?.[0] || "test-skill";
+
+    // Create the cloned directory structure
+    await fs.mkdir(dest, { recursive: true });
+
+    // Write SKILL.md at root
+    await fs.writeFile(
+      join(dest, "SKILL.md"),
+      `---\nname: ${skillName}\ndescription: Test skill\n---\n\n# ${skillName}`,
+      "utf-8"
+    );
+
+    // Create nested skill directory for subdirectory tests
+    const nestedSkillDir = join(dest, "skills", "nested-skill");
+    await fs.mkdir(nestedSkillDir, { recursive: true });
+    await fs.writeFile(
+      join(nestedSkillDir, "SKILL.md"),
+      `---\nname: nested-skill\ndescription: Nested skill\n---\n\n# nested-skill`,
+      "utf-8"
+    );
+
+    // Create .git directory (will be removed by installer)
+    await fs.mkdir(join(dest, ".git"), { recursive: true });
+  };
 
   beforeEach(async () => {
     tempDir = join(tmpdir(), `skill-installer-test-${Date.now()}`);
@@ -30,6 +70,84 @@ describe("SkillInstaller", () => {
 
     installer = new SkillInstaller(skillsDir, cacheDir);
 
+    // Mock git clone
+    const { execFile } = await import("child_process");
+    vi.mocked(execFile).mockImplementation(
+      (
+        command: string,
+        args?: readonly string[] | null,
+        callback?: any
+      ): any => {
+        if (!args) {
+          const result = { stdout: "", stderr: "" };
+          if (callback) callback(null, result);
+          return Promise.resolve(result);
+        }
+
+        const argsArray = Array.from(args);
+        const isGitClone = command === "git" && argsArray[0] === "clone";
+        const isGitRevParse =
+          command === "git" &&
+          argsArray[0] === "-C" &&
+          argsArray[2] === "rev-parse";
+        const isGitCheckout =
+          command === "git" &&
+          argsArray[0] === "-C" &&
+          argsArray[2] === "checkout";
+
+        if (isGitClone) {
+          // Extract destination from args
+          const dest = argsArray[argsArray.length - 1];
+          const url = argsArray[argsArray.length - 2];
+
+          // Handle error cases
+          if (url.includes("nonexistent")) {
+            if (callback) {
+              callback(new Error("Repository not found"));
+            }
+            return Promise.reject(new Error("Repository not found"));
+          }
+
+          // Simulate successful clone
+          mockGitClone(argsArray, dest, url).then(() => {
+            if (callback) {
+              callback(null, {
+                stdout: "",
+                stderr: `Cloning into '${dest}'...`
+              });
+            }
+          });
+
+          return Promise.resolve({
+            stdout: "",
+            stderr: `Cloning into '${dest}'...`
+          });
+        } else if (isGitRevParse) {
+          // Return a fake commit hash
+          const result = { stdout: "abc1234567890def\n", stderr: "" };
+          if (callback) {
+            callback(null, result);
+          }
+          return Promise.resolve(result);
+        } else if (isGitCheckout) {
+          // Simulate successful checkout
+          const result = { stdout: "", stderr: "" };
+          if (callback) {
+            callback(null, result);
+          }
+          return Promise.resolve(result);
+        }
+
+        // For other git commands, just succeed
+        const result = { stdout: "", stderr: "" };
+        if (callback) {
+          callback(null, result);
+        }
+        return Promise.resolve(result);
+      }
+    );
+
+    // Mock pacote for non-git sources
     vi.mocked(pacote.extract).mockImplementation(
       async (spec: string, dest?: string, opts?: any) => {
         if (!dest) return {} as any;
@@ -231,26 +349,23 @@ describe("SkillInstaller", () => {
       }
     });
 
-    it("should pass baseSpec (without path) to pacote for github: with path", async () => {
+    it("should use git clone for github: with subdirectory path", async () => {
+      vi.mocked(pacote.extract).mockClear();
       const spec = "github:user/myrepo/skills/nested-skill#main";
-      await installer.install("nested-skill", spec);
-      // pacote.extract should have been called with github:user/myrepo#main, not the full path
-      expect(vi.mocked(pacote.extract)).toHaveBeenCalledWith(
-        "github:user/myrepo#main",
-        expect.any(String),
-        expect.any(Object)
-      );
+      const result = await installer.install("nested-skill", spec);
+      expect(result.success).toBe(true);
+      // Git repos should bypass pacote entirely
+      expect(vi.mocked(pacote.extract)).not.toHaveBeenCalled();
     });
 
-    it("should pass baseSpec (without path: attribute) to pacote for git+https specs", async () => {
+    it("should use git clone for git+https with ::path: attribute", async () => {
+      vi.mocked(pacote.extract).mockClear();
       const spec =
         "git+https://github.com/user/repo.git#v2.0.0::path:skills/nested-skill";
-      await installer.install("nested-skill", spec);
-      expect(vi.mocked(pacote.extract)).toHaveBeenCalledWith(
-        "git+https://github.com/user/repo.git#v2.0.0",
-        expect.any(String),
-        expect.any(Object)
-      );
+      const result = await installer.install("nested-skill", spec);
+      expect(result.success).toBe(true);
+      // Git repos should bypass pacote entirely
+      expect(vi.mocked(pacote.extract)).not.toHaveBeenCalled();
     });
   });
 
@@ -289,14 +404,55 @@ describe("SkillInstaller", () => {
       }
     });
 
-    it("should handle network errors", async () => {
+    it("should handle network errors for git repos", async () => {
+      // Create a new installer with a throwing git mock for this test only
+      const childProcess = await import("child_process");
+      const originalMock = vi
+        .mocked(childProcess.execFile)
+        .getMockImplementation();
+
+      // Override just for this test
+      vi.mocked(childProcess.execFile).mockImplementation(
+        (
+          command: string,
+          args?: readonly string[] | null,
+          callback?: any
+        ): any => {
+          const error = Object.assign(
+            new Error("getaddrinfo ENOTFOUND github.com"),
+            { code: "ENOTFOUND" }
+          );
+          if (callback) {
+            callback(error);
+          }
+          return Promise.reject(error);
+        }
+      );
+
+      try {
+        const result = await installer.install(
+          "test-skill",
+          "github:user/test-skill"
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          // Git clone errors are properly categorized as NETWORK_ERROR
+          expect(result.error?.code).toBe("NETWORK_ERROR");
+          expect(result.error?.message).toContain("ENOTFOUND");
+        }
+      } finally {
+        // Restore original mock for subsequent tests
+        if (originalMock) {
+          vi.mocked(childProcess.execFile).mockImplementation(originalMock);
+        }
+      }
+    });
+
+    it("should handle network errors for npm packages", async () => {
       vi.mocked(pacote.extract).mockRejectedValueOnce(
         Object.assign(new Error("ENOTFOUND"), { code: "ENOTFOUND" })
       );
-      const result = await installer.install(
-        "test-skill",
-        "github:user/test-skill"
-      );
+      const result = await installer.install("test-skill", "@org/test-skill");
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error?.code).toBe("NETWORK_ERROR");
@@ -375,18 +531,19 @@ describe("SkillInstaller", () => {
   });
 
   describe("Cache behavior", () => {
-    it("should use cache directory and reuse cached content", async () => {
-      const spec = "github:user/test-skill#v1.0.0";
+    it("should use cache directory for npm packages", async () => {
+      // Use npm package instead of git repo since git clone doesn't use pacote cache
+      const spec = "@org/test-skill@1.0.0";
 
-      await installer.install("cached-skill", spec);
+      await installer.install("test-skill", spec);
       const cacheContents = await fs.readdir(cacheDir);
       expect(cacheContents.length).toBeGreaterThan(0);
 
-      await fs.rm(join(skillsDir, "cached-skill"), {
+      await fs.rm(join(skillsDir, "test-skill"), {
         recursive: true,
         force: true
       });
-      const secondResult = await installer.install("cached-skill", spec);
+      const secondResult = await installer.install("test-skill", spec);
       expect(secondResult.success).toBe(true);
     });
   });

@@ -115,41 +115,61 @@ export class SkillInstaller {
       // Handle local directory differently - use direct copy instead of pacote
       let gitFallbackData: { version: string; integrity: string } | null = null;
 
+      // Check if this is a git repository
+      const isGitRepo =
+        baseSpec.startsWith("github:") ||
+        baseSpec.startsWith("git+") ||
+        baseSpec.includes("github.com") ||
+        baseSpec.includes("gitlab.com") ||
+        baseSpec.includes("bitbucket.org");
+
       if (spec.startsWith("file:")) {
         await this.copyLocalDirectory(spec, tempInstallPath);
-      } else if (subdir) {
-        // Extract the full repo to a temp directory, then copy the subdirectory
-        await this.extractSubdirectory(baseSpec, subdir, tempInstallPath, opts);
-      } else {
-        // Use pacote.extract to download and extract the package
-        // For git repos without package.json, fall back to git clone
-        try {
-          await pacote.extract(baseSpec, tempInstallPath, opts);
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
+      } else if (isGitRepo) {
+        // For git repos, skip pacote entirely and use git clone directly
+        // This avoids issues with pacote trying to run npm install for prepare scripts
+        // (e.g., repos with pnpm workspaces or prepare scripts that npm can't handle)
+        if (subdir) {
+          // Clone to temp, then extract subdirectory
+          const tempRepo = join(
+            this.skillsDir,
+            `.temp-repo-${Date.now()}-${Math.random().toString(36).slice(2)}`
+          );
+          try {
+            gitFallbackData = await this.gitCloneFallback(baseSpec, tempRepo);
 
-          // If pacote fails because of missing package.json, try git clone for git repos
-          if (errorMessage.includes("Could not read package.json")) {
-            const isGitRepo =
-              spec.startsWith("github:") ||
-              spec.startsWith("git+") ||
-              spec.includes("github.com") ||
-              spec.includes("gitlab.com") ||
-              spec.includes("bitbucket.org");
-
-            if (isGitRepo) {
-              gitFallbackData = await this.gitCloneFallback(
-                spec,
-                tempInstallPath
+            // Copy subdirectory to final location
+            const subdirPath = join(tempRepo, subdir);
+            try {
+              await fs.access(subdirPath);
+              await fs.mkdir(tempInstallPath, { recursive: true });
+              await this.copyDir(subdirPath, tempInstallPath);
+            } catch (error) {
+              throw new Error(
+                `Path '${subdir}' not found in repository '${baseSpec}': ${error instanceof Error ? error.message : String(error)}`
               );
-            } else {
-              throw error;
+            } finally {
+              await fs.rm(tempRepo, { recursive: true, force: true });
             }
-          } else {
+          } catch (error) {
+            await fs
+              .rm(tempRepo, { recursive: true, force: true })
+              .catch(() => {});
             throw error;
           }
+        } else {
+          // Clone directly to install path
+          gitFallbackData = await this.gitCloneFallback(
+            baseSpec,
+            tempInstallPath
+          );
         }
+      } else if (subdir) {
+        // For non-git sources with subdirectories (npm packages with ::path:), use extractSubdirectory
+        await this.extractSubdirectory(baseSpec, subdir, tempInstallPath, opts);
+      } else {
+        // For non-git sources (npm packages, tarballs, etc.) without subdirectories, use pacote
+        await pacote.extract(baseSpec, tempInstallPath, opts);
       }
 
       // Verify SKILL.md exists
@@ -485,15 +505,18 @@ export class SkillInstaller {
     try {
       await fs.mkdir(tempRepo, { recursive: true });
 
-      // Try pacote.extract first, fall back to git clone if package.json is missing
+      // Try pacote.extract first, fall back to git clone if package.json is missing or prepare fails
       try {
         await pacote.extract(baseSpec, tempRepo, opts);
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
 
-        // If pacote fails because of missing package.json, try git clone for git repos
-        if (errorMessage.includes("Could not read package.json")) {
+        // If pacote fails because of missing package.json or git dep preparation, try git clone for git repos
+        if (
+          errorMessage.includes("Could not read package.json") ||
+          errorMessage.includes("git dep preparation failed")
+        ) {
           const isGitRepo =
             baseSpec.startsWith("github:") ||
             baseSpec.startsWith("git+") ||
@@ -644,6 +667,7 @@ export class SkillInstaller {
         gitUrl,
         installPath
       ]);
+
       if (ref !== "HEAD") {
         // Try to checkout the specific ref
         await execFileAsync("git", ["-C", installPath, "checkout", ref]);
@@ -663,7 +687,7 @@ export class SkillInstaller {
     await fs.rm(join(installPath, ".git"), { recursive: true, force: true });
 
     return {
-      version: commitHash.substring(0, 7), // Use short hash as version
+      version: ref !== "HEAD" ? ref : commitHash.substring(0, 7), // Use ref if specified, otherwise short hash
       integrity: `git:${commitHash}`
     };
   }
