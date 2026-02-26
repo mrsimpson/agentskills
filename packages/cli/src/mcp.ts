@@ -1,3 +1,4 @@
+import { homedir } from 'os';
 import type { AgentType } from './types.ts';
 import { configureAgentMcp } from './mcp-configurator.ts';
 import { agents, detectInstalledAgents } from './agents.ts';
@@ -10,16 +11,18 @@ export interface McpSetupOptions {
   mode: 'tui' | 'cli';
   agents: AgentType[];
   cwd?: string;
+  scope?: 'local' | 'global'; // 'local' = project, 'global' = home directory
 }
 
 /**
  * Parse mcp setup command arguments
  * Reuses the --agent flag pattern from add.ts
- * @param args Command arguments (e.g., ['setup', '--agent', 'claude-code', 'cline'])
- * @returns Parsed options with mode and agents
+ * @param args Command arguments (e.g., ['setup', '--agent', 'claude-code', '--global'])
+ * @returns Parsed options with mode, agents, and scope
  */
 export function parseMcpOptions(args: string[]): McpSetupOptions {
   const agents: AgentType[] = [];
+  let scope: 'local' | 'global' = 'local'; // Default to local (project)
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -34,6 +37,9 @@ export function parseMcpOptions(args: string[]): McpSetupOptions {
         nextArg = args[i];
       }
       i--; // Back up one since the loop will increment
+    } else if (arg === '-g' || arg === '--global') {
+      // Set scope to global (home directory)
+      scope = 'global';
     }
     // Ignore other flags
   }
@@ -43,6 +49,7 @@ export function parseMcpOptions(args: string[]): McpSetupOptions {
   return {
     mode,
     agents,
+    scope,
   };
 }
 
@@ -55,18 +62,22 @@ export async function runMcpSetup(
   options: McpSetupOptions,
   cwd: string = process.cwd()
 ): Promise<void> {
+  const scope = options.scope || 'local';
+  const configCwd = scope === 'global' ? homedir() : cwd;
+
   if (options.mode === 'tui') {
-    await setupTuiMode(cwd);
+    await setupTuiMode(configCwd, scope);
   } else {
-    await setupCliMode(options.agents, cwd);
+    await setupCliMode(options.agents, configCwd, scope);
   }
 }
 
 /**
  * TUI mode - interactive agent selection
- * @param cwd Current working directory
+ * @param cwd Current working directory (or home directory if global)
+ * @param scope 'local' for project, 'global' for home directory
  */
-async function setupTuiMode(cwd: string): Promise<void> {
+async function setupTuiMode(cwd: string, scope: 'local' | 'global' = 'local'): Promise<void> {
   // Detect installed agents
   const installedAgents = await detectInstalledAgents();
 
@@ -101,8 +112,8 @@ async function setupTuiMode(cwd: string): Promise<void> {
 
   for (const agentType of selectedAgents) {
     try {
-      await configureAgentMcp(agentType as AgentType, cwd);
-      console.log(`✓ Configured ${agents[agentType]?.displayName || agentType}`);
+      await configureAgentMcp(agentType as AgentType, cwd, scope);
+      console.log(`✓ Configured ${agents[agentType as any]?.displayName || agentType}`);
       successCount++;
     } catch (error) {
       console.error(`✗ Failed to configure ${agentType}:`, (error as Error).message);
@@ -123,9 +134,14 @@ async function setupTuiMode(cwd: string): Promise<void> {
 /**
  * CLI mode - configure specified agents
  * @param agentTypes List of agent types to configure
- * @param cwd Current working directory
+ * @param cwd Current working directory (or home directory if global)
+ * @param scope 'local' for project, 'global' for home directory
  */
-async function setupCliMode(agentTypes: AgentType[], cwd: string): Promise<void> {
+async function setupCliMode(
+  agentTypes: AgentType[],
+  cwd: string,
+  scope: 'local' | 'global' = 'local'
+): Promise<void> {
   // Handle wildcard - configure all installed agents
   if (agentTypes.includes('*' as AgentType)) {
     const installedAgents = await detectInstalledAgents();
@@ -138,7 +154,7 @@ async function setupCliMode(agentTypes: AgentType[], cwd: string): Promise<void>
 
   for (const agentType of agentTypes) {
     try {
-      await configureAgentMcp(agentType, cwd);
+      await configureAgentMcp(agentType, cwd, scope);
       console.log(`✓ Configured ${agents[agentType]?.displayName || agentType}`);
       successCount++;
     } catch (error) {

@@ -58,34 +58,52 @@ const AGENT_TO_MCP_CLIENT: Record<string, string> = {
 /**
  * Get the MCP configuration file path for an agent
  * @param agentType The agent type
- * @param cwd Current working directory
+ * @param cwd Current working directory (or home directory for global)
+ * @param scope 'local' for project, 'global' for home directory
  * @returns The full path to the agent's MCP config file
  */
-export function getAgentConfigPath(agentType: AgentType | string, cwd: string): string {
+export function getAgentConfigPath(
+  agentType: AgentType | string,
+  cwd: string,
+  scope: 'local' | 'global' = 'local'
+): string {
   const mappedType = AGENT_TO_MCP_CLIENT[agentType] || agentType;
-  const home = homedir();
+  // Note: cwd already contains the home directory if scope='global'
 
   switch (mappedType) {
     case 'claude-desktop':
-      return join(cwd, '.claude');
+      // Claude Desktop: store MCP config in project or home .claude/mcp.json
+      return join(cwd, '.claude', 'mcp.json');
     case 'cline':
-      return join(cwd, '.cline');
+      // Cline: store in .cline/mcp.json
+      return join(cwd, '.cline', 'mcp.json');
     case 'cursor':
       return join(cwd, '.cursor', 'mcp.json');
     case 'kiro':
-      return join(cwd, '.kiro');
+      // Kiro: local .kiro/mcp.json | global ~/.kiro/agents/default.json
+      if (scope === 'global') {
+        return join(cwd, '.kiro', 'agents', 'default.json');
+      }
+      return join(cwd, '.kiro', 'mcp.json');
     case 'junie':
-      return join(cwd, '.junie');
+      // Junie: store in .junie/mcp.json
+      return join(cwd, '.junie', 'mcp.json');
     case 'opencode':
+      // OpenCode: local opencode.json | global ~/.config/opencode/opencode.json
+      if (scope === 'global') {
+        return join(cwd, '.config', 'opencode', 'opencode.json');
+      }
       return join(cwd, 'opencode.json');
     case 'zed':
-      return join(home, '.config', 'zed', 'settings.json');
+      return join(cwd, '.config', 'zed', 'settings.json');
     case 'continue':
-      return join(cwd, '.continue');
+      // Continue: store in .continue/config.json
+      return join(cwd, '.continue', 'config.json');
+    // For other agents, try to infer config path
     default:
-      // For other agents, try to infer config path
+      // Try to infer from agent name if possible
       const sanitized = mappedType.replace(/[^a-z0-9-]/gi, '_').toLowerCase();
-      return join(cwd, `.${sanitized}`);
+      return join(cwd, `.${sanitized}`, 'mcp.json');
   }
 }
 
@@ -122,9 +140,14 @@ export async function writeAgentConfig(configPath: string, config: McpConfig): P
 /**
  * Configure MCP server for an agent
  * @param agentType The agent type (e.g., 'claude-code', 'cline', 'cursor')
- * @param cwd Current working directory
+ * @param cwd Current working directory (or home directory if configuring globally)
+ * @param scope 'local' for project, 'global' for home directory
  */
-export async function configureAgentMcp(agentType: AgentType | string, cwd: string): Promise<void> {
+export async function configureAgentMcp(
+  agentType: AgentType | string,
+  cwd: string,
+  scope: 'local' | 'global' = 'local'
+): Promise<void> {
   // Validate agent type
   if (!agentType || typeof agentType !== 'string') {
     throw new Error(`Invalid agent type: ${agentType}`);
@@ -135,7 +158,7 @@ export async function configureAgentMcp(agentType: AgentType | string, cwd: stri
   }
 
   // Get config path for this agent
-  const configPath = getAgentConfigPath(agentType, cwd);
+  const configPath = getAgentConfigPath(agentType, cwd, scope);
 
   // Read existing config
   let config = await readAgentConfig(configPath);
