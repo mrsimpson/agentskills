@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "agentskills": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@codemcp/agentskills-mcp"
+      ]
+    }
+  }
+}
