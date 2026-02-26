@@ -404,14 +404,55 @@ describe("SkillInstaller", () => {
       }
     });
 
-    it("should handle network errors", async () => {
+    it("should handle network errors for git repos", async () => {
+      // Create a new installer with a throwing git mock for this test only
+      const childProcess = await import("child_process");
+      const originalMock = vi
+        .mocked(childProcess.execFile)
+        .getMockImplementation();
+
+      // Override just for this test
+      vi.mocked(childProcess.execFile).mockImplementation(
+        (
+          command: string,
+          args?: readonly string[] | null,
+          callback?: any
+        ): any => {
+          const error = Object.assign(
+            new Error("getaddrinfo ENOTFOUND github.com"),
+            { code: "ENOTFOUND" }
+          );
+          if (callback) {
+            callback(error);
+          }
+          return Promise.reject(error);
+        }
+      );
+
+      try {
+        const result = await installer.install(
+          "test-skill",
+          "github:user/test-skill"
+        );
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          // Git clone errors are properly categorized as NETWORK_ERROR
+          expect(result.error?.code).toBe("NETWORK_ERROR");
+          expect(result.error?.message).toContain("ENOTFOUND");
+        }
+      } finally {
+        // Restore original mock for subsequent tests
+        if (originalMock) {
+          vi.mocked(childProcess.execFile).mockImplementation(originalMock);
+        }
+      }
+    });
+
+    it("should handle network errors for npm packages", async () => {
       vi.mocked(pacote.extract).mockRejectedValueOnce(
         Object.assign(new Error("ENOTFOUND"), { code: "ENOTFOUND" })
       );
-      const result = await installer.install(
-        "test-skill",
-        "github:user/test-skill"
-      );
+      const result = await installer.install("test-skill", "@org/test-skill");
       expect(result.success).toBe(false);
       if (!result.success) {
         expect(result.error?.code).toBe("NETWORK_ERROR");
@@ -490,18 +531,19 @@ describe("SkillInstaller", () => {
   });
 
   describe("Cache behavior", () => {
-    it("should use cache directory and reuse cached content", async () => {
-      const spec = "github:user/test-skill#v1.0.0";
+    it("should use cache directory for npm packages", async () => {
+      // Use npm package instead of git repo since git clone doesn't use pacote cache
+      const spec = "@org/test-skill@1.0.0";
 
-      await installer.install("cached-skill", spec);
+      await installer.install("test-skill", spec);
       const cacheContents = await fs.readdir(cacheDir);
       expect(cacheContents.length).toBeGreaterThan(0);
 
-      await fs.rm(join(skillsDir, "cached-skill"), {
+      await fs.rm(join(skillsDir, "test-skill"), {
         recursive: true,
         force: true
       });
-      const secondResult = await installer.install("cached-skill", spec);
+      const secondResult = await installer.install("test-skill", spec);
       expect(secondResult.success).toBe(true);
     });
   });
