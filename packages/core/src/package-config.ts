@@ -33,7 +33,7 @@ export class PackageConfigManager {
     return {
       skills: {},
       config: {
-        skillsDirectory: ".agentskills/skills",
+        skillsDirectory: ".agents/skills",
         autoDiscover: [".claude/skills"],
         maxSkillSize: 5000,
         logLevel: "info"
