@@ -19,6 +19,40 @@ const AGENT_TO_MCP_CLIENT: Record<string, string> = {
   opencode: 'opencode',
   zed: 'zed',
   continue: 'continue',
+  'github-copilot': 'github-copilot',
+  'mistral-vibe': 'mistral-vibe',
+  windsurf: 'windsurf',
+  codex: 'codex',
+  'command-code': 'command-code',
+  cortex: 'cortex',
+  crush: 'crush',
+  droid: 'droid',
+  'gemini-cli': 'gemini-cli',
+  goose: 'goose',
+  'iflow-cli': 'iflow-cli',
+  kilo: 'kilo',
+  'kimi-cli': 'kimi-cli',
+  kode: 'kode',
+  mcpjam: 'mcpjam',
+  mux: 'mux',
+  neovate: 'neovate',
+  openhands: 'openhands',
+  pi: 'pi',
+  qoder: 'qoder',
+  'qwen-code': 'qwen-code',
+  replit: 'replit',
+  roo: 'roo',
+  trae: 'trae',
+  'trae-cn': 'trae-cn',
+  zencoder: 'zencoder',
+  pochi: 'pochi',
+  adal: 'adal',
+  universal: 'universal',
+  amp: 'amp',
+  antigravity: 'antigravity',
+  augment: 'augment',
+  openclaw: 'openclaw',
+  codebuddy: 'codebuddy',
 };
 
 /**
@@ -33,23 +67,27 @@ export function getAgentConfigPath(agentType: AgentType | string, cwd: string): 
 
   switch (mappedType) {
     case 'claude-desktop':
-      return join(cwd, '.claude');
+      // Claude Desktop uses a file in the project directory
+      return join(cwd, '.claude', 'claude_desktop_config.json');
     case 'cline':
-      return join(cwd, '.cline');
+      return join(cwd, '.cline', 'cline_mcp_config.json');
     case 'cursor':
       return join(cwd, '.cursor', 'mcp.json');
     case 'kiro':
-      return join(cwd, '.kiro');
+      return join(cwd, '.kiro', 'kiro_config.json');
     case 'junie':
-      return join(cwd, '.junie');
+      return join(cwd, '.junie', 'junie_config.json');
     case 'opencode':
       return join(cwd, 'opencode.json');
     case 'zed':
       return join(home, '.config', 'zed', 'settings.json');
     case 'continue':
-      return join(cwd, '.continue');
+      return join(cwd, '.continue', 'config.json');
+    // For other agents, use a generic config path
     default:
-      throw new Error(`Unknown agent type: ${agentType}`);
+      // Try to infer from agent name if possible
+      const sanitized = mappedType.replace(/[^a-z0-9-]/gi, '_').toLowerCase();
+      return join(cwd, `.${sanitized}`, `${sanitized}_config.json`);
   }
 }
 

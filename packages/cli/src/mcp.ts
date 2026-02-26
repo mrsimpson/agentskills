@@ -1,6 +1,7 @@
 import type { AgentType } from './types.ts';
 import { configureAgentMcp } from './mcp-configurator.ts';
 import { agents, detectInstalledAgents } from './agents.ts';
+import { multiselect, cancel } from '@clack/prompts';
 
 /**
  * Options parsed from mcp setup command
@@ -74,15 +75,48 @@ async function setupTuiMode(cwd: string): Promise<void> {
     return;
   }
 
-  // TODO: Show interactive multi-select prompt using @clack/prompts
-  // For now, configure all detected agents
-  for (const agentType of installedAgents) {
+  // Show interactive multi-select prompt using @clack/prompts
+  const selectedAgents = await multiselect({
+    message: 'Select agents to configure for MCP:',
+    options: installedAgents.map((agentType) => ({
+      value: agentType as any,
+      label: agents[agentType]?.displayName || agentType,
+    })),
+  });
+
+  // Handle cancellation
+  if (typeof selectedAgents === 'symbol') {
+    cancel('Operation cancelled');
+    return;
+  }
+
+  if (!selectedAgents || selectedAgents.length === 0) {
+    console.log('No agents selected.');
+    return;
+  }
+
+  // Configure selected agents
+  let successCount = 0;
+  let failureCount = 0;
+
+  for (const agentType of selectedAgents) {
     try {
-      await configureAgentMcp(agentType, cwd);
+      await configureAgentMcp(agentType as AgentType, cwd);
       console.log(`✓ Configured ${agents[agentType]?.displayName || agentType}`);
+      successCount++;
     } catch (error) {
       console.error(`✗ Failed to configure ${agentType}:`, (error as Error).message);
+      failureCount++;
     }
+  }
+
+  // Show summary
+  console.log('');
+  if (successCount > 0) {
+    console.log(`✓ Successfully configured ${successCount} agent(s)`);
+  }
+  if (failureCount > 0) {
+    console.error(`✗ Failed to configure ${failureCount} agent(s)`);
   }
 }
 
