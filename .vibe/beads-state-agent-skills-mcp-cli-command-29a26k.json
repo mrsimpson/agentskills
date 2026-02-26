@@ -1,0 +1,29 @@
+{
+  "conversationId": "agent-skills-mcp-cli-command-29a26k",
+  "projectPath": "/Users/oliverjaegle/projects/privat/mcp-server/agent-skills",
+  "epicId": "agent-skills-6",
+  "phaseTasks": [
+    {
+      "phaseId": "explore",
+      "phaseName": "Explore",
+      "taskId": "agent-skills-6.1"
+    },
+    {
+      "phaseId": "plan",
+      "phaseName": "Plan",
+      "taskId": "agent-skills-6.2"
+    },
+    {
+      "phaseId": "code",
+      "phaseName": "Code",
+      "taskId": "agent-skills-6.3"
+    },
+    {
+      "phaseId": "commit",
+      "phaseName": "Commit",
+      "taskId": "agent-skills-6.4"
+    }
+  ],
+  "createdAt": "2026-02-26T21:59:29.499Z",
+  "updatedAt": "2026-02-26T21:59:29.499Z"
+}

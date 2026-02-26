@@ -12,7 +12,7 @@ my-skill/
 
 ## Structure
 
-````markdown
+```markdown
 ---
 name: my-skill
 description: A one-line summary of what this skill does
@@ -23,13 +23,14 @@ description: A one-line summary of what this skill does
 
 Instruction body in Markdown. This is what the agent receives
 when it calls `use_skill`.
-````
+```
 
 ## JSON Schema
 
 A machine-readable schema is published alongside the docs and can be used for IDE validation and autocomplete.
 
 **Schema URL:**
+
 ```
 https://mrsimpson.github.io/agentskills-mcp/skill-frontmatter-schema.json
 ```
@@ -60,42 +61,42 @@ description: ...
 
 ### Required
 
-| Field | Type | Constraints |
-|---|---|---|
-| `name` | string | 1–64 chars · lowercase letters, numbers, hyphens · no leading/trailing/consecutive hyphens |
-| `description` | string | 1–1024 chars |
+| Field         | Type   | Constraints                                                                                |
+| ------------- | ------ | ------------------------------------------------------------------------------------------ |
+| `name`        | string | 1–64 chars · lowercase letters, numbers, hyphens · no leading/trailing/consecutive hyphens |
+| `description` | string | 1–1024 chars                                                                               |
 
 ### Standard Optional Fields
 
-| Field | Type | Description |
-|---|---|---|
-| `license` | string | SPDX license identifier, e.g. `MIT` |
-| `compatibility` | string | Agent compatibility string |
-| `metadata` | object | Arbitrary key-value metadata |
-| `allowedTools` | string[] | Tools this skill is permitted to use |
+| Field           | Type     | Description                          |
+| --------------- | -------- | ------------------------------------ |
+| `license`       | string   | SPDX license identifier, e.g. `MIT`  |
+| `compatibility` | string   | Agent compatibility string           |
+| `metadata`      | object   | Arbitrary key-value metadata         |
+| `allowedTools`  | string[] | Tools this skill is permitted to use |
 
 ### Claude Code Extensions
 
-| Field | Type | Description |
-|---|---|---|
-| `disableModelInvocation` | boolean | If `true`, skill is excluded from `use_skill` enum |
-| `userInvocable` | boolean | If `true`, skill is designed for direct user invocation |
-| `argumentHint` | string | Hint shown to users about expected arguments |
-| `context` | string | Execution context hint |
-| `agent` | string | Target agent identifier |
-| `model` | string | Preferred model for this skill |
-| `hooks` | object | Lifecycle hook definitions |
-| `requiresMcpServers` | array | MCP server dependencies (see [MCP Server Dependencies](/reference/mcp-dependencies)) |
+| Field                    | Type    | Description                                                                          |
+| ------------------------ | ------- | ------------------------------------------------------------------------------------ |
+| `disableModelInvocation` | boolean | If `true`, skill is excluded from `use_skill` enum                                   |
+| `userInvocable`          | boolean | If `true`, skill is designed for direct user invocation                              |
+| `argumentHint`           | string  | Hint shown to users about expected arguments                                         |
+| `context`                | string  | Execution context hint                                                               |
+| `agent`                  | string  | Target agent identifier                                                              |
+| `model`                  | string  | Preferred model for this skill                                                       |
+| `hooks`                  | object  | Lifecycle hook definitions                                                           |
+| `requiresMcpServers`     | array   | MCP server dependencies (see [MCP Server Dependencies](/reference/mcp-dependencies)) |
 
 ## Argument Placeholders
 
 The server returns skill content with placeholders intact. The agent is responsible for substitution:
 
-| Placeholder | Meaning |
-|---|---|
-| `$ARGUMENTS` | All arguments as a space-separated string |
-| `$1`, `$2`, … | Individual arguments by position (1-indexed) |
-| `${SESSION_ID}` | Session identifier (agent provides) |
+| Placeholder      | Meaning                                                      |
+| ---------------- | ------------------------------------------------------------ |
+| `$ARGUMENTS`     | All arguments as a space-separated string                    |
+| `$1`, `$2`, …    | Individual arguments by position (1-indexed)                 |
+| `${SESSION_ID}`  | Session identifier (agent provides)                          |
 | `` !`command` `` | Dynamic command to execute (flagged, not executed by server) |
 
 ## Example
@@ -112,6 +113,7 @@ argumentHint: "<pr-url>"
 Fetch and summarize the pull request at $1.
 
 Focus on:
+
 - What changed and why
 - Potential risks
 - Suggested review focus areas
@@ -122,6 +124,7 @@ Focus on:
 Run `agentskills validate <path>` to check a skill file. Errors block installation; warnings are advisory.
 
 **Errors** (must fix):
+
 - Missing `name` or `description`
 - `name` outside 1–64 characters, or contains uppercase/spaces/special chars, or has leading/trailing/consecutive hyphens
 - `description` outside 1–1024 characters
@@ -130,6 +133,7 @@ Run `agentskills validate <path>` to check a skill file. Errors block installati
 - Malformed YAML frontmatter
 
 **Warnings** (advisory):
+
 - `description` shorter than 50 characters
 - Missing `license` field
 - Body content exceeds ~5000 tokens (20 000 characters)

@@ -4,12 +4,12 @@
 
 [Agent Skills](https://agentskills.io) are a powerful way to encode reusable workflows, context, and instructions for AI agents. But native implementations have friction:
 
-| Pain Point | Description |
-|---|---|
+| Pain Point               | Description                                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------------------- |
 | **Filesystem discovery** | Each agent tool uses a different directory (`.claude/skills`, etc.). Skills are tied to one tool. |
-| **No selectivity** | All skills are always loaded — you can't declare which ones a project actually needs. |
-| **No team sharing** | Skill configurations live in developer home directories, not in version control. |
-| **Unclear security** | Scripts and dynamic commands run without a clear trust boundary. |
+| **No selectivity**       | All skills are always loaded — you can't declare which ones a project actually needs.             |
+| **No team sharing**      | Skill configurations live in developer home directories, not in version control.                  |
+| **Unclear security**     | Scripts and dynamic commands run without a clear trust boundary.                                  |
 
 ## The Solution: An MCP Gateway
 
