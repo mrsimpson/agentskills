@@ -1,23 +1,23 @@
 {
   "version": "1.0",
-  "generated": "2026-02-26T14:57:40.112Z",
+  "generated": "2026-02-26T15:21:45.798Z",
   "skills": {
-    "tdd": {
-      "spec": "github:mrsimpson/skills-coding/tdd-with-agents",
-      "resolvedVersion": "e602a5b",
-      "integrity": "git:e602a5b4c3dbd33658b5dd668d7ffadddf8746ca"
+    "responsible-vibe": {
+      "spec": "@codemcp/workflows::path:/skill",
+      "resolvedVersion": "5.2.1",
+      "integrity": "sha512-jH8qNkRVdacL+KXW04ScueDlIjDDRlpcGyIeknRjvjmriiXyLgkQfxuJpKTObvXZW1ffpwSrqWKALx9PIydsfQ=="
     },
     "commit": {
       "spec": "github:mrsimpson/skills-coding/commit",
       "resolvedVersion": "e602a5b",
       "integrity": "git:e602a5b4c3dbd33658b5dd668d7ffadddf8746ca"
     },
-    "knowledge": {
-      "spec": "github:mrsimpson/agentic-knowledge-mcp/skill",
-      "resolvedVersion": "2d484c6",
-      "integrity": "git:2d484c60d0655ac05d83b61e69da34ca7a15c36e"
+    "tdd": {
+      "spec": "github:mrsimpson/skills-coding/tdd-with-agents",
+      "resolvedVersion": "e602a5b",
+      "integrity": "git:e602a5b4c3dbd33658b5dd668d7ffadddf8746ca"
     },
-    "test-knowledge": {
+    "knowledge": {
       "spec": "github:mrsimpson/agentic-knowledge-mcp/skill",
       "resolvedVersion": "2d484c6",
       "integrity": "git:2d484c60d0655ac05d83b61e69da34ca7a15c36e"
