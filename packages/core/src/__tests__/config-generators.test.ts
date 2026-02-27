@@ -172,6 +172,42 @@ describe("GitHubCopilotGenerator", () => {
     expect(metadata.version).toBe("1.0.0");
     expect(metadata.docsUrl).toContain("github.com");
   });
+
+  it("should use wildcard tools when server.tools is ['*']", async () => {
+    const result = await generator.generate(baseConfig, generatorOptions);
+    const content = result.content as string;
+
+    expect(content).toContain("agent-skills/*");
+  });
+
+  it("should restrict to specific tools when server.tools lists named tools", async () => {
+    const config: SkillsMcpAgentConfig = {
+      ...baseConfig,
+      mcp_servers: {
+        "agent-skills": {
+          type: "stdio",
+          command: "npx",
+          args: ["-y", "@agent-skills/mcp-server"],
+          tools: ["*"]
+        },
+        github: {
+          type: "http",
+          url: "https://api.github.com/mcp",
+          tools: ["search_repositories", "get_file_contents"]
+        }
+      }
+    };
+
+    const result = await generator.generate(config, generatorOptions);
+    const content = result.content as string;
+
+    // agent-skills with tools: ['*'] → wildcard
+    expect(content).toContain("agent-skills/*");
+    // github with specific tools → specific entries, not wildcard
+    expect(content).not.toContain("github/*");
+    expect(content).toContain("github/search_repositories");
+    expect(content).toContain("github/get_file_contents");
+  });
 });
 
 describe("KiroGenerator", () => {
@@ -260,6 +296,62 @@ describe("KiroGenerator", () => {
     expect(parsed.allowedTools).toContain("use_skill");
     expect(parsed.allowedTools).toContain("fs_read");
     expect(parsed.tools).toContain("fs_read");
+  });
+
+  it("should use wildcard when server.tools is ['*']", async () => {
+    // baseConfig already has tools: ['*'] for agent-skills
+    const result = await generator.generate(baseConfig, generatorOptions);
+    const parsed = JSON.parse(result.content as string);
+
+    expect(parsed.allowedTools).toContain("@agent-skills/*");
+  });
+
+  it("should restrict to specific tools when server.tools lists named tools", async () => {
+    const config: SkillsMcpAgentConfig = {
+      ...baseConfig,
+      mcp_servers: {
+        "agent-skills": {
+          type: "stdio",
+          command: "npx",
+          args: ["-y", "@agent-skills/mcp-server"],
+          tools: ["*"]
+        },
+        github: {
+          type: "http",
+          url: "https://api.github.com/mcp",
+          tools: ["search_repositories", "get_file_contents"]
+        }
+      }
+    };
+
+    const result = await generator.generate(config, generatorOptions);
+    const parsed = JSON.parse(result.content as string);
+
+    // agent-skills with tools: ['*'] → wildcard
+    expect(parsed.allowedTools).toContain("@agent-skills/*");
+    // github with specific tools → no wildcard
+    expect(parsed.allowedTools).not.toContain("@github/*");
+    expect(parsed.allowedTools).toContain("@github/search_repositories");
+    expect(parsed.allowedTools).toContain("@github/get_file_contents");
+  });
+
+  it("should use wildcard when server.tools is undefined", async () => {
+    const config: SkillsMcpAgentConfig = {
+      ...baseConfig,
+      mcp_servers: {
+        "agent-skills": {
+          type: "stdio",
+          command: "npx",
+          args: ["-y", "@agent-skills/mcp-server"]
+          // no tools field → wildcard
+        }
+      }
+    };
+
+    const result = await generator.generate(config, generatorOptions);
+    const parsed = JSON.parse(result.content as string);
+
+    expect(parsed.allowedTools).toContain("@agent-skills/*");
   });
 });
 

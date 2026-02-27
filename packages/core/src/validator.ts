@@ -11,8 +11,36 @@ const validateFrontmatter = ajv.compile(schema) as {
   errors: Array<{ message?: string }> | null;
 };
 
+/**
+ * The schema uses kebab-case property names (matching actual YAML frontmatter).
+ * The parser converts these to camelCase for TypeScript usage, so we need to
+ * reverse that mapping before validating against the schema.
+ */
+const CAMEL_TO_KEBAB: Record<string, string> = {
+  allowedTools: "allowed-tools",
+  disableModelInvocation: "disable-model-invocation",
+  userInvocable: "user-invocable",
+  argumentHint: "argument-hint",
+  requiresMcpServers: "requires-mcp-servers"
+};
+
+function toRawYamlKeys(
+  metadata: Record<string, unknown>
+): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(metadata)) {
+    result[CAMEL_TO_KEBAB[key] ?? key] = value;
+  }
+  return result;
+}
+
 export function validateSkill(skill: Skill): ValidationResult {
-  const valid = validateFrontmatter(skill.metadata);
+  // Convert camelCase keys back to kebab-case so they match the schema's
+  // property names (which mirror the actual YAML frontmatter format).
+  const rawData = toRawYamlKeys(
+    skill.metadata as unknown as Record<string, unknown>
+  );
+  const valid = validateFrontmatter(rawData);
   return {
     valid,
     errors: valid
