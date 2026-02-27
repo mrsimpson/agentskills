@@ -359,6 +359,42 @@ describe('mcp-configurator', () => {
     });
   });
 
+  describe('github-copilot / VSCode format', () => {
+    it('getAgentConfigPath returns .vscode/mcp.json for github-copilot', () => {
+      const p = getAgentConfigPath('github-copilot', tempDir, 'local');
+      expect(p).toMatch(/\.vscode[/\\]mcp\.json$/);
+    });
+
+    it('readAgentConfig normalises VS Code "servers" key to "mcpServers"', async () => {
+      const configPath = path.join(tempDir, '.vscode', 'mcp.json');
+      fs.mkdirSync(path.dirname(configPath), { recursive: true });
+      fs.writeFileSync(
+        configPath,
+        JSON.stringify({ servers: { myserver: { command: 'npx', args: ['-y', 'pkg'] } } })
+      );
+      const config = await readAgentConfig(configPath);
+      expect(config.mcpServers).toBeDefined();
+      expect(config.mcpServers!['myserver']).toBeDefined();
+    });
+
+    it('generateSkillsMcpAgent writes .vscode/mcp.json with servers key for github-copilot', async () => {
+      await generateSkillsMcpAgent('github-copilot', tempDir, 'local', undefined, false);
+      const vscodePath = path.join(tempDir, '.vscode', 'mcp.json');
+      expect(fs.existsSync(vscodePath)).toBe(true);
+      const written = JSON.parse(fs.readFileSync(vscodePath, 'utf-8'));
+      expect(written.servers).toBeDefined();
+      expect(written.mcpServers).toBeUndefined();
+    });
+
+    it('generateSkillsMcpAgent also writes agent.md when includeAgentConfig=true', async () => {
+      await generateSkillsMcpAgent('github-copilot', tempDir, 'local', undefined, true);
+      const vscodePath = path.join(tempDir, '.vscode', 'mcp.json');
+      const agentPath = path.join(tempDir, '.github', 'agents', 'skills-mcp.agent.md');
+      expect(fs.existsSync(vscodePath)).toBe(true);
+      expect(fs.existsSync(agentPath)).toBe(true);
+    });
+  });
+
   describe('generateSkillsMcpAgent — directory guard', () => {
     it('should throw if a generator returns a path that is an existing directory', async () => {
       // kiro-cli writes to .kiro/agents/skills-mcp.json — create that path as a directory instead

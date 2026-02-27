@@ -14,6 +14,7 @@ import {
   GitHubCopilotGenerator,
   KiroGenerator,
   OpenCodeGenerator,
+  VsCodeGenerator,
 } from '@codemcp/agentskills-core';
 
 /**
@@ -96,6 +97,9 @@ export function getAgentConfigPath(
         return join(cwd, '.kiro', 'agents', 'default.json');
       }
       return join(cwd, '.kiro', 'mcp.json');
+    case 'github-copilot':
+      // GitHub Copilot runs in VS Code; VS Code reads .vscode/mcp.json (key: "servers")
+      return join(cwd, '.vscode', 'mcp.json');
     case 'junie':
       // Junie: store in .junie/mcp.json
       return join(cwd, '.junie', 'mcp.json');
@@ -119,20 +123,32 @@ export function getAgentConfigPath(
 }
 
 /**
- * Read an agent's MCP configuration file
+ * Read an agent's MCP configuration file.
+ * Normalises agent-specific formats to the common McpConfig shape:
+ *   - VS Code (.vscode/mcp.json) uses "servers" → normalised to "mcpServers"
+ *   - OpenCode uses "mcp" → normalised to "mcpServers"
  * @param configPath Path to the config file
- * @returns The parsed config object, or empty object if file doesn't exist
+ * @returns The parsed config object, or empty config if file doesn't exist
  */
 export async function readAgentConfig(configPath: string): Promise<McpConfig> {
   try {
     const content = await fs.readFile(configPath, 'utf-8');
-    return JSON.parse(content) as McpConfig;
+    const raw = JSON.parse(content) as Record<string, unknown>;
+
+    // VS Code uses "servers" instead of "mcpServers"
+    if ('servers' in raw && !('mcpServers' in raw)) {
+      return { ...raw, mcpServers: raw['servers'] as McpConfig['mcpServers'] } as McpConfig;
+    }
+    // OpenCode uses "mcp" instead of "mcpServers"
+    if ('mcp' in raw && !('mcpServers' in raw)) {
+      return { ...raw, mcpServers: raw['mcp'] as McpConfig['mcpServers'] } as McpConfig;
+    }
+
+    return raw as unknown as McpConfig;
   } catch (error) {
-    // File doesn't exist or is unreadable - return empty config
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       return { mcpServers: {} };
     }
-    // Other errors (invalid JSON, permission denied, etc.) should be thrown
     throw error;
   }
 }
@@ -190,8 +206,7 @@ export async function configureAgentMcp(
   // Update or add agentskills server
   config.mcpServers.agentskills = mcpServerConfig;
 
-  // Write config using adapter if needed
-  // For now, we write directly - adapters handle OpenCode format
+  // Write in agent-specific format
   if (mappedType === 'opencode') {
     // OpenCode uses 'mcp' field instead of 'mcpServers'
     const openCodeConfig = {
@@ -200,6 +215,14 @@ export async function configureAgentMcp(
     };
     delete (openCodeConfig as any).mcpServers;
     await writeAgentConfig(configPath, openCodeConfig as any);
+  } else if (mappedType === 'github-copilot') {
+    // VS Code reads .vscode/mcp.json with a top-level "servers" key, not "mcpServers"
+    const vsCodeConfig = {
+      ...config,
+      servers: config.mcpServers,
+    };
+    delete (vsCodeConfig as any).mcpServers;
+    await writeAgentConfig(configPath, vsCodeConfig as any);
   } else {
     await writeAgentConfig(configPath, config);
   }
@@ -226,98 +249,45 @@ function isValidMcpClientType(type: string): boolean {
 /**
  * A shared registry instance so callers can check which agents are
  * generator-backed without re-instantiating.
+ *
+ * VsCodeGenerator handles github-copilot et al. (baseline .vscode/mcp.json).
+ * GitHubCopilotGenerator is NOT registered here — it is invoked separately
+ * and additively when agent-config mode is requested for github-copilot.
  */
 export function buildConfigGeneratorRegistry(): ConfigGeneratorRegistry {
   const registry = new ConfigGeneratorRegistry();
-  registry.register(new GitHubCopilotGenerator());
+  registry.register(new VsCodeGenerator());
   registry.register(new KiroGenerator());
   registry.register(new OpenCodeGenerator());
   return registry;
 }
 
 /**
- * Generate skills-mcp agent configuration using the ConfigGeneratorRegistry.
- *
- * @param agentType The agent type
- * @param cwd Current working directory (or home directory for global)
- * @param scope 'local' for project, 'global' for home directory
- * @param extraServers Additional MCP servers to include alongside agentskills
- *   (e.g. servers required by installed skills). They are merged into
- *   mcp_servers before generation so they appear in the same agent file.
+ * SAFETY: generators MUST target specific named files — never a directory.
+ * We validate every resolved path before writing to enforce this contract.
  */
-export async function generateSkillsMcpAgent(
-  agentType: AgentType | string,
-  cwd: string,
-  scope: 'local' | 'global' = 'local',
-  extraServers?: Record<string, SkillsMcpServerConfig>
-): Promise<void> {
-  const registry = buildConfigGeneratorRegistry();
-
-  // Get the skills directory path
-  const skillsDir = scope === 'global' ? homedir() : cwd;
-
-  // Create base skills-mcp agent config, merging in any extra servers
-  const baseConfig: SkillsMcpAgentConfig = {
-    id: 'skills-mcp',
-    description: 'Agent-skills MCP server with use_skill tool access',
-    mcp_servers: {
-      'agent-skills': {
-        type: 'stdio',
-        command: 'npx',
-        args: ['-y', '@codemcp/agentskills-mcp'],
-        tools: ['*'],
-      },
-      ...extraServers,
-    },
-    tools: {
-      use_skill: true,
-    },
-    permissions: {
-      use_skill: 'allow',
-    },
-  };
-
-  // Get generator for this agent type
-  const generator = registry.getGenerator(agentType as string);
-  if (!generator) {
-    throw new Error(
-      `No config generator found for agent type: ${agentType}. Supported types: ${registry
-        .getSupportedAgentTypes()
-        .join(', ')}`
-    );
-  }
-
-  // Generate config
-  const generatedConfig = await generator.generate(baseConfig, {
-    skillsDir,
-    agentId: 'skills-mcp',
-    scope,
-    isGlobal: scope === 'global',
-  });
-
-  // Write config file(s).
-  // SAFETY: generators MUST target specific named files — never a directory.
-  // We validate every resolved path before writing to enforce this contract.
-  const safeWrite = async (filePath: string, content: string): Promise<void> => {
-    // Reject if the path resolves to an existing directory
-    try {
-      const stat = await fs.stat(filePath);
-      if (stat.isDirectory()) {
-        throw new Error(
-          `Generator returned a directory path instead of a file path: ${filePath}. ` +
-            `Generators must write to a specific named file and must never clear or overwrite directories.`
-        );
-      }
-    } catch (e) {
-      // ENOENT is fine — the file doesn't exist yet; any other stat error is re-thrown
-      if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e;
+async function safeWrite(filePath: string, content: string): Promise<void> {
+  try {
+    const stat = await fs.stat(filePath);
+    if (stat.isDirectory()) {
+      throw new Error(
+        `Generator returned a directory path instead of a file path: ${filePath}. ` +
+          `Generators must write to a specific named file and must never clear or overwrite directories.`
+      );
     }
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e;
+  }
+  const dir = dirname(filePath);
+  await fs.mkdir(dir, { recursive: true });
+  await fs.writeFile(filePath, content, 'utf-8');
+}
 
-    const dir = dirname(filePath);
-    await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(filePath, content, 'utf-8');
-  };
-
+async function writeGeneratedConfig(generatedConfig: {
+  files?: Array<{ path: string; content: string | Record<string, unknown> }>;
+  filePath?: string | string[];
+  content?: string | Record<string, unknown>;
+}): Promise<void> {
   if (generatedConfig.files) {
     for (const file of generatedConfig.files) {
       const content =
@@ -330,5 +300,74 @@ export async function generateSkillsMcpAgent(
         ? generatedConfig.content
         : JSON.stringify(generatedConfig.content, null, 2);
     await safeWrite(generatedConfig.filePath as string, content);
+  }
+}
+
+/**
+ * Generate skills-mcp agent configuration using the ConfigGeneratorRegistry.
+ *
+ * For VS Code / GitHub Copilot the model is additive:
+ *   1. `.vscode/mcp.json` is ALWAYS written (the baseline server registration)
+ *   2. `.github/agents/skills-mcp.agent.md` is written ADDITIONALLY when
+ *      `includeAgentConfig` is true (default true for backward compatibility)
+ *
+ * @param agentType      The agent type
+ * @param cwd            Current working directory (or home directory for global)
+ * @param scope          'local' for project, 'global' for home directory
+ * @param extraServers   Additional MCP servers to include alongside agentskills
+ * @param includeAgentConfig  When true (default), also write the rich agent file
+ *   for agents that support one (GitHub Copilot: .github/agents/*.agent.md)
+ */
+export async function generateSkillsMcpAgent(
+  agentType: AgentType | string,
+  cwd: string,
+  scope: 'local' | 'global' = 'local',
+  extraServers?: Record<string, SkillsMcpServerConfig>,
+  includeAgentConfig = true
+): Promise<void> {
+  const registry = buildConfigGeneratorRegistry();
+  const skillsDir = scope === 'global' ? homedir() : cwd;
+
+  const baseConfig: SkillsMcpAgentConfig = {
+    id: 'skills-mcp',
+    description: 'Agent-skills MCP server with use_skill tool access',
+    mcp_servers: {
+      'agent-skills': {
+        type: 'stdio',
+        command: 'npx',
+        args: ['-y', '@codemcp/agentskills-mcp'],
+        tools: ['*'],
+      },
+      ...extraServers,
+    },
+    tools: { use_skill: true },
+    permissions: { use_skill: 'allow' },
+  };
+
+  const generatorOptions = {
+    skillsDir,
+    agentId: 'skills-mcp',
+    scope,
+    isGlobal: scope === 'global',
+    includeAgentConfig,
+  };
+
+  const generator = registry.getGenerator(agentType as string);
+  if (!generator) {
+    throw new Error(
+      `No config generator found for agent type: ${agentType}. Supported types: ${registry
+        .getSupportedAgentTypes()
+        .join(', ')}`
+    );
+  }
+
+  // 1. Always write the baseline config (e.g. .vscode/mcp.json for github-copilot)
+  await writeGeneratedConfig(await generator.generate(baseConfig, generatorOptions));
+
+  // 2. For GitHub Copilot: additionally write the agent file when requested
+  //    (the VsCodeGenerator owns the baseline; GitHubCopilotGenerator owns the agent file)
+  if (includeAgentConfig && generator instanceof VsCodeGenerator) {
+    const agentFileGenerator = new GitHubCopilotGenerator();
+    await writeGeneratedConfig(await agentFileGenerator.generate(baseConfig, generatorOptions));
   }
 }

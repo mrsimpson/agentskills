@@ -66,6 +66,14 @@ export interface GeneratorOptions {
   scope: "local" | "global";
   /** Whether this is for a project or global config */
   isGlobal: boolean;
+  /**
+   * Whether to produce a rich agent-config file (with instructions, selectable by name)
+   * in addition to any baseline MCP server registration file.
+   * Generators that support both modes (e.g. GitHub Copilot) should write their
+   * baseline file unconditionally and add the agent file only when this is true.
+   * Defaults to true for backward compatibility.
+   */
+  includeAgentConfig?: boolean;
 }
 
 /**
