@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "skills": {
+    "commit": {
+      "source": "mrsimpson/skills-coding",
+      "sourceType": "github",
+      "computedHash": "fc628c7d577d2d9cf3cb0a917d3c5e2e35b460fdc62c353595b7472b6f1c6548"
+    },
+    "knowledge": {
+      "source": "mrsimpson/agentic-knowledge-mcp",
+      "sourceType": "github",
+      "computedHash": "d96439903e9ad9e05fdbad4e2bb0ef60a6e0dd0ff9c50326dff3ee4bf03ad862"
+    },
+    "quiet-shell": {
+      "source": "mrsimpson/quiet-shell-mcp",
+      "sourceType": "github",
+      "computedHash": "ae17dcbf78bf64db99f216f543e488ee533710d9459fb94dea06a9e55b35346c"
+    },
+    "tdd": {
+      "source": "mrsimpson/skills-coding",
+      "sourceType": "github",
+      "computedHash": "f8b4618b54124be85c06cf13099f797594322df3f94e339e7d2f38dd4974e1f1"
+    }
+  }
+}

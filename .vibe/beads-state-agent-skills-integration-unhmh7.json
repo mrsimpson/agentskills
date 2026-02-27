@@ -1,0 +1,29 @@
+{
+  "conversationId": "agent-skills-integration-unhmh7",
+  "projectPath": "/Users/oliverjaegle/projects/privat/mcp-server/agent-skills",
+  "epicId": "agent-skills-7",
+  "phaseTasks": [
+    {
+      "phaseId": "explore",
+      "phaseName": "Explore",
+      "taskId": "agent-skills-7.1"
+    },
+    {
+      "phaseId": "plan",
+      "phaseName": "Plan",
+      "taskId": "agent-skills-7.2"
+    },
+    {
+      "phaseId": "code",
+      "phaseName": "Code",
+      "taskId": "agent-skills-7.3"
+    },
+    {
+      "phaseId": "commit",
+      "phaseName": "Commit",
+      "taskId": "agent-skills-7.4"
+    }
+  ],
+  "createdAt": "2026-02-27T07:21:24.300Z",
+  "updatedAt": "2026-02-27T07:21:24.300Z"
+}

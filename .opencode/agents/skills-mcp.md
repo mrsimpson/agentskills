@@ -21,6 +21,16 @@ mcp:
       - @codemcp/agentskills-mcp
     tools:
       - *
+  agentic-knowledge:
+    command: npx
+    args:
+      - -y
+      - @codemcp/knowledge
+  quiet-shell:
+    command: npx
+    args:
+      - -y
+      - @codemcp/quiet-shell
 ---
 
 # Skill Usage

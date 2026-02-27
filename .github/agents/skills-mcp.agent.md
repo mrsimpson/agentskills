@@ -4,6 +4,8 @@ description: Agent-skills MCP server with use_skill tool access
 tools:
   - use_skill
   - agent-skills/*
+  - agentic-knowledge/*
+  - quiet-shell/*
 mcp-servers:
   agent-skills:
     type: stdio
@@ -13,6 +15,16 @@ mcp-servers:
       - @codemcp/agentskills-mcp
     tools:
       - *
+  agentic-knowledge:
+    command: npx
+    args:
+      - -y
+      - @codemcp/knowledge
+  quiet-shell:
+    command: npx
+    args:
+      - -y
+      - @codemcp/quiet-shell
 disable-model-invocation: false
 user-invocable: true
 ---
