@@ -74,6 +74,19 @@ export interface Skill {
   requiresMcpServers?: McpServerDependency[];
 }
 
+/**
+ * Metadata for agents that support a rich agent-config file
+ * (beyond a plain mcp.json) via the ConfigGeneratorRegistry.
+ */
+export interface AgentConfigSupport {
+  /**
+   * Short hint shown after setup so the user knows how to activate the agent.
+   * May be a CLI command string or a plain UI instruction.
+   * e.g. "kiro chat --agent skills-mcp"
+   */
+  activationHint: string;
+}
+
 export interface AgentConfig {
   name: string;
   displayName: string;
@@ -83,6 +96,11 @@ export interface AgentConfig {
   detectInstalled: () => Promise<boolean>;
   /** Whether to show this agent in the universal agents list. Defaults to true. */
   showInUniversalList?: boolean;
+  /**
+   * Present only for agents that support a structured agent-config file
+   * (Kiro, GitHub Copilot, OpenCode). Absence means only mcp.json is supported.
+   */
+  agentConfigSupport?: AgentConfigSupport;
 }
 
 export interface ParsedSource {

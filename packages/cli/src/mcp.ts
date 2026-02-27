@@ -1,6 +1,10 @@
 import { homedir } from 'os';
 import type { AgentType } from './types.ts';
-import { generateSkillsMcpAgent } from './mcp-configurator.ts';
+import {
+  generateSkillsMcpAgent,
+  configureAgentMcp,
+  buildConfigGeneratorRegistry,
+} from './mcp-configurator.ts';
 import { agents, detectInstalledAgents } from './agents.ts';
 import { multiselect, select, cancel } from '@clack/prompts';
 import { loadInstalledSkillMcpDeps, configureSkillMcpDepsForAgents } from './mcp-skill-deps.ts';
@@ -16,13 +20,26 @@ export interface McpSetupOptions {
 }
 
 /**
+ * The two config output modes the user can choose from.
+ *
+ * - 'agent-config'  → uses ConfigGeneratorRegistry; produces a rich agent file
+ *                     (.kiro/agents/skills-mcp.json, .github/agents/skills-mcp.agent.md, …)
+ *                     that bundles MCP server registrations + usage instructions.
+ *                     Only available for agents with a registered generator.
+ *
+ * - 'mcp-json'      → plain {mcpServers:{…}} written to the agent's standard mcp.json path.
+ *                     Works for every agent; no agent-specific instructions are written.
+ */
+export type McpConfigMode = 'agent-config' | 'mcp-json';
+
+/**
  * Parse mcp setup command arguments
  * Reuses the --agent flag pattern from add.ts
  * @param args Command arguments (e.g., ['setup', '--agent', 'claude-code', '--global'])
  * @returns Parsed options with mode, agents, and scope
  */
 export function parseMcpOptions(args: string[]): McpSetupOptions {
-  const agents: AgentType[] = [];
+  const agentList: AgentType[] = [];
   let scope: 'local' | 'global' = 'local'; // Default to local (project)
 
   for (let i = 0; i < args.length; i++) {
@@ -33,7 +50,7 @@ export function parseMcpOptions(args: string[]): McpSetupOptions {
       i++;
       let nextArg = args[i];
       while (i < args.length && nextArg && !nextArg.startsWith('-')) {
-        agents.push(nextArg as AgentType);
+        agentList.push(nextArg as AgentType);
         i++;
         nextArg = args[i];
       }
@@ -45,11 +62,11 @@ export function parseMcpOptions(args: string[]): McpSetupOptions {
     // Ignore other flags
   }
 
-  const mode = agents.length > 0 ? 'cli' : 'tui';
+  const mode = agentList.length > 0 ? 'cli' : 'tui';
 
   return {
     mode,
-    agents,
+    agents: agentList,
     scope,
   };
 }
@@ -73,13 +90,74 @@ export async function runMcpSetup(
   }
 }
 
+// ── helpers ───────────────────────────────────────────────────────────────────
+
+/** Returns true if the agent type is backed by a ConfigGenerator. */
+function isGeneratorBacked(agentType: string): boolean {
+  return buildConfigGeneratorRegistry().supports(agentType);
+}
+
 /**
- * TUI mode - interactive agent selection and scope selection
- * @param cwd Current working directory (or home directory if global)
- * @param scope 'local' for project, 'global' for home directory (can be overridden by TUI selection)
+ * Configure a single agent according to the chosen config mode.
+ * Returns the agentType string on success, null on failure.
  */
+async function configureOneAgent(
+  agentType: AgentType | string,
+  configCwd: string,
+  scope: 'local' | 'global',
+  configMode: McpConfigMode
+): Promise<string | null> {
+  try {
+    if (configMode === 'agent-config' && isGeneratorBacked(agentType as string)) {
+      await generateSkillsMcpAgent(agentType, configCwd, scope);
+    } else {
+      await configureAgentMcp(agentType, configCwd, scope);
+    }
+    return agentType as string;
+  } catch (error) {
+    console.error(
+      `✗ Failed to configure ${agents[agentType as AgentType]?.displayName || agentType}:`,
+      (error as Error).message
+    );
+    return null;
+  }
+}
+
+/**
+ * Print a per-agent summary line after setup, including activation hint
+ * when an agent config was written.
+ */
+function printAgentSummary(
+  agentType: string,
+  configMode: McpConfigMode,
+  _scope: 'local' | 'global'
+): void {
+  const agent = agents[agentType as AgentType];
+  const displayName = agent?.displayName || agentType;
+
+  if (configMode === 'agent-config' && isGeneratorBacked(agentType)) {
+    const hint = agent?.agentConfigSupport?.activationHint;
+    console.log(`  ✓ ${displayName} — agent config written`);
+    if (hint) {
+      // Distinguish CLI-command hints (no spaces, or known agent prefixes)
+      // from prose hints (GitHub Copilot instructions etc.)
+      const looksLikeCli =
+        !hint.includes(' ') || hint.startsWith('kiro') || hint.startsWith('opencode');
+      if (looksLikeCli) {
+        console.log(`    → To activate:  ${hint}`);
+      } else {
+        console.log(`    → ${hint}`);
+      }
+    }
+  } else {
+    console.log(`  ✓ ${displayName} — MCP server registered in mcp.json`);
+  }
+}
+
+// ── TUI mode ──────────────────────────────────────────────────────────────────
+
 async function setupTuiMode(cwd: string, scope: 'local' | 'global' = 'local'): Promise<void> {
-  // Detect installed agents
+  // 1. Detect installed agents
   const installedAgents = await detectInstalledAgents();
 
   if (installedAgents.length === 0) {
@@ -87,41 +165,37 @@ async function setupTuiMode(cwd: string, scope: 'local' | 'global' = 'local'): P
     return;
   }
 
-  // First, ask user to choose configuration scope
+  // 2. Choose config scope
   const selectedScope = await select({
     message: 'Where should MCP configs be stored?',
     options: [
-      {
-        value: 'local',
-        label: 'Local (Project directory) - shared via Git',
-      },
-      {
-        value: 'global',
-        label: 'Global (Home directory) - personal settings only',
-      },
+      { value: 'local', label: 'Local (Project directory) — shared via Git' },
+      { value: 'global', label: 'Global (Home directory) — personal settings only' },
     ],
   });
 
-  // Handle cancellation
   if (typeof selectedScope === 'symbol') {
     cancel('Operation cancelled');
     return;
   }
 
   scope = selectedScope as 'local' | 'global';
-  const home = homedir();
-  const configCwd = scope === 'global' ? home : cwd;
+  const configCwd = scope === 'global' ? homedir() : cwd;
 
-  // Show interactive multi-select prompt for agents using @clack/prompts
+  // 3. Select agents — label generator-capable ones so the user knows
   const selectedAgents = await multiselect({
     message: 'Select agents to configure for MCP:',
-    options: installedAgents.map((agentType) => ({
-      value: agentType as any,
-      label: agents[agentType]?.displayName || agentType,
-    })),
+    options: installedAgents.map((agentType) => {
+      const agent = agents[agentType];
+      const supportsAgentConfig = !!agent?.agentConfigSupport;
+      return {
+        value: agentType as any,
+        label: `${agent?.displayName || agentType}${supportsAgentConfig ? ' ✦' : ''}`,
+        hint: supportsAgentConfig ? 'supports agent config' : undefined,
+      };
+    }),
   });
 
-  // Handle cancellation
   if (typeof selectedAgents === 'symbol') {
     cancel('Operation cancelled');
     return;
@@ -132,89 +206,121 @@ async function setupTuiMode(cwd: string, scope: 'local' | 'global' = 'local'): P
     return;
   }
 
-  // Configure selected agents
-  let successCount = 0;
-  let failureCount = 0;
+  // 4. If at least one selected agent supports an agent config, ask the user
+  //    whether they want agent-config or plain mcp.json for those agents.
+  const agentConfigCapable = (selectedAgents as AgentType[]).filter((a) =>
+    isGeneratorBacked(a as string)
+  );
+
+  let configMode: McpConfigMode = 'mcp-json';
+
+  if (agentConfigCapable.length > 0) {
+    const capableNames = agentConfigCapable
+      .map((a) => agents[a as AgentType]?.displayName || a)
+      .join(', ');
+
+    const modeChoice = await select({
+      message: `How should skills-mcp be configured for ${capableNames}?`,
+      options: [
+        {
+          value: 'agent-config' as McpConfigMode,
+          label: 'Agent config — creates a named "skills-mcp" agent with usage instructions',
+          hint: 'Recommended: selectable by name; bundled prompt guides the agent',
+        },
+        {
+          value: 'mcp-json' as McpConfigMode,
+          label: 'MCP server only — registers servers in mcp.json, no dedicated agent',
+          hint: 'Simpler; MCP server is available in all conversations without a named agent',
+        },
+      ],
+    });
+
+    if (typeof modeChoice === 'symbol') {
+      cancel('Operation cancelled');
+      return;
+    }
+
+    configMode = modeChoice as McpConfigMode;
+  }
+
+  // 5. Configure each selected agent
+  console.log('');
   const configuredAgents: AgentType[] = [];
 
   for (const agentType of selectedAgents) {
-    try {
-      await generateSkillsMcpAgent(agentType as AgentType, configCwd, scope);
-      console.log(
-        `✓ Generated skills-mcp agent for ${agents[agentType as any]?.displayName || agentType}`
-      );
-      successCount++;
-      configuredAgents.push(agentType as AgentType);
-    } catch (error) {
-      console.error(`✗ Failed to configure ${agentType}:`, (error as Error).message);
-      failureCount++;
-    }
+    const result = await configureOneAgent(agentType as AgentType, configCwd, scope, configMode);
+    if (result !== null) configuredAgents.push(agentType as AgentType);
   }
 
-  // Show summary with scope information
-  console.log('');
-  const scopeLabel = scope === 'global' ? 'global (home directory)' : 'local (project directory)';
-  if (successCount > 0) {
-    console.log(`✓ Successfully configured ${successCount} agent(s) in ${scopeLabel}`);
-  }
-  if (failureCount > 0) {
-    console.error(`✗ Failed to configure ${failureCount} agent(s) in ${scopeLabel}`);
-  }
-
-  // Also configure any MCP servers required by installed skills
+  // 6. Inject skill-required MCP servers
   if (configuredAgents.length > 0) {
     const skillDeps = await loadInstalledSkillMcpDeps(cwd, scope);
-    await configureSkillMcpDepsForAgents(skillDeps, configuredAgents, configCwd, scope);
+    await configureSkillMcpDepsForAgents(skillDeps, configuredAgents, configCwd, scope, configMode);
+  }
+
+  // 7. Per-agent summary with activation hints
+  const scopeLabel = scope === 'global' ? 'global (home directory)' : 'local (project directory)';
+  const failCount = selectedAgents.length - configuredAgents.length;
+
+  console.log('');
+  if (configuredAgents.length > 0) {
+    console.log(`Configured ${configuredAgents.length} agent(s) in ${scopeLabel}:`);
+    for (const agentType of configuredAgents) {
+      printAgentSummary(agentType as string, configMode, scope);
+    }
+  }
+  if (failCount > 0) {
+    console.error(`\n✗ Failed to configure ${failCount} agent(s) in ${scopeLabel}`);
   }
 }
 
+// ── CLI mode ──────────────────────────────────────────────────────────────────
+
 /**
- * CLI mode - configure specified agents
- * @param agentTypes List of agent types to configure
- * @param cwd Current working directory (or home directory if global)
- * @param scope 'local' for project, 'global' for home directory
+ * CLI (non-interactive) mode. Generator-backed agents get agent-config by default.
  */
 async function setupCliMode(
   agentTypes: AgentType[],
   cwd: string,
   scope: 'local' | 'global' = 'local'
 ): Promise<void> {
-  // Handle wildcard - configure all installed agents
   if (agentTypes.includes('*' as AgentType)) {
     const installedAgents = await detectInstalledAgents();
     agentTypes = installedAgents;
   }
 
-  // Configure each agent
-  let successCount = 0;
-  let failureCount = 0;
   const configuredAgents: AgentType[] = [];
 
   for (const agentType of agentTypes) {
-    try {
-      await generateSkillsMcpAgent(agentType, cwd, scope);
-      console.log(
-        `✓ Generated skills-mcp agent for ${agents[agentType]?.displayName || agentType}`
-      );
-      successCount++;
-      configuredAgents.push(agentType);
-    } catch (error) {
-      console.error(`✗ Failed to configure ${agentType}:`, (error as Error).message);
-      failureCount++;
+    const configMode: McpConfigMode = isGeneratorBacked(agentType) ? 'agent-config' : 'mcp-json';
+    const result = await configureOneAgent(agentType, cwd, scope, configMode);
+    if (result !== null) configuredAgents.push(agentType);
+  }
+
+  // Inject skill-required MCP servers, routing each agent to its natural mode
+  if (configuredAgents.length > 0) {
+    const skillDeps = await loadInstalledSkillMcpDeps(cwd, scope);
+    const generatorBacked = configuredAgents.filter((a) => isGeneratorBacked(a));
+    const rawMcp = configuredAgents.filter((a) => !isGeneratorBacked(a));
+
+    if (generatorBacked.length > 0) {
+      await configureSkillMcpDepsForAgents(skillDeps, generatorBacked, cwd, scope, 'agent-config');
+    }
+    if (rawMcp.length > 0) {
+      await configureSkillMcpDepsForAgents(skillDeps, rawMcp, cwd, scope, 'mcp-json');
     }
   }
 
-  // Show summary
-  if (successCount > 0) {
-    console.log(`\n✓ Successfully configured ${successCount} agent(s)`);
-  }
-  if (failureCount > 0) {
-    console.error(`✗ Failed to configure ${failureCount} agent(s)`);
-  }
-
-  // Also configure any MCP servers required by installed skills
+  // Summary
+  const failCount = agentTypes.length - configuredAgents.length;
   if (configuredAgents.length > 0) {
-    const skillDeps = await loadInstalledSkillMcpDeps(cwd, scope);
-    await configureSkillMcpDepsForAgents(skillDeps, configuredAgents, cwd, scope);
+    console.log(`\nConfigured ${configuredAgents.length} agent(s):`);
+    for (const agentType of configuredAgents) {
+      const configMode: McpConfigMode = isGeneratorBacked(agentType) ? 'agent-config' : 'mcp-json';
+      printAgentSummary(agentType as string, configMode, scope);
+    }
+  }
+  if (failCount > 0) {
+    console.error(`\n✗ Failed to configure ${failCount} agent(s)`);
   }
 }

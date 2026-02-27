@@ -174,6 +174,10 @@ export const agents: Record<AgentType, AgentConfig> = {
     detectInstalled: async () => {
       return existsSync(join(home, '.copilot'));
     },
+    agentConfigSupport: {
+      activationHint:
+        'Open Copilot Chat in your IDE and select the "skills-mcp" agent from the agent picker.',
+    },
   },
   goose: {
     name: 'goose',
@@ -228,6 +232,9 @@ export const agents: Record<AgentType, AgentConfig> = {
     detectInstalled: async () => {
       return existsSync(join(home, '.kiro'));
     },
+    agentConfigSupport: {
+      activationHint: 'kiro chat --agent skills-mcp',
+    },
   },
   kode: {
     name: 'kode',
@@ -272,6 +279,9 @@ export const agents: Record<AgentType, AgentConfig> = {
     globalSkillsDir: join(configHome, 'opencode/skills'),
     detectInstalled: async () => {
       return existsSync(join(configHome, 'opencode'));
+    },
+    agentConfigSupport: {
+      activationHint: 'opencode --agent skills-mcp  (or type @skills-mcp inside the TUI)',
     },
   },
   openhands: {

@@ -127,27 +127,27 @@ async function resolveParameters(dep: McpServerDependency): Promise<Record<strin
  * For each supplied agent, write any skill-required MCP servers that are not
  * yet present in that agent's config.
  *
- * Agents backed by a ConfigGenerator (Kiro, GitHub Copilot, OpenCode) produce
- * a single agent file that contains ALL servers. For those agents the deps are
- * merged into the agent config and the file is regenerated — no separate
- * mcp.json is written.
+ * The `configMode` parameter controls how generator-backed agents are handled:
+ * - 'agent-config': deps are merged into the agent file via generateSkillsMcpAgent
+ * - 'mcp-json':     deps are written to the raw mcp.json path even for generator-backed agents
  *
- * Agents that use a raw mcp.json (Claude, Cursor, Cline, …) receive the
- * missing servers directly via readAgentConfig / writeAgentConfig.
+ * For agents without a generator, mcp.json is always used regardless of configMode.
  *
- * In both cases the diff rule is: only check presence of the server key —
+ * In all cases the diff rule is: only check presence of the server key —
  * never modify an existing server's configuration.
  *
  * @param deps        MCP server dependencies collected from installed skills.
  * @param agentTypes  Agents that were just configured by `mcp setup`.
  * @param configCwd   Base directory for agent config files.
  * @param scope       'local' or 'global'.
+ * @param configMode  Whether generator-backed agents use agent-config or mcp-json.
  */
 export async function configureSkillMcpDepsForAgents(
   deps: McpServerDependency[],
   agentTypes: AgentType[],
   configCwd: string,
-  scope: 'local' | 'global'
+  scope: 'local' | 'global',
+  configMode: 'agent-config' | 'mcp-json' = 'agent-config'
 ): Promise<void> {
   if (deps.length === 0 || agentTypes.length === 0) return;
 
@@ -162,15 +162,15 @@ export async function configureSkillMcpDepsForAgents(
     resolvedConfigs.set(dep.name, applyParams(dep, params));
   }
 
-  // Determine which agents are handled by a ConfigGenerator vs raw mcp.json
+  // Determine routing per agent: generator-backed in agent-config mode → regenerate agent file
   const registry = buildConfigGeneratorRegistry();
 
   let anyConfigured = false;
 
   for (const agentType of agentTypes) {
-    const isGeneratorBacked = registry.supports(agentType as string);
+    const useAgentConfig = configMode === 'agent-config' && registry.supports(agentType as string);
 
-    if (isGeneratorBacked) {
+    if (useAgentConfig) {
       // ── Generator-backed agents (Kiro, GitHub Copilot, OpenCode) ──────────
       // The agent file already exists (written by generateSkillsMcpAgent).
       // We need to know which servers are already in it to diff correctly,
