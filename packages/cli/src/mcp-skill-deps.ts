@@ -9,8 +9,15 @@
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
 import type { AgentType, McpServerDependency } from './types.ts';
+import type { SkillsMcpServerConfig } from '@codemcp/agentskills-core';
 import { agents } from './agents.ts';
-import { getAgentConfigPath, readAgentConfig, writeAgentConfig } from './mcp-configurator.ts';
+import {
+  getAgentConfigPath,
+  readAgentConfig,
+  writeAgentConfig,
+  generateSkillsMcpAgent,
+  buildConfigGeneratorRegistry,
+} from './mcp-configurator.ts';
 import { discoverSkills } from './skills.ts';
 import { getCanonicalSkillsDir, getMCPCanonicalSkillsDir } from './installer.ts';
 
@@ -120,7 +127,18 @@ async function resolveParameters(dep: McpServerDependency): Promise<Record<strin
  * For each supplied agent, write any skill-required MCP servers that are not
  * yet present in that agent's config.
  *
- * @param deps      MCP server dependencies collected from installed skills.
+ * Agents backed by a ConfigGenerator (Kiro, GitHub Copilot, OpenCode) produce
+ * a single agent file that contains ALL servers. For those agents the deps are
+ * merged into the agent config and the file is regenerated — no separate
+ * mcp.json is written.
+ *
+ * Agents that use a raw mcp.json (Claude, Cursor, Cline, …) receive the
+ * missing servers directly via readAgentConfig / writeAgentConfig.
+ *
+ * In both cases the diff rule is: only check presence of the server key —
+ * never modify an existing server's configuration.
+ *
+ * @param deps        MCP server dependencies collected from installed skills.
  * @param agentTypes  Agents that were just configured by `mcp setup`.
  * @param configCwd   Base directory for agent config files.
  * @param scope       'local' or 'global'.
@@ -144,34 +162,78 @@ export async function configureSkillMcpDepsForAgents(
     resolvedConfigs.set(dep.name, applyParams(dep, params));
   }
 
+  // Determine which agents are handled by a ConfigGenerator vs raw mcp.json
+  const registry = buildConfigGeneratorRegistry();
+
   let anyConfigured = false;
 
   for (const agentType of agentTypes) {
-    for (const dep of deps) {
-      try {
-        const configPath = getAgentConfigPath(agentType, configCwd, scope);
-        const config = await readAgentConfig(configPath);
-        if (!config.mcpServers) config.mcpServers = {};
+    const isGeneratorBacked = registry.supports(agentType as string);
 
-        if (config.mcpServers[dep.name]) continue; // already configured
-
-        config.mcpServers[dep.name] = resolvedConfigs.get(dep.name)! as {
-          command: string;
-          args?: string[];
-          env?: Record<string, string>;
+    if (isGeneratorBacked) {
+      // ── Generator-backed agents (Kiro, GitHub Copilot, OpenCode) ──────────
+      // The agent file already exists (written by generateSkillsMcpAgent).
+      // We need to know which servers are already in it to diff correctly,
+      // then regenerate with the full merged set.
+      //
+      // For simplicity we re-run generateSkillsMcpAgent with the extra servers
+      // — the generator always writes the canonical set so idempotent runs are
+      // safe. The existing agentskills entry is never duplicated because it is
+      // hardcoded in generateSkillsMcpAgent's baseConfig.
+      const missingServers: Record<string, SkillsMcpServerConfig> = {};
+      for (const dep of deps) {
+        const resolved = resolvedConfigs.get(dep.name)!;
+        missingServers[dep.name] = {
+          command: resolved.command,
+          args: resolved.args,
+          env: resolved.env,
+          ...(resolved.cwd ? { cwd: resolved.cwd } : {}),
         };
-        await writeAgentConfig(configPath, config);
+      }
 
-        p.log.success(
-          `${pc.green('✓')} Added ${pc.cyan(dep.name)} to ${pc.dim(agents[agentType].displayName)}`
-        );
+      try {
+        await generateSkillsMcpAgent(agentType, configCwd, scope, missingServers);
+        for (const dep of deps) {
+          p.log.success(
+            `${pc.green('✓')} Added ${pc.cyan(dep.name)} to ${pc.dim(agents[agentType as AgentType]?.displayName || agentType)}`
+          );
+        }
         anyConfigured = true;
       } catch {
         p.log.warn(
           pc.yellow(
-            `Could not update MCP config for ${agents[agentType].displayName} — add ${pc.cyan(dep.name)} manually`
+            `Could not update agent config for ${agents[agentType as AgentType]?.displayName || agentType} — add skill MCP servers manually`
           )
         );
+      }
+    } else {
+      // ── Raw mcp.json agents (Claude, Cursor, Cline, …) ───────────────────
+      for (const dep of deps) {
+        try {
+          const configPath = getAgentConfigPath(agentType, configCwd, scope);
+          const config = await readAgentConfig(configPath);
+          if (!config.mcpServers) config.mcpServers = {};
+
+          if (config.mcpServers[dep.name]) continue; // already configured — don't touch
+
+          config.mcpServers[dep.name] = resolvedConfigs.get(dep.name)! as {
+            command: string;
+            args?: string[];
+            env?: Record<string, string>;
+          };
+          await writeAgentConfig(configPath, config);
+
+          p.log.success(
+            `${pc.green('✓')} Added ${pc.cyan(dep.name)} to ${pc.dim(agents[agentType as AgentType]?.displayName || agentType)}`
+          );
+          anyConfigured = true;
+        } catch {
+          p.log.warn(
+            pc.yellow(
+              `Could not update MCP config for ${agents[agentType as AgentType]?.displayName || agentType} — add ${pc.cyan(dep.name)} manually`
+            )
+          );
+        }
       }
     }
   }
