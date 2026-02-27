@@ -2,5 +2,5 @@
 # Ensure there is no linting or formatting errors before pushing
 pnpm turbo run --parallel lint format typecheck
 
-# Run unit tests
-pnpm test
+# Run unit tests (non-interactive)
+pnpm turbo run --parallel test
