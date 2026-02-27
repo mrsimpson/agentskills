@@ -14,6 +14,7 @@ export default {
       'src/__tests__/mcp-configurator.test.ts',
       'src/__tests__/mcp.test.ts',
       'src/__tests__/cli-mcp-integration.test.ts',
+      'src/__tests__/mcp-e2e.test.ts',
     ],
   },
   resolve: {
