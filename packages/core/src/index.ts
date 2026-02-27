@@ -60,6 +60,12 @@ export { validateSkill } from "./validator.js";
 export { SkillRegistry } from "./registry.js";
 export { PackageConfigManager } from "./package-config.js";
 export {
+  loadSkillsLock,
+  getAllowedSkills,
+  getAllowedSkillsFromProject,
+  getAllowedSkillsFromAgentskills
+} from "./skills-lock.js";
+export {
   McpConfigAdapterRegistry,
   StandardMcpConfigAdapter,
   OpenCodeConfigAdapter,

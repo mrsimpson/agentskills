@@ -7,13 +7,21 @@
  *
  * If no directory provided, uses current working directory.
  * Reads package.json from project directory to load skill configuration.
- * Skills are loaded from .agentskills/skills within the project directory.
+ * Skills are loaded from:
+ * 1. ./.agentskills/skills (local directory)
+ * 2. ~/.agentskills/skills (global directory, optional)
+ *
+ * Skills can be filtered using skills-lock.json in either location.
  */
 
-import { SkillRegistry, PackageConfigManager } from "@codemcp/agentskills-core";
+import {
+  SkillRegistry,
+  getAllowedSkillsFromAgentskills
+} from "@codemcp/agentskills-core";
 import { MCPServer } from "./server.js";
 import * as path from "node:path";
 import * as fs from "node:fs";
+import * as os from "node:os";
 
 async function main() {
   // Get project directory from CLI args or use current directory
@@ -33,47 +41,39 @@ async function main() {
   }
 
   try {
-    // Check if package.json exists
-    const packageJsonPath = path.join(projectDir, "package.json");
-    if (!fs.existsSync(packageJsonPath)) {
-      console.error(`package.json not found in: ${projectDir}`);
-      console.error(`\nPlease create a package.json with agentskills field:`);
-      console.error(`{`);
-      console.error(`  "name": "my-project",`);
-      console.error(`  "agentskills": {`);
-      console.error(`    "skill-name": "npm:package-name" or "file:./path"`);
-      console.error(`  }`);
-      console.error(`}`);
-      process.exit(1);
-    }
+    // Local skills directory
+    const localSkillsDir = path.join(projectDir, ".agentskills", "skills");
 
-    // Read package.json configuration
-    const configManager = new PackageConfigManager(projectDir);
-    const config = await configManager.loadConfig();
-
-    // Get skills directory from config (or use default)
-    const skillsDir = path.join(projectDir, config.config.skillsDirectory);
-
-    // Check if skills directory exists
-    if (!fs.existsSync(skillsDir)) {
-      console.error(`Skills directory not found: ${skillsDir}`);
+    // Check if local skills directory exists
+    if (!fs.existsSync(localSkillsDir)) {
+      console.error(`Skills directory not found: ${localSkillsDir}`);
       console.error(
         `\nRun 'agentskills install' to install configured skills.`
       );
       process.exit(1);
     }
 
-    // Warn if no skills are configured
-    if (Object.keys(config.skills).length === 0) {
-      console.error(
-        `Warning: No skills configured in package.json agentskills field`
-      );
-      console.error(`The server will start but no skills will be available.`);
+    // Build list of skill directories to search
+    const skillsDirs = [localSkillsDir];
+
+    // Add global skills directory if it exists
+    const globalSkillsDir = path.join(os.homedir(), ".agentskills", "skills");
+    if (fs.existsSync(globalSkillsDir)) {
+      skillsDirs.push(globalSkillsDir);
     }
 
-    // Create registry and load skills
+    // Get allowed skills from skills-lock.json (if it exists)
+    const allowedSkills = await getAllowedSkillsFromAgentskills(projectDir);
+
+    // Create registry and load skills from multiple directories with filtering
     const registry = new SkillRegistry();
-    await registry.loadSkills(skillsDir);
+    await registry.loadSkillsFromMultiple(skillsDirs, allowedSkills);
+
+    // Log info about loaded skills
+    const state = registry.getState();
+    if (state.skillCount === 0 && allowedSkills) {
+      console.error(`Warning: No skills found matching skills-lock.json`);
+    }
 
     // Create and start server
     const server = new MCPServer(registry);

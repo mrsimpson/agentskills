@@ -662,4 +662,186 @@ describe("SkillRegistry - Simplified Model", () => {
       expect(skillsDir).toBe("");
     });
   });
+
+  describe("loadSkillsFromMultiple", () => {
+    let tempDir1: string;
+    let tempDir2: string;
+
+    beforeEach(async () => {
+      tempDir1 = await createTempDir();
+      tempDir2 = await createTempDir();
+    });
+
+    afterEach(async () => {
+      await cleanupTempDir(tempDir1);
+      await cleanupTempDir(tempDir2);
+    });
+
+    it("should load skills from multiple directories", async () => {
+      // Arrange
+      const registry = new SkillRegistry();
+
+      // Create skills in first directory
+      await createSkill(
+        tempDir1,
+        "skill-1",
+        getBasicSkillContent("skill-1", "First skill")
+      );
+
+      // Create skills in second directory
+      await createSkill(
+        tempDir2,
+        "skill-2",
+        getBasicSkillContent("skill-2", "Second skill")
+      );
+
+      // Act
+      const result = await registry.loadSkillsFromMultiple([
+        tempDir1,
+        tempDir2
+      ]);
+
+      // Assert
+      expect(result.loaded).toBe(2);
+      expect(registry.getSkill("skill-1")).toBeDefined();
+      expect(registry.getSkill("skill-2")).toBeDefined();
+      expect(registry.getAllMetadata()).toHaveLength(2);
+    });
+
+    it("should allow later directories to override earlier ones", async () => {
+      // Arrange
+      const registry = new SkillRegistry();
+
+      // Create skill with same name in both directories
+      const skillContent1 = `---
+name: shared-skill
+description: First version
+---
+
+First version of skill`;
+
+      const skillContent2 = `---
+name: shared-skill
+description: Second version
+---
+
+Second version of skill`;
+
+      await createSkill(tempDir1, "shared-skill", skillContent1);
+      await createSkill(tempDir2, "shared-skill", skillContent2);
+
+      // Act
+      const result = await registry.loadSkillsFromMultiple([
+        tempDir1,
+        tempDir2
+      ]);
+
+      // Assert
+      expect(result.loaded).toBe(2); // Loaded from both directories
+      expect(registry.getAllMetadata()).toHaveLength(1); // But only one unique skill
+      const skill = registry.getSkill("shared-skill");
+      expect(skill?.metadata.description).toBe("Second version");
+      expect(skill?.body).toContain("Second version of skill");
+    });
+
+    it("should filter skills based on allowed set", async () => {
+      // Arrange
+      const registry = new SkillRegistry();
+
+      await createSkill(
+        tempDir1,
+        "skill-1",
+        getBasicSkillContent("skill-1", "First skill")
+      );
+      await createSkill(
+        tempDir1,
+        "skill-2",
+        getBasicSkillContent("skill-2", "Second skill")
+      );
+
+      // Act
+      const result = await registry.loadSkillsFromMultiple(
+        [tempDir1],
+        new Set(["skill-1"]) // Only allow skill-1
+      );
+
+      // Assert
+      expect(result.loaded).toBe(1);
+      expect(registry.getSkill("skill-1")).toBeDefined();
+      expect(registry.getSkill("skill-2")).toBeUndefined();
+      expect(registry.getAllMetadata()).toHaveLength(1);
+    });
+
+    it("should skip non-existent optional (global) directories", async () => {
+      // Arrange
+      const registry = new SkillRegistry();
+      const nonExistentDir = join(
+        tmpdir(),
+        `non-existent-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      );
+
+      await createSkill(
+        tempDir1,
+        "skill-1",
+        getBasicSkillContent("skill-1", "First skill")
+      );
+
+      // Act
+      const result = await registry.loadSkillsFromMultiple([
+        tempDir1,
+        nonExistentDir
+      ]);
+
+      // Assert
+      expect(result.loaded).toBe(1);
+      expect(registry.getSkill("skill-1")).toBeDefined();
+    });
+
+    it("should throw on missing local directory (first directory)", async () => {
+      // Arrange
+      const registry = new SkillRegistry();
+      const nonExistentDir = join(
+        tmpdir(),
+        `non-existent-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      );
+
+      // Act & Assert
+      await expect(
+        registry.loadSkillsFromMultiple([nonExistentDir])
+      ).rejects.toThrow(/does not exist/);
+    });
+
+    it("should combine filtering with multiple directories", async () => {
+      // Arrange
+      const registry = new SkillRegistry();
+
+      await createSkill(
+        tempDir1,
+        "skill-1",
+        getBasicSkillContent("skill-1", "First skill")
+      );
+      await createSkill(
+        tempDir1,
+        "skill-2",
+        getBasicSkillContent("skill-2", "Second skill")
+      );
+      await createSkill(
+        tempDir2,
+        "skill-3",
+        getBasicSkillContent("skill-3", "Third skill")
+      );
+
+      // Act
+      const result = await registry.loadSkillsFromMultiple(
+        [tempDir1, tempDir2],
+        new Set(["skill-1", "skill-3"]) // Only allow skill-1 and skill-3
+      );
+
+      // Assert
+      expect(result.loaded).toBe(2);
+      expect(registry.getSkill("skill-1")).toBeDefined();
+      expect(registry.getSkill("skill-2")).toBeUndefined();
+      expect(registry.getSkill("skill-3")).toBeDefined();
+    });
+  });
 });

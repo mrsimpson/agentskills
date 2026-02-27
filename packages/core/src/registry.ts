@@ -24,15 +24,177 @@ import type {
  *
  * Features:
  * - O(1) skill lookups using Map
- * - Load skills from single directory (strict fail-fast)
+ * - Load skills from single or multiple directories
  * - Expected structure: <skillsDir>/<skill-name>/SKILL.md
  * - Validates directory name matches skill name
  * - Immutable skill objects
+ * - Support for merging skills from local and global directories
  */
 export class SkillRegistry {
   private skills: Map<string, { skill: Skill; sourcePath: string }> = new Map();
   private skillsDir: string = "";
+  private skillsDirs: string[] = [];
   private lastLoaded?: Date;
+
+  /**
+   * Load skills from multiple directories with optional filtering
+   *
+   * Loads skills from each directory in order, with later directories
+   * overriding skills from earlier ones. Supports optional filtering
+   * to only include skills specified in an allow list.
+   *
+   * Expected structure: <skillsDir>/<skill-name>/SKILL.md (exactly 2 levels deep)
+   * - Throws on first required directory error (fail fast)
+   * - Skips non-existent optional directories (2nd onwards)
+   * - Ignores hidden directories (.git/, etc.)
+   * - Ignores non-directory files
+   * - Validates directory name matches skill name in SKILL.md
+   *
+   * @param skillsDirs - Array of directories containing skill subdirectories
+   * @param allowedSkills - Optional set of skill names to include. If provided, only these skills are loaded.
+   * @returns Load result with count, directories, and timestamp
+   * @throws Error if first directory is invalid or any skill is invalid
+   */
+  async loadSkillsFromMultiple(
+    skillsDirs: string[],
+    allowedSkills?: Set<string>
+  ): Promise<LoadResult> {
+    // Clear existing skills
+    this.skills.clear();
+    this.skillsDir = "";
+    this.skillsDirs = [];
+
+    let totalLoaded = 0;
+
+    // Load skills from each directory
+    for (let i = 0; i < skillsDirs.length; i++) {
+      const skillsDir = skillsDirs[i];
+      const isRequired = i === 0; // First directory is always required
+      totalLoaded += await this.loadSkillsFromDirectory(
+        skillsDir,
+        allowedSkills,
+        isRequired
+      );
+    }
+
+    // Update state
+    this.skillsDirs = skillsDirs;
+    this.skillsDir = skillsDirs[0] || "";
+    this.lastLoaded = new Date();
+
+    return {
+      loaded: totalLoaded,
+      skillsDir: this.skillsDirs.join(":"),
+      timestamp: this.lastLoaded
+    };
+  }
+
+  /**
+   * Load skills from a single directory (internal helper)
+   *
+   * @param skillsDir - Directory containing skill subdirectories
+   * @param allowedSkills - Optional set of skill names to include
+   * @param isRequired - Whether this directory is required (first directory always is)
+   * @returns Number of skills loaded from this directory
+   * @throws Error if directory is invalid and required
+   */
+  private async loadSkillsFromDirectory(
+    skillsDir: string,
+    allowedSkills?: Set<string>,
+    isRequired: boolean = true
+  ): Promise<number> {
+    // 1. Check if skillsDir exists
+    let stat;
+    try {
+      stat = await fs.stat(skillsDir);
+    } catch {
+      // If required, always throw
+      if (isRequired) {
+        throw new Error(`Skills directory does not exist: ${skillsDir}`);
+      }
+      // Optional directory - just skip it (silently)
+      return 0;
+    }
+
+    // 2. Check if it's a directory
+    if (!stat.isDirectory()) {
+      throw new Error(`Skills directory is not a directory: ${skillsDir}`);
+    }
+
+    // 3. Read immediate subdirectories (depth 1 only)
+    const entries = await fs.readdir(skillsDir, { withFileTypes: true });
+
+    let loadedCount = 0;
+
+    // 4. Process each subdirectory
+    for (const entry of entries) {
+      // Skip non-directories
+      if (!entry.isDirectory()) {
+        continue;
+      }
+
+      // Skip hidden directories
+      if (entry.name.startsWith(".")) {
+        continue;
+      }
+
+      // Skip if not in allowed list
+      if (allowedSkills && !allowedSkills.has(entry.name)) {
+        continue;
+      }
+
+      const skillDir = join(skillsDir, entry.name);
+      const skillPath = join(skillDir, "SKILL.md");
+
+      // Check for SKILL.md
+      let skillStat;
+      try {
+        skillStat = await fs.stat(skillPath);
+      } catch {
+        throw new Error(`Missing SKILL.md in: ${skillDir}`);
+      }
+
+      // Verify SKILL.md is a file
+      if (!skillStat.isFile()) {
+        throw new Error(`Missing SKILL.md in: ${skillDir}`);
+      }
+
+      // Parse SKILL.md
+      const parseResult = await parseSkill(skillPath);
+
+      if (!parseResult.success) {
+        throw new Error(
+          `Failed to parse SKILL.md in ${skillDir}: ${parseResult.error.message}`
+        );
+      }
+
+      const { skill } = parseResult;
+
+      // Validate the skill
+      const validationResult = validateSkill(skill);
+
+      if (!validationResult.valid) {
+        const errorMessages = validationResult.errors
+          .map((e) => e.message)
+          .join(", ");
+        throw new Error(`Validation failed for ${skillDir}: ${errorMessages}`);
+      }
+
+      // Verify directory name matches skill name
+      const dirName = basename(skillDir);
+      if (skill.metadata.name !== dirName) {
+        throw new Error(
+          `Directory name '${dirName}' does not match skill name '${skill.metadata.name}' in ${skillPath}`
+        );
+      }
+
+      // Store the skill (later directories override earlier ones)
+      this.skills.set(skill.metadata.name, { skill, sourcePath: skillPath });
+      loadedCount++;
+    }
+
+    return loadedCount;
+  }
 
   /**
    * Load skills from a single directory with strict error handling
@@ -51,6 +213,7 @@ export class SkillRegistry {
     // Clear existing skills
     this.skills.clear();
     this.skillsDir = "";
+    this.skillsDirs = [];
 
     // 1. Check if skillsDir exists
     let stat;
@@ -134,6 +297,7 @@ export class SkillRegistry {
 
     // Update state
     this.skillsDir = skillsDir;
+    this.skillsDirs = [skillsDir];
     this.lastLoaded = new Date();
 
     return {
