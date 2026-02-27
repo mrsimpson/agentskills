@@ -28,6 +28,7 @@ export default withMermaid(
             items: [
               { text: "Why Agent Skills MCP?", link: "/guide/" },
               { text: "Getting Started", link: "/guide/getting-started" },
+              { text: "MCP Setup", link: "/guide/mcp-setup" },
               { text: "Configuring Skills", link: "/guide/configuration" },
               { text: "CLI Reference", link: "/guide/cli" },
               { text: "Connecting Agents", link: "/guide/mcp-clients" },

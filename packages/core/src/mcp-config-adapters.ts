@@ -86,6 +86,7 @@ export class OpenCodeConfigAdapter implements McpConfigAdapter {
       $schema?: string;
       permission?: Record<string, unknown>;
       mcp?: Record<string, unknown>;
+      mcpServers?: Record<string, unknown>;
       [key: string]: unknown;
     }) || {
       $schema: "https://opencode.ai/config.json"
@@ -111,7 +112,42 @@ export class OpenCodeConfigAdapter implements McpConfigAdapter {
       };
     }
 
+    // Remove the old mcpServers key if it exists (it's OpenCode-incompatible)
+    delete openCodeConfig.mcpServers;
+
     return openCodeConfig;
+  }
+}
+
+/**
+ * VS Code adapter for GitHub Copilot
+ * VS Code uses: { servers: { [name]: { command, args, ... } } }
+ */
+export class VsCodeConfigAdapter implements McpConfigAdapter {
+  toStandard(clientConfig: unknown): McpConfig {
+    const config = clientConfig as {
+      servers?: Record<string, McpServerConfig>;
+    };
+
+    // Convert "servers" key to standard "mcpServers" format
+    const mcpServers = config.servers || {};
+
+    return { mcpServers };
+  }
+
+  toClient(mcpConfig: McpConfig, existingConfig?: unknown): unknown {
+    const vsCodeConfig = (existingConfig as {
+      $schema?: string;
+      [key: string]: unknown;
+    }) || {
+      $schema: "https://opencode.ai/config.json"
+    };
+
+    // VS Code expects the "servers" key, not "mcpServers"
+    return {
+      ...vsCodeConfig,
+      servers: mcpConfig.mcpServers
+    };
   }
 }
 
@@ -128,6 +164,9 @@ export class McpConfigAdapterRegistry {
   static initialize(): void {
     // OpenCode uses a different format
     this.register("opencode", new OpenCodeConfigAdapter());
+
+    // GitHub Copilot/VS Code uses "servers" instead of "mcpServers"
+    this.register("github-copilot", new VsCodeConfigAdapter());
 
     // All other clients use the standard format
     // (claude-desktop, cline, continue, cursor, junie, kiro, zed)

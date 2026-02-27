@@ -372,7 +372,7 @@ describe('mcp-configurator', () => {
         configPath,
         JSON.stringify({ servers: { myserver: { command: 'npx', args: ['-y', 'pkg'] } } })
       );
-      const config = await readAgentConfig(configPath);
+      const config = await readAgentConfig(configPath, 'github-copilot');
       expect(config.mcpServers).toBeDefined();
       expect(config.mcpServers!['myserver']).toBeDefined();
     });

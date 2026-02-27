@@ -103,10 +103,10 @@ describe('MCP Setup E2E Integration Tests', () => {
         const agentWithHint = {
           id: 'kiro-cli',
           name: 'Kiro CLI',
-          activationHint: 'kiro chat --agent skills-mcp',
+          activationHint: 'kiro-cli chat --agent skills-mcp',
         };
 
-        expect(agentWithHint.activationHint).toBe('kiro chat --agent skills-mcp');
+        expect(agentWithHint.activationHint).toBe('kiro-cli chat --agent skills-mcp');
       });
     });
 

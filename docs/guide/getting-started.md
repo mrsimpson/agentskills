@@ -44,9 +44,22 @@ Skills are downloaded to `.agentskills/skills/` — a directory you can `.gitign
 
 ## 4. Connect Your Agent
 
-Add the MCP server to your agent's configuration. The exact location depends on your agent — see [Connecting Agents](/guide/mcp-clients) for per-agent instructions.
+Use the automated MCP setup command:
 
-**General format:**
+```bash
+agentskills mcp setup
+```
+
+This interactive command will:
+
+1. Detect your installed agents
+2. Ask which agents to configure
+3. Auto-select the best configuration mode for each agent
+4. Write the MCP server config to the right location
+
+**Manual Setup (Advanced)**
+
+If you prefer to configure manually, see [Connecting Agents](/guide/mcp-clients) for per-agent instructions. The general format is:
 
 ```json
 {
@@ -57,6 +70,8 @@ Add the MCP server to your agent's configuration. The exact location depends on 
   }
 }
 ```
+
+For detailed options and examples, see the [MCP Setup Guide](/guide/mcp-setup).
 
 ## 5. Use Skills
 

@@ -82,9 +82,15 @@ export interface AgentConfigSupport {
   /**
    * Short hint shown after setup so the user knows how to activate the agent.
    * May be a CLI command string or a plain UI instruction.
-   * e.g. "kiro chat --agent skills-mcp"
+   * e.g. "kiro-cli chat --agent skills-mcp"
    */
   activationHint: string;
+  /**
+   * Whether this agent's MCP integration has been verified to work.
+   * If false, a disclaimer is shown to the user to manually verify the agent picks up the MCP server.
+   * Defaults to false (unverified).
+   */
+  verified?: boolean;
 }
 
 export interface AgentConfig {

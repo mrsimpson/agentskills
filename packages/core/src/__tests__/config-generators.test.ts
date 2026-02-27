@@ -7,7 +7,8 @@ import {
   ConfigGeneratorRegistry,
   GitHubCopilotGenerator,
   KiroGenerator,
-  OpenCodeGenerator,
+  OpenCodeMcpGenerator,
+  OpenCodeAgentGenerator,
   SkillsMcpAgentConfig
 } from "../index.js";
 
@@ -66,15 +67,16 @@ describe("ConfigGeneratorRegistry", () => {
   });
 
   it("should list all generators with deduplication", () => {
+    const registry = new ConfigGeneratorRegistry();
     registry.register(new GitHubCopilotGenerator());
     registry.register(new KiroGenerator());
-    registry.register(new OpenCodeGenerator());
+    registry.register(new OpenCodeMcpGenerator());
 
     const generators = registry.listGenerators();
     expect(generators.length).toBe(3);
     expect(generators.map((g) => g.name)).toContain("GitHub Copilot");
     expect(generators.map((g) => g.name)).toContain("Kiro");
-    expect(generators.map((g) => g.name)).toContain("OpenCode");
+    expect(generators.map((g) => g.name)).toContain("OpenCode MCP");
   });
 
   it("should get supported agent types", () => {
@@ -261,11 +263,11 @@ describe("KiroGenerator", () => {
   });
 });
 
-describe("OpenCodeGenerator", () => {
-  let generator: OpenCodeGenerator;
+describe("OpenCodeAgentGenerator", () => {
+  let generator: OpenCodeAgentGenerator;
 
   beforeEach(() => {
-    generator = new OpenCodeGenerator();
+    generator = new OpenCodeAgentGenerator();
   });
 
   it("should support correct agent types", () => {
@@ -325,7 +327,7 @@ describe("OpenCodeGenerator", () => {
   it("should provide metadata", () => {
     const metadata = generator.getMetadata();
 
-    expect(metadata.name).toBe("OpenCode");
+    expect(metadata.name).toBe("OpenCode Agent");
     expect(metadata.agentTypes).toContain("opencode");
     expect(metadata.version).toBe("1.0.0");
     expect(metadata.docsUrl).toContain("opencode.ai");
@@ -362,7 +364,7 @@ describe("ConfigGenerator Integration", () => {
     const registry = new ConfigGeneratorRegistry();
     registry.register(new GitHubCopilotGenerator());
     registry.register(new KiroGenerator());
-    registry.register(new OpenCodeGenerator());
+    registry.register(new OpenCodeMcpGenerator());
 
     const copilotResult = await registry.generate(
       "github-copilot",
@@ -388,7 +390,7 @@ describe("ConfigGenerator Integration", () => {
       true
     );
     expect((kiroResult!.filePath as string).endsWith(".json")).toBe(true);
-    expect((opencodeResult!.filePath as string).endsWith(".md")).toBe(true);
+    expect((opencodeResult!.filePath as string).endsWith(".json")).toBe(true);
   });
 
   it("should return null for unsupported generator", async () => {
