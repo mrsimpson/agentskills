@@ -3,6 +3,7 @@ import type { AgentType } from './types.ts';
 import { generateSkillsMcpAgent } from './mcp-configurator.ts';
 import { agents, detectInstalledAgents } from './agents.ts';
 import { multiselect, select, cancel } from '@clack/prompts';
+import { loadInstalledSkillMcpDeps, configureSkillMcpDepsForAgents } from './mcp-skill-deps.ts';
 
 /**
  * Options parsed from mcp setup command
@@ -134,6 +135,7 @@ async function setupTuiMode(cwd: string, scope: 'local' | 'global' = 'local'): P
   // Configure selected agents
   let successCount = 0;
   let failureCount = 0;
+  const configuredAgents: AgentType[] = [];
 
   for (const agentType of selectedAgents) {
     try {
@@ -142,6 +144,7 @@ async function setupTuiMode(cwd: string, scope: 'local' | 'global' = 'local'): P
         `✓ Generated skills-mcp agent for ${agents[agentType as any]?.displayName || agentType}`
       );
       successCount++;
+      configuredAgents.push(agentType as AgentType);
     } catch (error) {
       console.error(`✗ Failed to configure ${agentType}:`, (error as Error).message);
       failureCount++;
@@ -156,6 +159,12 @@ async function setupTuiMode(cwd: string, scope: 'local' | 'global' = 'local'): P
   }
   if (failureCount > 0) {
     console.error(`✗ Failed to configure ${failureCount} agent(s) in ${scopeLabel}`);
+  }
+
+  // Also configure any MCP servers required by installed skills
+  if (configuredAgents.length > 0) {
+    const skillDeps = await loadInstalledSkillMcpDeps(cwd, scope);
+    await configureSkillMcpDepsForAgents(skillDeps, configuredAgents, configCwd, scope);
   }
 }
 
@@ -179,6 +188,7 @@ async function setupCliMode(
   // Configure each agent
   let successCount = 0;
   let failureCount = 0;
+  const configuredAgents: AgentType[] = [];
 
   for (const agentType of agentTypes) {
     try {
@@ -187,6 +197,7 @@ async function setupCliMode(
         `✓ Generated skills-mcp agent for ${agents[agentType]?.displayName || agentType}`
       );
       successCount++;
+      configuredAgents.push(agentType);
     } catch (error) {
       console.error(`✗ Failed to configure ${agentType}:`, (error as Error).message);
       failureCount++;
@@ -199,5 +210,11 @@ async function setupCliMode(
   }
   if (failureCount > 0) {
     console.error(`✗ Failed to configure ${failureCount} agent(s)`);
+  }
+
+  // Also configure any MCP servers required by installed skills
+  if (configuredAgents.length > 0) {
+    const skillDeps = await loadInstalledSkillMcpDeps(cwd, scope);
+    await configureSkillMcpDepsForAgents(skillDeps, configuredAgents, cwd, scope);
   }
 }

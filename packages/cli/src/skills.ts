@@ -50,12 +50,14 @@ export async function parseSkillMd(
       return null;
     }
 
+    const rawMcpDeps = data['requires-mcp-servers'];
     return {
       name: data.name,
       description: data.description,
       path: dirname(skillMdPath),
       rawContent: content,
       metadata: data.metadata,
+      requiresMcpServers: Array.isArray(rawMcpDeps) ? rawMcpDeps : undefined,
     };
   } catch {
     return null;

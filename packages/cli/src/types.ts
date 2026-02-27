@@ -41,6 +41,26 @@ export type AgentType =
   | 'adal'
   | 'universal';
 
+/** Definition of a {{PARAM_NAME}} placeholder in an MCP server dependency. */
+export interface McpParameterSpec {
+  description: string;
+  required: boolean;
+  default?: string;
+  sensitive?: boolean;
+}
+
+/** An MCP server required by a skill (from requires-mcp-servers frontmatter). */
+export interface McpServerDependency {
+  name: string;
+  package?: string;
+  description: string;
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+  cwd?: string;
+  parameters?: Record<string, McpParameterSpec>;
+}
+
 export interface Skill {
   name: string;
   description: string;
@@ -50,6 +70,8 @@ export interface Skill {
   /** Name of the plugin this skill belongs to (if any) */
   pluginName?: string;
   metadata?: Record<string, unknown>;
+  /** MCP servers required by this skill (from requires-mcp-servers frontmatter). */
+  requiresMcpServers?: McpServerDependency[];
 }
 
 export interface AgentConfig {
