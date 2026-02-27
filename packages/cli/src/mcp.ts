@@ -1,6 +1,6 @@
 import { homedir } from 'os';
 import type { AgentType } from './types.ts';
-import { configureAgentMcp } from './mcp-configurator.ts';
+import { generateSkillsMcpAgent } from './mcp-configurator.ts';
 import { agents, detectInstalledAgents } from './agents.ts';
 import { multiselect, select, cancel } from '@clack/prompts';
 
@@ -137,8 +137,10 @@ async function setupTuiMode(cwd: string, scope: 'local' | 'global' = 'local'): P
 
   for (const agentType of selectedAgents) {
     try {
-      await configureAgentMcp(agentType as AgentType, configCwd, scope);
-      console.log(`✓ Configured ${agents[agentType as any]?.displayName || agentType}`);
+      await generateSkillsMcpAgent(agentType as AgentType, configCwd, scope);
+      console.log(
+        `✓ Generated skills-mcp agent for ${agents[agentType as any]?.displayName || agentType}`
+      );
       successCount++;
     } catch (error) {
       console.error(`✗ Failed to configure ${agentType}:`, (error as Error).message);
@@ -180,8 +182,10 @@ async function setupCliMode(
 
   for (const agentType of agentTypes) {
     try {
-      await configureAgentMcp(agentType, cwd, scope);
-      console.log(`✓ Configured ${agents[agentType]?.displayName || agentType}`);
+      await generateSkillsMcpAgent(agentType, cwd, scope);
+      console.log(
+        `✓ Generated skills-mcp agent for ${agents[agentType]?.displayName || agentType}`
+      );
       successCount++;
     } catch (error) {
       console.error(`✗ Failed to configure ${agentType}:`, (error as Error).message);

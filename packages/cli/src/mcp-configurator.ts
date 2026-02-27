@@ -2,8 +2,14 @@ import { promises as fs } from 'fs';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
 import type { AgentType } from './types.ts';
-import type { McpConfig, McpServerConfig } from '@agent-skills/core';
-import { McpConfigAdapterRegistry } from '@agent-skills/core';
+import type { McpConfig, McpServerConfig, SkillsMcpAgentConfig } from '@codemcp/agentskills-core';
+import {
+  McpConfigAdapterRegistry,
+  ConfigGeneratorRegistry,
+  GitHubCopilotGenerator,
+  KiroGenerator,
+  OpenCodeGenerator,
+} from '@codemcp/agentskills-core';
 
 /**
  * Type mapping from simplified agent names to MCP client types
@@ -115,11 +121,11 @@ export function getAgentConfigPath(
 export async function readAgentConfig(configPath: string): Promise<McpConfig> {
   try {
     const content = await fs.readFile(configPath, 'utf-8');
-    return JSON.parse(content);
+    return JSON.parse(content) as McpConfig;
   } catch (error) {
     // File doesn't exist or is unreadable - return empty config
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return {};
+      return { mcpServers: {} };
     }
     // Other errors (invalid JSON, permission denied, etc.) should be thrown
     throw error;
@@ -210,4 +216,88 @@ function isValidMcpClientType(type: string): boolean {
     'codium',
   ];
   return validTypes.includes(type);
+}
+
+/**
+ * Generate skills-mcp agent configuration using the ConfigGeneratorRegistry
+ * @param agentType The agent type
+ * @param cwd Current working directory (or home directory for global)
+ * @param scope 'local' for project, 'global' for home directory
+ */
+export async function generateSkillsMcpAgent(
+  agentType: AgentType | string,
+  cwd: string,
+  scope: 'local' | 'global' = 'local'
+): Promise<void> {
+  // Initialize registry with generators
+  const registry = new ConfigGeneratorRegistry();
+  registry.register(new GitHubCopilotGenerator());
+  registry.register(new KiroGenerator());
+  registry.register(new OpenCodeGenerator());
+
+  // Get the skills directory path
+  const skillsDir = scope === 'global' ? homedir() : cwd;
+
+  // Create base skills-mcp agent config
+  const baseConfig: SkillsMcpAgentConfig = {
+    id: 'skills-mcp',
+    description: 'Agent-skills MCP server with use_skill tool access',
+    mcp_servers: {
+      'agent-skills': {
+        type: 'stdio',
+        command: 'npx',
+        args: ['-y', '@codemcp/agentskills-mcp'],
+        tools: ['*'],
+      },
+    },
+    tools: {
+      use_skill: true,
+    },
+    permissions: {
+      use_skill: 'allow',
+    },
+  };
+
+  // Get generator for this agent type
+  const generator = registry.getGenerator(agentType as string);
+  if (!generator) {
+    throw new Error(
+      `No config generator found for agent type: ${agentType}. Supported types: ${registry
+        .getSupportedAgentTypes()
+        .join(', ')}`
+    );
+  }
+
+  // Generate config
+  const generatedConfig = await generator.generate(baseConfig, {
+    skillsDir,
+    agentId: 'skills-mcp',
+    scope,
+    isGlobal: scope === 'global',
+  });
+
+  // Write config file(s)
+  if (generatedConfig.files) {
+    // Multiple files
+    for (const file of generatedConfig.files) {
+      const content =
+        typeof file.content === 'string' ? file.content : JSON.stringify(file.content, null, 2);
+
+      // Ensure directory exists
+      const dir = dirname(file.path);
+      await fs.mkdir(dir, { recursive: true });
+      await fs.writeFile(file.path, content, 'utf-8');
+    }
+  } else {
+    // Single file
+    const content =
+      typeof generatedConfig.content === 'string'
+        ? generatedConfig.content
+        : JSON.stringify(generatedConfig.content, null, 2);
+
+    const filePath = generatedConfig.filePath as string;
+    const dir = dirname(filePath);
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(filePath, content, 'utf-8');
+  }
 }

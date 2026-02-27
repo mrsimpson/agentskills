@@ -34,6 +34,25 @@ export type {
   ParameterValues
 } from "./types.js";
 
+export type {
+  SkillsMcpServerConfig,
+  ToolPermission,
+  ToolPermissions,
+  SkillsMcpAgentConfig,
+  GeneratorOptions,
+  GeneratedConfig,
+  GeneratorMetadata,
+  ConfigGenerator
+} from "./config-generators.js";
+
+export { ConfigGeneratorRegistry } from "./config-generators.js";
+
+export {
+  GitHubCopilotGenerator,
+  KiroGenerator,
+  OpenCodeGenerator
+} from "./generators/index.js";
+
 export { parseSkill, parseSkillContent } from "./parser.js";
 export { validateSkill } from "./validator.js";
 export { SkillRegistry } from "./registry.js";

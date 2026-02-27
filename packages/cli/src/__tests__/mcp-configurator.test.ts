@@ -79,7 +79,7 @@ describe('mcp-configurator', () => {
     it('should return empty config if file does not exist', async () => {
       const configPath = path.join(tempDir, '.claude', 'mcp.json');
       const config = await readAgentConfig(configPath);
-      expect(config).toEqual({});
+      expect(config).toEqual({ mcpServers: {} });
     });
 
     it('should read existing config file', async () => {

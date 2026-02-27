@@ -1,0 +1,21 @@
+{
+  "name": "skills-mcp",
+  "description": "# Skill Usage\n\n## Mandatory Workflow Before Every Response\n\nBefore responding to a message, ALWAYS check:\n\n1. List available skills\n2. Ask yourself: \"Does ONE skill fit this task?\" (at just 1% probability → call the skill)\n3. If yes → load and execute skill via `use_skill` MCP tool\n4. Announce: \"I'm using [Skill-Name] for [Purpose].\"\n5. Follow skill instructions exactly\n\n## Rules\n\n- ALWAYS call skills via `use_skill` tool, never work from memory\n- If a skill contains a checklist → create EACH point as its own todo\n- Never rationalize that a skill is \"not needed\" or \"overkill\"\n- Answering without skill check = error",
+  "mcpServers": {
+    "agent-skills": {
+      "command": "npx",
+      "args": ["-y", "@codemcp/agentskills-mcp"]
+    }
+  },
+  "tools": [
+    "execute_bash",
+    "fs_read",
+    "fs_write",
+    "report_issue",
+    "knowledge",
+    "thinking",
+    "use_aws",
+    "@agent-skills"
+  ],
+  "allowedTools": ["fs_read", "use_skill", "@agent-skills/*"]
+}
