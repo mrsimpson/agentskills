@@ -91,6 +91,31 @@ describe('mcp command handler', () => {
       expect(options.agents).toContain('claude-code');
       expect(options.agents.length).toBe(1);
     });
+
+    it('should parse --agent-config flag', () => {
+      const args = ['setup', '--agent', 'kiro-cli', '--agent-config'];
+      const options = parseMcpOptions(args);
+      expect(options.configMode).toBe('agent-config');
+    });
+
+    it('should parse --mcp-json flag', () => {
+      const args = ['setup', '--agent', 'kiro-cli', '--mcp-json'];
+      const options = parseMcpOptions(args);
+      expect(options.configMode).toBe('mcp-json');
+    });
+
+    it('should leave configMode undefined when neither flag is set', () => {
+      const args = ['setup', '--agent', 'kiro-cli'];
+      const options = parseMcpOptions(args);
+      expect(options.configMode).toBeUndefined();
+    });
+
+    it('--mcp-json works without --agent (TUI mode)', () => {
+      const args = ['setup', '--mcp-json'];
+      const options = parseMcpOptions(args);
+      expect(options.mode).toBe('tui');
+      expect(options.configMode).toBe('mcp-json');
+    });
   });
 
   describe('runMcpSetup - TUI mode', () => {

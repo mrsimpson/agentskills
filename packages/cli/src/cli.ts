@@ -223,22 +223,30 @@ ${BOLD}Subcommands:${RESET}
 ${BOLD}Options:${RESET}
   -a, --agent         Specify agents to configure (space-separated)
                       Use '*' to configure all detected agents
+  -g, --global        Write configs to home directory instead of project
+  --agent-config      Create a named agent file with usage instructions
+                      (Kiro, GitHub Copilot, OpenCode only; default for those agents)
+  --mcp-json          Register MCP servers in mcp.json only, no agent file
+                      (works for all agents; skips the TUI mode-selection prompt)
 
 ${BOLD}Modes:${RESET}
   ${DIM}Interactive (TUI):${RESET} skills mcp setup
-    Shows a multi-select menu to choose which agents to configure
+    Guides through scope → agent selection → config type → summary
 
   ${DIM}Command-line (CLI):${RESET} skills mcp setup --agent <agents>
     Configures specified agents without interaction
 
 ${BOLD}Examples:${RESET}
-  ${DIM}$${RESET} skills mcp setup                           ${DIM}# interactive selection${RESET}
-  ${DIM}$${RESET} skills mcp setup --agent claude-code       ${DIM}# configure Claude${RESET}
-  ${DIM}$${RESET} skills mcp setup --agent claude-code cline ${DIM}# configure multiple${RESET}
-  ${DIM}$${RESET} skills mcp setup --agent '*'               ${DIM}# configure all agents${RESET}
+  ${DIM}$${RESET} skills mcp setup                                        ${DIM}# interactive${RESET}
+  ${DIM}$${RESET} skills mcp setup --agent claude-code                    ${DIM}# mcp.json for Claude${RESET}
+  ${DIM}$${RESET} skills mcp setup --agent kiro-cli --agent-config        ${DIM}# Kiro agent file${RESET}
+  ${DIM}$${RESET} skills mcp setup --agent kiro-cli --mcp-json            ${DIM}# Kiro mcp.json only${RESET}
+  ${DIM}$${RESET} skills mcp setup --agent claude-code cline --mcp-json   ${DIM}# multiple, mcp.json${RESET}
+  ${DIM}$${RESET} skills mcp setup --agent '*'                            ${DIM}# all agents${RESET}
 
 ${BOLD}Supported Agents:${RESET}
   claude-code, cline, cursor, kiro-cli, junie, opencode, and more
+  Agents marked ✦ in the TUI support a rich agent config file.
 
 Discover more at ${TEXT}https://skills.sh/${RESET}
 `);

@@ -17,6 +17,7 @@ export interface McpSetupOptions {
   agents: AgentType[];
   cwd?: string;
   scope?: 'local' | 'global'; // 'local' = project, 'global' = home directory
+  configMode?: McpConfigMode; // explicit override; undefined = ask in TUI / auto in CLI
 }
 
 /**
@@ -40,13 +41,13 @@ export type McpConfigMode = 'agent-config' | 'mcp-json';
  */
 export function parseMcpOptions(args: string[]): McpSetupOptions {
   const agentList: AgentType[] = [];
-  let scope: 'local' | 'global' = 'local'; // Default to local (project)
+  let scope: 'local' | 'global' = 'local';
+  let configMode: McpConfigMode | undefined;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
 
     if (arg === '-a' || arg === '--agent') {
-      // Get agent values after --agent flag
       i++;
       let nextArg = args[i];
       while (i < args.length && nextArg && !nextArg.startsWith('-')) {
@@ -54,12 +55,14 @@ export function parseMcpOptions(args: string[]): McpSetupOptions {
         i++;
         nextArg = args[i];
       }
-      i--; // Back up one since the loop will increment
+      i--;
     } else if (arg === '-g' || arg === '--global') {
-      // Set scope to global (home directory)
       scope = 'global';
+    } else if (arg === '--agent-config') {
+      configMode = 'agent-config';
+    } else if (arg === '--mcp-json') {
+      configMode = 'mcp-json';
     }
-    // Ignore other flags
   }
 
   const mode = agentList.length > 0 ? 'cli' : 'tui';
@@ -68,6 +71,7 @@ export function parseMcpOptions(args: string[]): McpSetupOptions {
     mode,
     agents: agentList,
     scope,
+    configMode,
   };
 }
 
@@ -84,9 +88,9 @@ export async function runMcpSetup(
   const configCwd = scope === 'global' ? homedir() : cwd;
 
   if (options.mode === 'tui') {
-    await setupTuiMode(configCwd, scope);
+    await setupTuiMode(configCwd, scope, options.configMode);
   } else {
-    await setupCliMode(options.agents, configCwd, scope);
+    await setupCliMode(options.agents, configCwd, scope, options.configMode);
   }
 }
 
@@ -156,7 +160,11 @@ function printAgentSummary(
 
 // ── TUI mode ──────────────────────────────────────────────────────────────────
 
-async function setupTuiMode(cwd: string, scope: 'local' | 'global' = 'local'): Promise<void> {
+async function setupTuiMode(
+  cwd: string,
+  scope: 'local' | 'global' = 'local',
+  forcedConfigMode?: McpConfigMode
+): Promise<void> {
   // 1. Detect installed agents
   const installedAgents = await detectInstalledAgents();
 
@@ -207,14 +215,18 @@ async function setupTuiMode(cwd: string, scope: 'local' | 'global' = 'local'): P
   }
 
   // 4. If at least one selected agent supports an agent config, ask the user
-  //    whether they want agent-config or plain mcp.json for those agents.
+  //    whether they want agent-config or plain mcp.json — unless the user
+  //    already passed --agent-config or --mcp-json on the command line.
   const agentConfigCapable = (selectedAgents as AgentType[]).filter((a) =>
     isGeneratorBacked(a as string)
   );
 
   let configMode: McpConfigMode = 'mcp-json';
 
-  if (agentConfigCapable.length > 0) {
+  if (forcedConfigMode) {
+    // CLI flag takes precedence — skip the prompt entirely
+    configMode = forcedConfigMode;
+  } else if (agentConfigCapable.length > 0) {
     const capableNames = agentConfigCapable
       .map((a) => agents[a as AgentType]?.displayName || a)
       .join(', ');
@@ -282,7 +294,8 @@ async function setupTuiMode(cwd: string, scope: 'local' | 'global' = 'local'): P
 async function setupCliMode(
   agentTypes: AgentType[],
   cwd: string,
-  scope: 'local' | 'global' = 'local'
+  scope: 'local' | 'global' = 'local',
+  forcedConfigMode?: McpConfigMode
 ): Promise<void> {
   if (agentTypes.includes('*' as AgentType)) {
     const installedAgents = await detectInstalledAgents();
@@ -292,22 +305,50 @@ async function setupCliMode(
   const configuredAgents: AgentType[] = [];
 
   for (const agentType of agentTypes) {
-    const configMode: McpConfigMode = isGeneratorBacked(agentType) ? 'agent-config' : 'mcp-json';
+    // Honour the forced mode if set; otherwise default to agent-config for
+    // generator-backed agents and mcp-json for all others.
+    const configMode: McpConfigMode =
+      forcedConfigMode ?? (isGeneratorBacked(agentType) ? 'agent-config' : 'mcp-json');
     const result = await configureOneAgent(agentType, cwd, scope, configMode);
     if (result !== null) configuredAgents.push(agentType);
   }
 
-  // Inject skill-required MCP servers, routing each agent to its natural mode
+  // Inject skill-required MCP servers, routing each agent to its effective mode
   if (configuredAgents.length > 0) {
     const skillDeps = await loadInstalledSkillMcpDeps(cwd, scope);
-    const generatorBacked = configuredAgents.filter((a) => isGeneratorBacked(a));
-    const rawMcp = configuredAgents.filter((a) => !isGeneratorBacked(a));
 
-    if (generatorBacked.length > 0) {
-      await configureSkillMcpDepsForAgents(skillDeps, generatorBacked, cwd, scope, 'agent-config');
-    }
-    if (rawMcp.length > 0) {
-      await configureSkillMcpDepsForAgents(skillDeps, rawMcp, cwd, scope, 'mcp-json');
+    if (forcedConfigMode) {
+      // Single forced mode — split only on generator capability
+      const generatorBacked = configuredAgents.filter((a) => isGeneratorBacked(a));
+      const rawMcp = configuredAgents.filter((a) => !isGeneratorBacked(a));
+      if (generatorBacked.length > 0) {
+        await configureSkillMcpDepsForAgents(
+          skillDeps,
+          generatorBacked,
+          cwd,
+          scope,
+          forcedConfigMode
+        );
+      }
+      if (rawMcp.length > 0) {
+        await configureSkillMcpDepsForAgents(skillDeps, rawMcp, cwd, scope, 'mcp-json');
+      }
+    } else {
+      // Auto mode — use natural mode per agent
+      const generatorBacked = configuredAgents.filter((a) => isGeneratorBacked(a));
+      const rawMcp = configuredAgents.filter((a) => !isGeneratorBacked(a));
+      if (generatorBacked.length > 0) {
+        await configureSkillMcpDepsForAgents(
+          skillDeps,
+          generatorBacked,
+          cwd,
+          scope,
+          'agent-config'
+        );
+      }
+      if (rawMcp.length > 0) {
+        await configureSkillMcpDepsForAgents(skillDeps, rawMcp, cwd, scope, 'mcp-json');
+      }
     }
   }
 
@@ -316,7 +357,8 @@ async function setupCliMode(
   if (configuredAgents.length > 0) {
     console.log(`\nConfigured ${configuredAgents.length} agent(s):`);
     for (const agentType of configuredAgents) {
-      const configMode: McpConfigMode = isGeneratorBacked(agentType) ? 'agent-config' : 'mcp-json';
+      const configMode: McpConfigMode =
+        forcedConfigMode ?? (isGeneratorBacked(agentType) ? 'agent-config' : 'mcp-json');
       printAgentSummary(agentType as string, configMode, scope);
     }
   }
