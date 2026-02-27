@@ -50,8 +50,6 @@ export interface Skill {
   /** Name of the plugin this skill belongs to (if any) */
   pluginName?: string;
   metadata?: Record<string, unknown>;
-  /** Homebrew packages required on macOS (from macos-dependencies frontmatter) */
-  macosDependencies?: string[];
 }
 
 export interface AgentConfig {
