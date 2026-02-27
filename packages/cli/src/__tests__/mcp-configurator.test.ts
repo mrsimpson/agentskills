@@ -7,6 +7,7 @@ import {
   getAgentConfigPath,
   readAgentConfig,
   writeAgentConfig,
+  generateSkillsMcpAgent,
 } from '../mcp-configurator';
 import type { McpConfig } from '@agent-skills/core';
 
@@ -355,6 +356,24 @@ describe('mcp-configurator', () => {
       expect(written.mcpServers.agentskills.command).toBe('npx');
       expect(Array.isArray(written.mcpServers.agentskills.args)).toBe(true);
       expect(typeof written.mcpServers.agentskills.env).toBe('object');
+    });
+  });
+
+  describe('generateSkillsMcpAgent — directory guard', () => {
+    it('should throw if a generator returns a path that is an existing directory', async () => {
+      // kiro-cli writes to .kiro/agents/skills-mcp.json — create that path as a directory instead
+      const agentsDir = path.join(tempDir, '.kiro', 'agents', 'skills-mcp.json');
+      fs.mkdirSync(agentsDir, { recursive: true }); // make it a directory, not a file
+
+      await expect(generateSkillsMcpAgent('kiro-cli', tempDir, 'local')).rejects.toThrow(
+        /directory path instead of a file path/
+      );
+    });
+
+    it('should write normally when the target path does not exist yet', async () => {
+      await expect(generateSkillsMcpAgent('kiro-cli', tempDir, 'local')).resolves.not.toThrow();
+      const written = path.join(tempDir, '.kiro', 'agents', 'skills-mcp.json');
+      expect(fs.existsSync(written)).toBe(true);
     });
   });
 });

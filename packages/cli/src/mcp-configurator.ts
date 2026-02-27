@@ -295,28 +295,40 @@ export async function generateSkillsMcpAgent(
     isGlobal: scope === 'global',
   });
 
-  // Write config file(s)
+  // Write config file(s).
+  // SAFETY: generators MUST target specific named files — never a directory.
+  // We validate every resolved path before writing to enforce this contract.
+  const safeWrite = async (filePath: string, content: string): Promise<void> => {
+    // Reject if the path resolves to an existing directory
+    try {
+      const stat = await fs.stat(filePath);
+      if (stat.isDirectory()) {
+        throw new Error(
+          `Generator returned a directory path instead of a file path: ${filePath}. ` +
+            `Generators must write to a specific named file and must never clear or overwrite directories.`
+        );
+      }
+    } catch (e) {
+      // ENOENT is fine — the file doesn't exist yet; any other stat error is re-thrown
+      if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e;
+    }
+
+    const dir = dirname(filePath);
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(filePath, content, 'utf-8');
+  };
+
   if (generatedConfig.files) {
-    // Multiple files
     for (const file of generatedConfig.files) {
       const content =
         typeof file.content === 'string' ? file.content : JSON.stringify(file.content, null, 2);
-
-      // Ensure directory exists
-      const dir = dirname(file.path);
-      await fs.mkdir(dir, { recursive: true });
-      await fs.writeFile(file.path, content, 'utf-8');
+      await safeWrite(file.path, content);
     }
   } else {
-    // Single file
     const content =
       typeof generatedConfig.content === 'string'
         ? generatedConfig.content
         : JSON.stringify(generatedConfig.content, null, 2);
-
-    const filePath = generatedConfig.filePath as string;
-    const dir = dirname(filePath);
-    await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(filePath, content, 'utf-8');
+    await safeWrite(generatedConfig.filePath as string, content);
   }
 }
