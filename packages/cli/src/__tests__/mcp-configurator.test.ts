@@ -109,7 +109,7 @@ describe('mcp-configurator', () => {
       await expect(readAgentConfig(configPath)).rejects.toThrow();
     });
 
-    it('should handle permission errors', async () => {
+    it.skipIf(process.getuid?.() === 0)('should handle permission errors', async () => {
       const configPath = path.join(tempDir, '.claude', 'mcp.json');
       fs.mkdirSync(path.dirname(configPath), { recursive: true });
       fs.writeFileSync(configPath, '{}');
@@ -180,7 +180,7 @@ describe('mcp-configurator', () => {
       expect(content).toContain('  "mcpServers"');
     });
 
-    it('should handle write permission errors', async () => {
+    it.skipIf(process.getuid?.() === 0)('should handle write permission errors', async () => {
       const configPath = path.join(tempDir, '.claude', 'mcp.json');
       fs.mkdirSync(path.dirname(configPath), { recursive: true });
       fs.chmodSync(path.dirname(configPath), 0o000);
