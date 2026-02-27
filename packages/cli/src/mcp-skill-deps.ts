@@ -25,13 +25,33 @@ import { getCanonicalSkillsDir, getMCPCanonicalSkillsDir } from './installer.ts'
 // ── skill discovery ───────────────────────────────────────────────────────────
 
 /**
+ * Result of loading installed skill MCP dependencies.
+ */
+export interface InstalledSkillMcpDepsResult {
+  /** Unique MCP server dependencies declared across all installed skills. */
+  deps: McpServerDependency[];
+  /**
+   * Per-server allowed tools aggregated from all skills that use each server.
+   * A tool entry uses the format `@server-name/tool-name` as declared in a
+   * skill's `allowed-tools` frontmatter field. When a server has no entry here,
+   * all tools should be allowed (wildcard behaviour).
+   *
+   * Only populated when at least one skill specifies `allowed-tools` for a
+   * server. If any skill that depends on a given server does NOT restrict tools,
+   * that server is omitted from this map (wildcard falls back).
+   */
+  allowedToolsByServer: Record<string, string[]>;
+}
+
+/**
  * Load all installed skills for the given scope and return the unique set of
- * MCP server dependencies declared across them.
+ * MCP server dependencies declared across them, along with per-server allowed
+ * tool restrictions derived from skill `allowed-tools` frontmatter.
  */
 export async function loadInstalledSkillMcpDeps(
   cwd: string,
   scope: 'local' | 'global'
-): Promise<McpServerDependency[]> {
+): Promise<InstalledSkillMcpDepsResult> {
   const isGlobal = scope === 'global';
 
   // Skills can live in the canonical .agents/skills dir or the MCP-server dir
@@ -42,6 +62,10 @@ export async function loadInstalledSkillMcpDeps(
 
   const seen = new Map<string, McpServerDependency>();
 
+  // For each server: accumulate allowed tools per skill. If any skill omits
+  // allowed-tools for a server, that server should allow all tools (wildcard).
+  const serverToolSets = new Map<string, Set<string> | 'wildcard'>();
+
   for (const dir of searchDirs) {
     try {
       const skills = await discoverSkills(dir, undefined, { fullDepth: true });
@@ -50,6 +74,33 @@ export async function loadInstalledSkillMcpDeps(
           if (!seen.has(dep.name)) {
             seen.set(dep.name, dep);
           }
+
+          // Collect allowed tools for this server from this skill's allowedTools
+          const skillAllowedTools = skill.allowedTools;
+          const serverName = dep.name;
+
+          if (!skillAllowedTools || skillAllowedTools.length === 0) {
+            // This skill doesn't restrict tools → server must allow all tools
+            serverToolSets.set(serverName, 'wildcard');
+          } else if (serverToolSets.get(serverName) !== 'wildcard') {
+            // Filter allowedTools entries that belong to this server: @server-name/tool
+            const prefix = `@${serverName}/`;
+            const serverTools = skillAllowedTools
+              .filter((t) => t.startsWith(prefix))
+              .map((t) => t.slice(prefix.length));
+
+            if (serverTools.length === 0) {
+              // No tools explicitly listed for this server → wildcard for this server
+              serverToolSets.set(serverName, 'wildcard');
+            } else {
+              const existing = serverToolSets.get(serverName);
+              if (existing instanceof Set) {
+                for (const t of serverTools) existing.add(t);
+              } else {
+                serverToolSets.set(serverName, new Set(serverTools));
+              }
+            }
+          }
         }
       }
     } catch {
@@ -57,7 +108,16 @@ export async function loadInstalledSkillMcpDeps(
     }
   }
 
-  return [...seen.values()];
+  // Build the allowedToolsByServer map (only for servers with explicit restrictions)
+  const allowedToolsByServer: Record<string, string[]> = {};
+  for (const [serverName, toolsOrWildcard] of serverToolSets.entries()) {
+    if (toolsOrWildcard instanceof Set) {
+      allowedToolsByServer[serverName] = [...toolsOrWildcard];
+    }
+    // 'wildcard' entries are intentionally omitted → caller uses wildcard
+  }
+
+  return { deps: [...seen.values()], allowedToolsByServer };
 }
 
 // ── parameter resolution ──────────────────────────────────────────────────────
@@ -137,18 +197,23 @@ async function resolveParameters(dep: McpServerDependency): Promise<Record<strin
  * In all cases the diff rule is: only check presence of the server key —
  * never modify an existing server's configuration.
  *
- * @param deps        MCP server dependencies collected from installed skills.
- * @param agentTypes  Agents that were just configured by `mcp setup`.
- * @param configCwd   Base directory for agent config files.
- * @param scope       'local' or 'global'.
- * @param configMode  Whether generator-backed agents use agent-config or mcp-json.
+ * @param deps                 MCP server dependencies collected from installed skills.
+ * @param agentTypes           Agents that were just configured by `mcp setup`.
+ * @param configCwd            Base directory for agent config files.
+ * @param scope                'local' or 'global'.
+ * @param configMode           Whether generator-backed agents use agent-config or mcp-json.
+ * @param allowedToolsByServer Per-server tool restrictions derived from skill allowedTools.
+ *                             When provided and a server has an entry, only those specific
+ *                             tools are whitelisted in the generated agent config instead of
+ *                             the default wildcard.
  */
 export async function configureSkillMcpDepsForAgents(
   deps: McpServerDependency[],
   agentTypes: AgentType[],
   configCwd: string,
   scope: 'local' | 'global',
-  configMode: 'agent-config' | 'mcp-json' = 'agent-config'
+  configMode: 'agent-config' | 'mcp-json' = 'agent-config',
+  allowedToolsByServer: Record<string, string[]> = {}
 ): Promise<void> {
   if (deps.length === 0 || agentTypes.length === 0) return;
 
@@ -184,11 +249,15 @@ export async function configureSkillMcpDepsForAgents(
       const missingServers: Record<string, SkillsMcpServerConfig> = {};
       for (const dep of deps) {
         const resolved = resolvedConfigs.get(dep.name)!;
+        const restrictedTools = allowedToolsByServer[dep.name];
         missingServers[dep.name] = {
           command: resolved.command,
           args: resolved.args,
           env: resolved.env,
           ...(resolved.cwd ? { cwd: resolved.cwd } : {}),
+          // Only whitelist specific tools when the skill declares allowedTools
+          // for this server; otherwise leave undefined so generators use wildcard.
+          ...(restrictedTools ? { tools: restrictedTools } : {}),
         };
       }
 

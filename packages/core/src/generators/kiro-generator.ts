@@ -118,8 +118,16 @@ export class KiroGenerator implements ConfigGenerator {
 
     // Add MCP server tools
     if (config.mcp_servers) {
-      for (const name of Object.keys(config.mcp_servers)) {
-        allowed.push(`@${name}/*`);
+      for (const [name, server] of Object.entries(config.mcp_servers)) {
+        if (server.tools && !server.tools.includes("*")) {
+          // Respect explicit tool restrictions from skill allowedTools
+          for (const tool of server.tools) {
+            allowed.push(`@${name}/${tool}`);
+          }
+        } else {
+          // No restriction declared → allow all tools for this server
+          allowed.push(`@${name}/*`);
+        }
       }
     }
 

@@ -140,8 +140,17 @@ export class GitHubCopilotGenerator implements ConfigGenerator {
 
     // MCP server tools
     if (servers) {
-      for (const name of Object.keys(servers)) {
-        result.push(`${name}/*`);
+      for (const [name, server] of Object.entries(servers)) {
+        const serverConfig = server as { tools?: string[] };
+        if (serverConfig.tools && !serverConfig.tools.includes("*")) {
+          // Respect explicit tool restrictions from skill allowedTools
+          for (const tool of serverConfig.tools) {
+            result.push(`${name}/${tool}`);
+          }
+        } else {
+          // No restriction declared → allow all tools for this server
+          result.push(`${name}/*`);
+        }
       }
     }
 

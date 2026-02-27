@@ -51,6 +51,16 @@ export async function parseSkillMd(
     }
 
     const rawMcpDeps = data['requires-mcp-servers'];
+
+    // Parse allowedTools: support both array and space-delimited string formats
+    const rawAllowedTools = data['allowed-tools'] ?? data['allowedTools'];
+    let allowedTools: string[] | undefined;
+    if (typeof rawAllowedTools === 'string') {
+      allowedTools = rawAllowedTools.split(/\s+/).filter(Boolean);
+    } else if (Array.isArray(rawAllowedTools)) {
+      allowedTools = rawAllowedTools as string[];
+    }
+
     return {
       name: data.name,
       description: data.description,
@@ -58,6 +68,7 @@ export async function parseSkillMd(
       rawContent: content,
       metadata: data.metadata,
       requiresMcpServers: Array.isArray(rawMcpDeps) ? rawMcpDeps : undefined,
+      allowedTools,
     };
   } catch {
     return null;

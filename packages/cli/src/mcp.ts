@@ -281,8 +281,15 @@ async function setupTuiMode(
 
   // 6. Inject skill-required MCP servers
   if (configuredAgents.length > 0) {
-    const skillDeps = await loadInstalledSkillMcpDeps(cwd, scope);
-    await configureSkillMcpDepsForAgents(skillDeps, configuredAgents, configCwd, scope, configMode);
+    const { deps: skillDeps, allowedToolsByServer } = await loadInstalledSkillMcpDeps(cwd, scope);
+    await configureSkillMcpDepsForAgents(
+      skillDeps,
+      configuredAgents,
+      configCwd,
+      scope,
+      configMode,
+      allowedToolsByServer
+    );
   }
 
   // 7. Per-agent summary with activation hints
@@ -330,7 +337,7 @@ async function setupCliMode(
 
   // Inject skill-required MCP servers, routing each agent to its effective mode
   if (configuredAgents.length > 0) {
-    const skillDeps = await loadInstalledSkillMcpDeps(cwd, scope);
+    const { deps: skillDeps, allowedToolsByServer } = await loadInstalledSkillMcpDeps(cwd, scope);
 
     if (forcedConfigMode) {
       // Single forced mode — split only on generator capability
@@ -342,11 +349,19 @@ async function setupCliMode(
           generatorBacked,
           cwd,
           scope,
-          forcedConfigMode
+          forcedConfigMode,
+          allowedToolsByServer
         );
       }
       if (rawMcp.length > 0) {
-        await configureSkillMcpDepsForAgents(skillDeps, rawMcp, cwd, scope, 'mcp-json');
+        await configureSkillMcpDepsForAgents(
+          skillDeps,
+          rawMcp,
+          cwd,
+          scope,
+          'mcp-json',
+          allowedToolsByServer
+        );
       }
     } else {
       // Auto mode — use natural mode per agent
@@ -358,11 +373,19 @@ async function setupCliMode(
           generatorBacked,
           cwd,
           scope,
-          'agent-config'
+          'agent-config',
+          allowedToolsByServer
         );
       }
       if (rawMcp.length > 0) {
-        await configureSkillMcpDepsForAgents(skillDeps, rawMcp, cwd, scope, 'mcp-json');
+        await configureSkillMcpDepsForAgents(
+          skillDeps,
+          rawMcp,
+          cwd,
+          scope,
+          'mcp-json',
+          allowedToolsByServer
+        );
       }
     }
   }

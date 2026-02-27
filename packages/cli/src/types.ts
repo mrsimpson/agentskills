@@ -72,6 +72,8 @@ export interface Skill {
   metadata?: Record<string, unknown>;
   /** MCP servers required by this skill (from requires-mcp-servers frontmatter). */
   requiresMcpServers?: McpServerDependency[];
+  /** Tools this skill is permitted to use (from allowed-tools frontmatter). */
+  allowedTools?: string[];
 }
 
 /**
