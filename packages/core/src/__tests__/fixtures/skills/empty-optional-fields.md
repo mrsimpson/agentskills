@@ -4,7 +4,7 @@ description: Testing empty optional fields
 license: ""
 compatibility: ""
 metadata: {}
-allowed-tools: []
+allowed-tools: ""
 ---
 
 # Empty Optional Fields

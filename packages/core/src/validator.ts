@@ -29,7 +29,12 @@ function toRawYamlKeys(
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(metadata)) {
-    result[CAMEL_TO_KEBAB[key] ?? key] = value;
+    const yamlKey = CAMEL_TO_KEBAB[key] ?? key;
+    if (key === "allowedTools" && Array.isArray(value)) {
+      result[yamlKey] = (value as string[]).join(" ");
+    } else {
+      result[yamlKey] = value;
+    }
   }
   return result;
 }

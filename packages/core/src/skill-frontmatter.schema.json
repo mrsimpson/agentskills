@@ -38,11 +38,8 @@
       "additionalProperties": true
     },
     "allowed-tools": {
-      "type": "array",
-      "description": "Tools this skill is permitted to use. MCP server tools use the format '@server-name/tool-name'. When specified, only these tools are whitelisted in the generated agent config instead of allowing all tools from each MCP server.",
-      "items": {
-        "type": "string"
-      }
+      "type": "string",
+      "description": "Space-delimited list of tools this skill is permitted to use. MCP server tools use the format '@server-name/tool-name'. When specified, only these tools are whitelisted in the generated agent config instead of allowing all tools from each MCP server."
     },
     "disable-model-invocation": {
       "type": "boolean",

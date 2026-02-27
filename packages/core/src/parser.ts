@@ -69,7 +69,11 @@ function mapFieldNames(data: Record<string, unknown>): SkillMetadata {
   for (const [key, value] of Object.entries(data)) {
     const mappedKey = FIELD_MAP[key];
     if (mappedKey !== undefined) {
-      metadata[mappedKey] = value;
+      if (mappedKey === "allowedTools" && typeof value === "string") {
+        metadata[mappedKey] = value.split(/\s+/).filter(Boolean);
+      } else {
+        metadata[mappedKey] = value;
+      }
     }
   }
 
