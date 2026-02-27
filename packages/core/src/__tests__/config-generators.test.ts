@@ -286,21 +286,6 @@ describe("OpenCodeAgentGenerator", () => {
     const content = result.content as string;
     expect(content).toContain("---");
     expect(content).toContain("description:");
-    expect(content).toContain("mode: subagent");
-  });
-
-  it("should set correct default model", async () => {
-    const result = await generator.generate(baseConfig, generatorOptions);
-    const content = result.content as string;
-
-    expect(content).toContain("anthropic/claude-sonnet-4-20250514");
-  });
-
-  it("should set correct default temperature", async () => {
-    const result = await generator.generate(baseConfig, generatorOptions);
-    const content = result.content as string;
-
-    expect(content).toContain("temperature: 0.1");
   });
 
   it("should include tools configuration", async () => {
@@ -331,31 +316,6 @@ describe("OpenCodeAgentGenerator", () => {
     expect(metadata.agentTypes).toContain("opencode");
     expect(metadata.version).toBe("1.0.0");
     expect(metadata.docsUrl).toContain("opencode.ai");
-  });
-
-  it("should override model when provided", async () => {
-    const config: SkillsMcpAgentConfig = {
-      ...baseConfig,
-      model: "anthropic/claude-opus"
-    };
-
-    const result = await generator.generate(config, generatorOptions);
-    const content = result.content as string;
-
-    expect(content).toContain("anthropic/claude-opus");
-    expect(content).not.toContain("claude-sonnet");
-  });
-
-  it("should override temperature when provided", async () => {
-    const config: SkillsMcpAgentConfig = {
-      ...baseConfig,
-      temperature: 0.8
-    };
-
-    const result = await generator.generate(config, generatorOptions);
-    const content = result.content as string;
-
-    expect(content).toContain("temperature: 0.8");
   });
 });
 

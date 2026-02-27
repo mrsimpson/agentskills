@@ -153,9 +153,6 @@ export class OpenCodeAgentGenerator implements ConfigGenerator {
     const frontmatterObj: Record<string, unknown> = {
       name: config.id,
       description: config.description,
-      mode: "subagent",
-      model: config.model || "anthropic/claude-sonnet-4-20250514",
-      temperature: config.temperature || 0.1,
       tools: this.mapTools(config.tools),
       permission: permissions
     };
