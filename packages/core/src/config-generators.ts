@@ -101,6 +101,13 @@ export interface GeneratorMetadata {
 /**
  * Base interface for config generators
  * Each client/platform implements this to generate their specific agent format
+ *
+ * ## Filesystem contract
+ *
+ * Generators MUST only return paths to specific named files.
+ * They MUST NOT return paths to existing directories, and the caller
+ * MUST NOT delete or clear any directory before or after writing.
+ * Each generator owns exactly the file(s) it declares — nothing else.
  */
 export interface ConfigGenerator {
   /**
@@ -110,7 +117,12 @@ export interface ConfigGenerator {
   readonly agentTypes: string[];
 
   /**
-   * Generate agent-specific config from SkillsMcpAgent
+   * Generate agent-specific config from SkillsMcpAgent.
+   *
+   * The returned `filePath` / `files[].path` MUST be a path to a specific
+   * named file, never a directory. The caller will validate this and throw
+   * if a directory path is returned.
+   *
    * @param config Base skills-MCP agent config
    * @param options Metadata for generation
    * @returns Generated config (file contents, usually as string)
