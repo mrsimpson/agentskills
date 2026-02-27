@@ -83,10 +83,7 @@ export async function getAllowedSkillsFromProject(
 }
 
 /**
- * Get allowed skill names from skills-lock.json in project
- *
- * Checks both project root and .agentskills directory.
- * Prefers project root if both exist.
+ * Get allowed skill names from skills-lock.json in project root
  *
  * @param projectDir - Project directory
  * @returns Set of allowed skill names, or undefined if no lock file
@@ -94,18 +91,7 @@ export async function getAllowedSkillsFromProject(
 export async function getAllowedSkillsFromAgentskills(
   projectDir: string
 ): Promise<Set<string> | undefined> {
-  // First try project root
-  const projectRootLockPath = join(projectDir, "skills-lock.json");
-  const rootLock = await loadSkillsLock(projectRootLockPath);
-  if (rootLock) {
-    return new Set(Object.keys(rootLock.skills));
-  }
-
-  // Fall back to .agentskills directory
-  const agentskillsLockPath = join(
-    projectDir,
-    ".agentskills",
-    "skills-lock.json"
-  );
-  return getAllowedSkills(agentskillsLockPath);
+  // Only check project root
+  const lockFilePath = join(projectDir, "skills-lock.json");
+  return getAllowedSkills(lockFilePath);
 }
