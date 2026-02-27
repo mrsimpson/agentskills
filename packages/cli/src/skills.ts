@@ -52,8 +52,8 @@ export async function parseSkillMd(
 
     const rawMcpDeps = data['requires-mcp-servers'];
 
-    // Parse allowedTools: support both array and space-delimited string formats
-    const rawAllowedTools = data['allowed-tools'] ?? data['allowedTools'];
+    // Parse allowed-tools per the agentskills.io spec (kebab-case, array or space-delimited string)
+    const rawAllowedTools = data['allowed-tools'];
     let allowedTools: string[] | undefined;
     if (typeof rawAllowedTools === 'string') {
       allowedTools = rawAllowedTools.split(/\s+/).filter(Boolean);

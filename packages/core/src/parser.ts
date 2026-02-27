@@ -59,14 +59,18 @@ function createError(
 }
 
 /**
- * Map YAML field names (kebab-case) to TypeScript field names (camelCase)
+ * Map YAML field names (kebab-case) to TypeScript field names (camelCase).
+ * Only keys defined in FIELD_MAP are kept; unrecognised keys (including any
+ * camelCase variants) are silently ignored — the spec mandates kebab-case.
  */
 function mapFieldNames(data: Record<string, unknown>): SkillMetadata {
   const metadata: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(data)) {
-    const mappedKey = FIELD_MAP[key] || key;
-    metadata[mappedKey] = value;
+    const mappedKey = FIELD_MAP[key];
+    if (mappedKey !== undefined) {
+      metadata[mappedKey] = value;
+    }
   }
 
   return metadata as unknown as SkillMetadata;
