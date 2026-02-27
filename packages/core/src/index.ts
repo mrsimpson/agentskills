@@ -50,7 +50,8 @@ export { ConfigGeneratorRegistry } from "./config-generators.js";
 export {
   GitHubCopilotGenerator,
   KiroGenerator,
-  OpenCodeGenerator
+  OpenCodeGenerator,
+  VsCodeGenerator
 } from "./generators/index.js";
 
 export { parseSkill, parseSkillContent } from "./parser.js";
