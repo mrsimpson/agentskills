@@ -81,6 +81,14 @@
       "items": {
         "$ref": "#/$defs/McpServerDependency"
       }
+    },
+    "macos-dependencies": {
+      "type": "array",
+      "description": "Homebrew packages required for this skill to work on macOS. Automatically installed via 'brew install' when the skill is added.",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     }
   },
   "$defs": {

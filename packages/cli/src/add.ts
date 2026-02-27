@@ -3,6 +3,7 @@ import pc from 'picocolors';
 import { existsSync } from 'fs';
 import { homedir } from 'os';
 import { sep } from 'path';
+import matter from 'gray-matter';
 import { parseSource, getOwnerRepo, parseOwnerRepo, isRepoPrivate } from './source-parser.ts';
 import { searchMultiselect, cancelSymbol } from './prompts/search-multiselect.ts';
 
@@ -58,6 +59,7 @@ import {
   saveSelectedAgents,
 } from './skill-lock.ts';
 import { addSkillToLocalLock, computeSkillFolderHash } from './local-lock.ts';
+import { collectMacosDependencies, installMacosDependencies } from './macos-deps.ts';
 import type { Skill, AgentType, RemoteSkill } from './types.ts';
 import packageJson from '../package.json' with { type: 'json' };
 export function initTelemetry(version: string): void {
@@ -739,6 +741,16 @@ async function handleRemoteSkill(
     }
   }
 
+  // Install macOS dependencies declared in skill frontmatter
+  if (successful.length > 0 && remoteSkill.content) {
+    const { data } = matter(remoteSkill.content);
+    const rawDeps = data['macos-dependencies'];
+    const macosDeps = Array.isArray(rawDeps)
+      ? (rawDeps as unknown[]).filter((d): d is string => typeof d === 'string')
+      : [];
+    await installMacosDependencies(macosDeps);
+  }
+
   console.log();
   p.outro(
     pc.green('Done!') + pc.dim('  Review skills before use; they run with full agent permissions.')
@@ -1172,6 +1184,24 @@ async function handleWellKnownSkills(
     for (const r of failed) {
       p.log.message(`  ${pc.red('✗')} ${r.skill} → ${r.agent}: ${pc.dim(r.error)}`);
     }
+  }
+
+  // Install macOS dependencies declared in skill frontmatter
+  if (successful.length > 0) {
+    const successfulSkillNames = new Set(successful.map((r) => r.skill));
+    const macosDeps = new Set<string>();
+    for (const skill of selectedSkills) {
+      if (successfulSkillNames.has(skill.installName) && skill.content) {
+        const { data } = matter(skill.content);
+        const rawDeps = data['macos-dependencies'];
+        if (Array.isArray(rawDeps)) {
+          for (const d of rawDeps) {
+            if (typeof d === 'string') macosDeps.add(d);
+          }
+        }
+      }
+    }
+    await installMacosDependencies([...macosDeps]);
   }
 
   console.log();
@@ -2163,6 +2193,16 @@ export async function runAdd(args: string[], options: AddOptions = {}): Promise<
       for (const r of failed) {
         p.log.message(`  ${pc.red('✗')} ${r.skill} → ${r.agent}: ${pc.dim(r.error)}`);
       }
+    }
+
+    // Install macOS dependencies declared in skill frontmatter
+    if (successful.length > 0) {
+      const successfulSkillNames = new Set(successful.map((r) => r.skill));
+      const installedSkills = selectedSkills.filter((s) =>
+        successfulSkillNames.has(getSkillDisplayName(s))
+      );
+      const macosDeps = collectMacosDependencies(installedSkills);
+      await installMacosDependencies(macosDeps);
     }
 
     console.log();

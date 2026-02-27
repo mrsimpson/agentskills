@@ -50,12 +50,16 @@ export async function parseSkillMd(
       return null;
     }
 
+    const macosDeps = data['macos-dependencies'];
     return {
       name: data.name,
       description: data.description,
       path: dirname(skillMdPath),
       rawContent: content,
       metadata: data.metadata,
+      macosDependencies: Array.isArray(macosDeps)
+        ? (macosDeps as unknown[]).filter((d): d is string => typeof d === 'string')
+        : undefined,
     };
   } catch {
     return null;
