@@ -333,7 +333,7 @@ describe("SkillRegistry - Simplified Model", () => {
       await expect(registry.loadSkills(tempDir)).rejects.toThrow();
     });
 
-    it("should throw if validation fails (invalid name format)", async () => {
+    it("should register a placeholder skill if validation fails (invalid name format)", async () => {
       // Arrange
       const registry = new SkillRegistry();
       const tempDir = await createTempDir();
@@ -348,8 +348,16 @@ describe("SkillRegistry - Simplified Model", () => {
         )
       );
 
-      // Act & Assert
-      await expect(registry.loadSkills(tempDir)).rejects.toThrow();
+      // Act — should NOT throw; instead registers a placeholder
+      const result = await registry.loadSkills(tempDir);
+
+      // Assert: placeholder is registered under the directory name
+      expect(result.loaded).toBe(1);
+      const placeholder = registry.getSkill("invalid-skill");
+      expect(placeholder).toBeDefined();
+      expect(placeholder?.metadata.description).toContain("[INVALID]");
+      expect(placeholder?.body).toContain("invalid");
+      expect(placeholder?.body).toContain("inform the user");
     });
 
     it("should throw if subdirectory is empty", async () => {

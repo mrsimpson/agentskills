@@ -20,6 +20,25 @@ import type {
 } from "./types.js";
 
 /**
+ * Create a placeholder skill for an invalid/unloadable SKILL.md.
+ * The placeholder instructs the agent to inform the user of the problem.
+ */
+function makeInvalidSkillPlaceholder(
+  dirName: string,
+  sourcePath: string,
+  errors: string
+): Skill {
+  return Object.freeze({
+    metadata: Object.freeze({
+      name: dirName,
+      description:
+        "[INVALID] This skill failed validation and cannot be applied"
+    } as SkillMetadata),
+    body: `This skill is invalid and cannot be applied.\n\nValidation errors:\n${errors}\n\nPlease inform the user that the skill at \`${sourcePath}\` is invalid and needs to be fixed before it can be used.`
+  });
+}
+
+/**
  * In-memory registry for managing agent skills
  *
  * Features:
@@ -177,7 +196,15 @@ export class SkillRegistry {
         const errorMessages = validationResult.errors
           .map((e) => e.message)
           .join(", ");
-        throw new Error(`Validation failed for ${skillDir}: ${errorMessages}`);
+        const dirName = basename(skillDir);
+        const placeholder = makeInvalidSkillPlaceholder(
+          dirName,
+          skillPath,
+          errorMessages
+        );
+        this.skills.set(dirName, { skill: placeholder, sourcePath: skillPath });
+        loadedCount++;
+        continue;
       }
 
       // Verify directory name matches skill name
@@ -279,7 +306,15 @@ export class SkillRegistry {
         const errorMessages = validationResult.errors
           .map((e) => e.message)
           .join(", ");
-        throw new Error(`Validation failed for ${skillDir}: ${errorMessages}`);
+        const dirName = basename(skillDir);
+        const placeholder = makeInvalidSkillPlaceholder(
+          dirName,
+          skillPath,
+          errorMessages
+        );
+        this.skills.set(dirName, { skill: placeholder, sourcePath: skillPath });
+        loadedCount++;
+        continue;
       }
 
       // Verify directory name matches skill name

@@ -9,10 +9,7 @@ metadata:
   tags:
     - testing
     - example
-allowed-tools:
-  - bash
-  - read_file
-  - write_file
+allowed-tools: bash read_file write_file
 disable-model-invocation: false
 user-invocable: true
 argument-hint: "<task> <options>"

@@ -52,13 +52,11 @@ export async function parseSkillMd(
 
     const rawMcpDeps = data['requires-mcp-servers'];
 
-    // Parse allowed-tools per the agentskills.io spec (kebab-case, array or space-delimited string)
+    // Parse allowed-tools per the agentskills.io spec (kebab-case, space-delimited string)
     const rawAllowedTools = data['allowed-tools'];
     let allowedTools: string[] | undefined;
     if (typeof rawAllowedTools === 'string') {
       allowedTools = rawAllowedTools.split(/\s+/).filter(Boolean);
-    } else if (Array.isArray(rawAllowedTools)) {
-      allowedTools = rawAllowedTools as string[];
     }
 
     return {
