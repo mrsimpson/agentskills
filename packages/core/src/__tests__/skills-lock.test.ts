@@ -198,12 +198,9 @@ describe("Skills Lock Manager", () => {
       await cleanupTempDir(tempDir);
     });
 
-    it("should load from skills-lock.json in .agentskills directory", async () => {
+    it("should load from skills-lock.json in project root", async () => {
       // Arrange
-      const agentskillsDir = join(tempDir, ".agentskills");
-      await fs.mkdir(agentskillsDir, { recursive: true });
-
-      const lockFilePath = join(agentskillsDir, "skills-lock.json");
+      const lockFilePath = join(tempDir, "skills-lock.json");
       const lockContent = {
         version: 1,
         skills: {
@@ -229,7 +226,7 @@ describe("Skills Lock Manager", () => {
       expect(result).toEqual(new Set(["commit", "knowledge"]));
     });
 
-    it("should return undefined if lock file does not exist in .agentskills", async () => {
+    it("should return undefined if lock file does not exist in project root", async () => {
       // Act
       const result = await getAllowedSkillsFromAgentskills(tempDir);
 
