@@ -207,7 +207,7 @@ function buildAgentSummaryLines(targetAgents: AgentType[], installMode: InstallM
   const { universal, symlinked } = splitAgentsByType(targetAgents);
 
   if (installMode === 'mcp-server') {
-    lines.push(`  ${pc.dim('mcp-server →')} @codemcp/agentskills-mcp`);
+    lines.push(`  ${pc.dim('mcp-server →')} @codemcp/skills-mcp`);
   } else if (installMode === 'symlink') {
     if (universal.length > 0) {
       lines.push(`  ${pc.green('universal:')} ${formatList(universal)}`);
@@ -260,7 +260,7 @@ function buildResultLines(
   if (isMcpMode) {
     // MCP Server mode - show configuration instructions
     lines.push(`  ${pc.dim('Important:')} Make sure your agent has configured`);
-    lines.push(`  ${pc.cyan('@codemcp/agentskills-mcp')} as MCP server.`);
+    lines.push(`  ${pc.cyan('@codemcp/skills-mcp')} as MCP server.`);
     lines.push(`  Then, the skill will automatically be picked up`);
   } else {
     // Split target agents by type
@@ -715,7 +715,7 @@ async function handleRemoteSkill(
     if (firstResult.mode === 'mcp-server') {
       p.log.message('');
       p.log.message(pc.dim('To use with MCP clients, add to your MCP config:'));
-      p.log.message(pc.cyan('  { "command": "npx", "args": ["-y", "@codemcp/agentskills-mcp"] }'));
+      p.log.message(pc.cyan('  { "command": "npx", "args": ["-y", "@codemcp/skills-mcp"] }'));
     }
 
     // Show symlink failure warning

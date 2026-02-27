@@ -1,6 +1,6 @@
 {
-  "name": "@codemcp/agentskills-cli",
-  "version": "1.6.1",
+  "name": "@codemcp/skills",
+  "version": "0.1.0",
   "description": "Command-line interface for Agent Skills management",
   "type": "module",
   "bin": {
@@ -31,7 +31,7 @@
     "tests/**/*.ts": "prettier --write"
   },
   "dependencies": {
-    "@codemcp/agentskills-core": "workspace:*"
+    "@codemcp/skills-core": "workspace:*"
   },
   "devDependencies": {
     "@clack/prompts": "^0.11.0",

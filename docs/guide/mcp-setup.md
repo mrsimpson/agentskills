@@ -232,7 +232,7 @@ All following agents use standard `mcpServers` JSON format.
   "servers": {
     "agentskills": {
       "command": "npx",
-      "args": ["-y", "@codemcp/agentskills-mcp"]
+      "args": ["-y", "@codemcp/skills-mcp"]
     }
   }
 }
@@ -246,7 +246,7 @@ All following agents use standard `mcpServers` JSON format.
   "mcpServers": {
     "agentskills": {
       "command": "npx",
-      "args": ["-y", "@codemcp/agentskills-mcp"]
+      "args": ["-y", "@codemcp/skills-mcp"]
     }
   }
 }
@@ -278,7 +278,7 @@ find ~ -name "mcp.json" -o -name "*.agent.md" | grep skills
 1. Verify the config file exists: `ls ~/.claude/mcp.json` (or your agent's path)
 2. Verify the JSON is valid: `cat ~/.claude/mcp.json | jq`
 3. **Restart your agent** — it caches configs on startup
-4. Check that `npx @codemcp/agentskills-mcp` works: `npx @codemcp/agentskills-mcp --help`
+4. Check that `npx @codemcp/skills-mcp` works: `npx @codemcp/skills-mcp --help`
 
 ### Wrong Configuration Mode
 

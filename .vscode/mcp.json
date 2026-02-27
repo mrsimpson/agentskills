@@ -2,7 +2,7 @@
   "servers": {
     "agent-skills": {
       "command": "npx",
-      "args": ["-y", "@codemcp/agentskills-mcp"]
+      "args": ["-y", "@codemcp/skills-mcp"]
     },
     "agentic-knowledge": {
       "command": "npx",

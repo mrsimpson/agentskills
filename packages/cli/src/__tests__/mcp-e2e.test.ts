@@ -10,7 +10,7 @@ import {
   generateSkillsMcpAgent,
 } from '../mcp-configurator.ts';
 import { parseMcpOptions } from '../mcp.ts';
-import type { McpConfig } from '@codemcp/agentskills-core';
+import type { McpConfig } from '@codemcp/skills-core';
 
 describe('MCP Setup E2E Integration Tests', () => {
   let tempDir: string;
@@ -37,7 +37,7 @@ describe('MCP Setup E2E Integration Tests', () => {
           mcpServers: {
             agentskills: {
               command: 'npx',
-              args: ['-y', '@codemcp/agentskills-mcp'],
+              args: ['-y', '@codemcp/skills-mcp'],
             },
           },
         };
@@ -60,7 +60,7 @@ describe('MCP Setup E2E Integration Tests', () => {
           mcpServers: {
             agentskills: {
               command: 'npx',
-              args: ['-y', '@codemcp/agentskills-mcp'],
+              args: ['-y', '@codemcp/skills-mcp'],
             },
           },
         };
@@ -82,7 +82,7 @@ describe('MCP Setup E2E Integration Tests', () => {
             mcpServers: {
               agentskills: {
                 command: 'npx',
-                args: ['-y', '@codemcp/agentskills-mcp'],
+                args: ['-y', '@codemcp/skills-mcp'],
               },
             },
           };
@@ -231,7 +231,7 @@ describe('MCP Setup E2E Integration Tests', () => {
           servers: {
             agentskills: {
               command: 'npx',
-              args: ['-y', '@codemcp/agentskills-mcp'],
+              args: ['-y', '@codemcp/skills-mcp'],
             },
           },
         };
@@ -292,7 +292,7 @@ Configuration for Skills MCP agent.`;
           servers: {
             agentskills: {
               command: 'npx',
-              args: ['-y', '@codemcp/agentskills-mcp'],
+              args: ['-y', '@codemcp/skills-mcp'],
             },
           },
         };
@@ -315,7 +315,7 @@ Configuration for Skills MCP agent.`;
           servers: {
             agentskills: {
               command: 'npx',
-              args: ['-y', '@codemcp/agentskills-mcp'],
+              args: ['-y', '@codemcp/skills-mcp'],
             },
           },
         };
@@ -337,7 +337,7 @@ Configuration for Skills MCP agent.`;
           servers: {
             agentskills: {
               command: 'npx',
-              args: ['-y', '@codemcp/agentskills-mcp'],
+              args: ['-y', '@codemcp/skills-mcp'],
             },
           },
         };
@@ -367,7 +367,7 @@ Configuration for Skills MCP agent.`;
           mcpServers: {
             agentskills: {
               command: 'npx',
-              args: ['-y', '@codemcp/agentskills-mcp'],
+              args: ['-y', '@codemcp/skills-mcp'],
             },
           },
         };
@@ -388,7 +388,7 @@ Configuration for Skills MCP agent.`;
           mcpServers: {
             agentskills: {
               command: 'npx',
-              args: ['-y', '@codemcp/agentskills-mcp'],
+              args: ['-y', '@codemcp/skills-mcp'],
             },
           },
         };
@@ -411,7 +411,7 @@ Configuration for Skills MCP agent.`;
           mcpServers: {
             agentskills: {
               command: 'npx',
-              args: ['-y', '@codemcp/agentskills-mcp'],
+              args: ['-y', '@codemcp/skills-mcp'],
             },
           },
         };
@@ -432,7 +432,7 @@ Configuration for Skills MCP agent.`;
             mcpServers: {
               agentskills: {
                 command: 'npx',
-                args: ['-y', '@codemcp/agentskills-mcp'],
+                args: ['-y', '@codemcp/skills-mcp'],
               },
             },
           };
@@ -487,7 +487,7 @@ Configuration for Skills MCP agent.`;
             ...existingConfig.mcpServers,
             agentskills: {
               command: 'npx',
-              args: ['-y', '@codemcp/agentskills-mcp'],
+              args: ['-y', '@codemcp/skills-mcp'],
             },
           },
         };
@@ -517,7 +517,7 @@ Configuration for Skills MCP agent.`;
           servers: {
             agentskills: {
               command: 'npx',
-              args: ['-y', '@codemcp/agentskills-mcp'],
+              args: ['-y', '@codemcp/skills-mcp'],
             },
           },
         };
@@ -546,7 +546,7 @@ Configuration for Skills MCP agent.`;
           mcpServers: {
             agentskills: {
               command: 'npx',
-              args: ['-y', '@codemcp/agentskills-mcp'],
+              args: ['-y', '@codemcp/skills-mcp'],
             },
           },
         };
@@ -563,7 +563,7 @@ Configuration for Skills MCP agent.`;
           mcpServers: {
             agentskills: {
               command: 'npx',
-              args: ['-y', '@codemcp/agentskills-mcp'],
+              args: ['-y', '@codemcp/skills-mcp'],
             },
           },
         };
@@ -582,7 +582,7 @@ Configuration for Skills MCP agent.`;
           mcpServers: {
             agentskills: {
               command: 'npx',
-              args: ['-y', '@codemcp/agentskills-mcp'],
+              args: ['-y', '@codemcp/skills-mcp'],
             },
           },
         };
@@ -603,7 +603,7 @@ Configuration for Skills MCP agent.`;
           mcpServers: {
             agentskills: {
               command: 'npx',
-              args: ['-y', '@codemcp/agentskills-mcp'],
+              args: ['-y', '@codemcp/skills-mcp'],
             },
           },
         };
@@ -630,7 +630,7 @@ Configuration for Skills MCP agent.`;
           mcpServers: {
             agentskills: {
               command: 'npx',
-              args: ['-y', '@codemcp/agentskills-mcp'],
+              args: ['-y', '@codemcp/skills-mcp'],
             },
           },
         };
@@ -668,7 +668,7 @@ Configuration for Skills MCP agent.`;
           mcpServers: {
             agentskills: {
               command: 'npx',
-              args: ['-y', '@codemcp/agentskills-mcp'],
+              args: ['-y', '@codemcp/skills-mcp'],
             },
           },
         };
@@ -703,7 +703,7 @@ Configuration for Skills MCP agent.`;
         const agentFilePath = path.join(tempDir, '.github', 'agents', 'skills-mcp.agent.md');
 
         const mcpJson = {
-          servers: { agentskills: { command: 'npx', args: ['-y', '@codemcp/agentskills-mcp'] } },
+          servers: { agentskills: { command: 'npx', args: ['-y', '@codemcp/skills-mcp'] } },
         };
         const agentFile = '# Skills MCP Agent';
 
@@ -730,7 +730,7 @@ Configuration for Skills MCP agent.`;
           mcpServers: {
             agentskills: {
               command: 'npx',
-              args: ['-y', '@codemcp/agentskills-mcp'],
+              args: ['-y', '@codemcp/skills-mcp'],
             },
           },
         };
@@ -771,7 +771,7 @@ Configuration for Skills MCP agent.`;
             ...initialConfig.mcpServers,
             agentskills: {
               command: 'npx',
-              args: ['-y', '@codemcp/agentskills-mcp'],
+              args: ['-y', '@codemcp/skills-mcp'],
             },
           },
         };

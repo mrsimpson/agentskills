@@ -5,7 +5,7 @@ _Workflow: [bugfix](https://mrsimpson.github.io/responsible-vibe-mcp/workflows/b
 
 ## Goal
 
-Fix the CLI bug where `npx @codemcp/agentskills-cli@latest add jugendsprache github://mrsimpson/skill-jugendsprache.git` fails with "pacote.extract is not a function" error after successfully adding to package.json.
+Fix the CLI bug where `npx @codemcp/skills@latest add jugendsprache github://mrsimpson/skill-jugendsprache.git` fails with "pacote.extract is not a function" error after successfully adding to package.json.
 
 ## Reproduce
 

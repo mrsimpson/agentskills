@@ -42,4 +42,4 @@ This gives you:
 
 1. **CLI** (`agentskills`) — install, add, list, and validate skills
 2. **MCP Server** (`agentskills-mcp`) — exposes installed skills to any MCP agent
-3. **Core library** (`@codemcp/agentskills-core`) — parsing, validation, and registry for programmatic use
+3. **Core library** (`@codemcp/skills-core`) — parsing, validation, and registry for programmatic use

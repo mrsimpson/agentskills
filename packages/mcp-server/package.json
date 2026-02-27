@@ -1,6 +1,6 @@
 {
-  "name": "@codemcp/agentskills-mcp",
-  "version": "1.6.1",
+  "name": "@codemcp/skills-mcp",
+  "version": "0.1.0",
   "description": "MCP server implementation for Agent Skills",
   "type": "module",
   "main": "dist/index.js",
@@ -33,9 +33,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@codemcp/agentskills-core": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.19.1",
-    "zod": "4.3.6"
+    "zod": "4.3.6",
+    "@codemcp/skills-core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.7",

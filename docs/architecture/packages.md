@@ -6,9 +6,9 @@ The project is a **pnpm workspace monorepo** with three published packages and a
 
 ```mermaid
 graph TD
-    core["@codemcp/agentskills-core"]
-    cli["@codemcp/agentskills-cli"]
-    mcp["@codemcp/agentskills-mcp"]
+    core["@codemcp/skills-core"]
+    cli["@codemcp/skills"]
+    mcp["@codemcp/skills-mcp"]
 
     core --> cli
     core --> mcp
@@ -16,7 +16,7 @@ graph TD
 
 The core package is the only shared dependency. CLI and MCP server are independent consumers of it.
 
-## `@codemcp/agentskills-core`
+## `@codemcp/skills-core`
 
 **Path:** `packages/core/`
 
@@ -40,7 +40,7 @@ The shared foundation. Contains no CLI or server logic — only pure processing 
 - `SkillRegistry` is loaded once and is immutable; no hot reload in the current version
 - All file I/O is async; parallel loading where possible
 
-## `@codemcp/agentskills-cli`
+## `@codemcp/skills`
 
 **Path:** `packages/cli/`
 **Bin:** `agentskills`
@@ -56,7 +56,7 @@ A short-lived process — it initializes a fresh registry per command and exits.
 
 The `add` command validates before writing — the spec is fetched, the `SKILL.md` is parsed and validated, and only a clean result updates `package.json`.
 
-## `@codemcp/agentskills-mcp`
+## `@codemcp/skills-mcp`
 
 **Path:** `packages/mcp-server/`
 **Bin:** `agentskills-mcp`

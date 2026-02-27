@@ -39,7 +39,7 @@ We have **minimal, surgical modifications** to 2 files:
 
 - Added MCP Server option to install method prompt
 - Conditional installation logic: single universal agent for MCP mode
-- Post-install message showing `@codemcp/agentskills-mcp` configuration
+- Post-install message showing `@codemcp/skills-mcp` configuration
 - Updated `buildAgentSummaryLines()` display logic
 
 This isolation means:
@@ -171,9 +171,7 @@ Similar approach:
    if (firstResult.mode === "mcp-server") {
      p.log.message(pc.dim("To use with MCP clients, add to your MCP config:"));
      p.log.message(
-       pc.cyan(
-         '  { "command": "npx", "args": ["-y", "@codemcp/agentskills-mcp"] }'
-       )
+       pc.cyan('  { "command": "npx", "args": ["-y", "@codemcp/skills-mcp"] }')
      );
    }
    ```
@@ -228,8 +226,8 @@ If build fails, check for syntax errors in your conflict resolution.
 pnpm test
 
 # Run only core tests (less likely to have environmental issues)
-pnpm --filter @codemcp/agentskills-core test
-pnpm --filter @codemcp/agentskills-mcp test
+pnpm --filter @codemcp/skills-core test
+pnpm --filter @codemcp/skills-mcp test
 ```
 
 ### Step 6: Manual Testing
