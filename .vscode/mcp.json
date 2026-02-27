@@ -1,0 +1,16 @@
+{
+  "servers": {
+    "agent-skills": {
+      "command": "npx",
+      "args": ["-y", "@codemcp/agentskills-mcp"]
+    },
+    "agentic-knowledge": {
+      "command": "npx",
+      "args": ["-y", "@codemcp/knowledge"]
+    },
+    "quiet-shell": {
+      "command": "npx",
+      "args": ["-y", "@codemcp/quiet-shell"]
+    }
+  }
+}
