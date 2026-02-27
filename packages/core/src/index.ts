@@ -50,7 +50,8 @@ export { ConfigGeneratorRegistry } from "./config-generators.js";
 export {
   GitHubCopilotGenerator,
   KiroGenerator,
-  OpenCodeGenerator,
+  OpenCodeMcpGenerator,
+  OpenCodeAgentGenerator,
   VsCodeGenerator
 } from "./generators/index.js";
 
@@ -61,6 +62,7 @@ export { PackageConfigManager } from "./package-config.js";
 export {
   McpConfigAdapterRegistry,
   StandardMcpConfigAdapter,
-  OpenCodeConfigAdapter
+  OpenCodeConfigAdapter,
+  VsCodeConfigAdapter
 } from "./mcp-config-adapters.js";
 export type { McpConfigAdapter } from "./mcp-config-adapters.js";

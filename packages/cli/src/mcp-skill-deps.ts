@@ -6,6 +6,7 @@
  * the installed skills require.
  */
 
+import { promises as fs } from 'fs';
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
 import type { AgentType, McpServerDependency } from './types.ts';
@@ -208,29 +209,54 @@ export async function configureSkillMcpDepsForAgents(
       }
     } else {
       // ── Raw mcp.json agents (Claude, Cursor, Cline, …) ───────────────────
+      // Import here to avoid circular dependency
+      const { McpConfigAdapterRegistry } = await import('@codemcp/agentskills-core');
+      const configPath = getAgentConfigPath(agentType, configCwd, scope);
+      const config = await readAgentConfig(configPath, agentType);
+      if (!config.mcpServers) config.mcpServers = {};
+
+      let anyServerAdded = false;
       for (const dep of deps) {
+        if (config.mcpServers[dep.name]) continue; // already configured — don't touch
+
+        config.mcpServers[dep.name] = resolvedConfigs.get(dep.name)! as {
+          command: string;
+          args?: string[];
+          env?: Record<string, string>;
+        };
+        anyServerAdded = true;
+
+        p.log.success(
+          `${pc.green('✓')} Added ${pc.cyan(dep.name)} to ${pc.dim(agents[agentType as AgentType]?.displayName || agentType)}`
+        );
+      }
+
+      if (anyServerAdded) {
         try {
-          const configPath = getAgentConfigPath(agentType, configCwd, scope);
-          const config = await readAgentConfig(configPath);
-          if (!config.mcpServers) config.mcpServers = {};
+          // Use the adapter to convert to agent-specific format if needed
+          const { McpConfigAdapterRegistry } = await import('@codemcp/agentskills-core');
+          const adapter = McpConfigAdapterRegistry.getAdapter(agentType as any);
 
-          if (config.mcpServers[dep.name]) continue; // already configured — don't touch
+          // Read existing config to preserve other settings
+          let existingAgentConfig: unknown;
+          try {
+            const existingContent = await fs.readFile(configPath, 'utf-8');
+            existingAgentConfig = JSON.parse(existingContent);
+          } catch {
+            // File doesn't exist or isn't valid JSON
+            existingAgentConfig = undefined;
+          }
 
-          config.mcpServers[dep.name] = resolvedConfigs.get(dep.name)! as {
-            command: string;
-            args?: string[];
-            env?: Record<string, string>;
-          };
-          await writeAgentConfig(configPath, config);
+          // Convert to agent-specific format
+          const agentSpecificConfig = adapter.toClient(config, existingAgentConfig);
 
-          p.log.success(
-            `${pc.green('✓')} Added ${pc.cyan(dep.name)} to ${pc.dim(agents[agentType as AgentType]?.displayName || agentType)}`
-          );
+          // Write in agent-specific format
+          await writeAgentConfig(configPath, agentSpecificConfig as any);
           anyConfigured = true;
-        } catch {
+        } catch (error) {
           p.log.warn(
             pc.yellow(
-              `Could not update MCP config for ${agents[agentType as AgentType]?.displayName || agentType} — add ${pc.cyan(dep.name)} manually`
+              `Could not update MCP config for ${agents[agentType as AgentType]?.displayName || agentType} — add skills manually`
             )
           );
         }

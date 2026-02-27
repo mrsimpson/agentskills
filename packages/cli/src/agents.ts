@@ -177,6 +177,7 @@ export const agents: Record<AgentType, AgentConfig> = {
     agentConfigSupport: {
       activationHint:
         'Open Copilot Chat in your IDE and select the "skills-mcp" agent from the agent picker.',
+      verified: true,
     },
   },
   goose: {
@@ -233,7 +234,8 @@ export const agents: Record<AgentType, AgentConfig> = {
       return existsSync(join(home, '.kiro'));
     },
     agentConfigSupport: {
-      activationHint: 'kiro chat --agent skills-mcp',
+      activationHint: 'kiro-cli chat --agent skills-mcp',
+      verified: true,
     },
   },
   kode: {
@@ -282,6 +284,7 @@ export const agents: Record<AgentType, AgentConfig> = {
     },
     agentConfigSupport: {
       activationHint: 'opencode --agent skills-mcp  (or type @skills-mcp inside the TUI)',
+      verified: true,
     },
   },
   openhands: {

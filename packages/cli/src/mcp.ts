@@ -129,7 +129,7 @@ async function configureOneAgent(
 
 /**
  * Print a per-agent summary line after setup, including activation hint
- * when an agent config was written.
+ * when an agent config was written, or a disclaimer for unverified agents.
  */
 function printAgentSummary(
   agentType: string,
@@ -138,6 +138,7 @@ function printAgentSummary(
 ): void {
   const agent = agents[agentType as AgentType];
   const displayName = agent?.displayName || agentType;
+  const isVerified = agent?.agentConfigSupport?.verified ?? false;
 
   if (configMode === 'agent-config' && isGeneratorBacked(agentType)) {
     const hint = agent?.agentConfigSupport?.activationHint;
@@ -153,8 +154,22 @@ function printAgentSummary(
         console.log(`    → ${hint}`);
       }
     }
+
+    // Show disclaimer for unverified agents
+    if (!isVerified) {
+      console.log(
+        `    ⚠️  MCP integration not yet verified. Please ensure ${displayName} picks up the MCP server.`
+      );
+    }
   } else {
     console.log(`  ✓ ${displayName} — MCP server registered in mcp.json`);
+
+    // Show disclaimer for unverified agents in mcp-json mode too
+    if (!isVerified) {
+      console.log(
+        `    ⚠️  MCP integration not yet verified. Please check that ${displayName} has loaded the MCP server.`
+      );
+    }
   }
 }
 

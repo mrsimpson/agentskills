@@ -13,7 +13,8 @@ import {
   ConfigGeneratorRegistry,
   GitHubCopilotGenerator,
   KiroGenerator,
-  OpenCodeGenerator,
+  OpenCodeMcpGenerator,
+  OpenCodeAgentGenerator,
   VsCodeGenerator,
 } from '@codemcp/agentskills-core';
 
@@ -130,20 +131,20 @@ export function getAgentConfigPath(
  * @param configPath Path to the config file
  * @returns The parsed config object, or empty config if file doesn't exist
  */
-export async function readAgentConfig(configPath: string): Promise<McpConfig> {
+export async function readAgentConfig(configPath: string, agentType?: string): Promise<McpConfig> {
   try {
     const content = await fs.readFile(configPath, 'utf-8');
     const raw = JSON.parse(content) as Record<string, unknown>;
 
-    // VS Code uses "servers" instead of "mcpServers"
-    if ('servers' in raw && !('mcpServers' in raw)) {
-      return { ...raw, mcpServers: raw['servers'] as McpConfig['mcpServers'] } as McpConfig;
-    }
-    // OpenCode uses "mcp" instead of "mcpServers"
-    if ('mcp' in raw && !('mcpServers' in raw)) {
-      return { ...raw, mcpServers: raw['mcp'] as McpConfig['mcpServers'] } as McpConfig;
+    // If agentType is provided, use the appropriate adapter to normalize format
+    if (agentType) {
+      const mappedType = AGENT_TO_MCP_CLIENT[agentType] || agentType;
+      const adapter = McpConfigAdapterRegistry.getAdapter(mappedType as any);
+      return adapter.toStandard(raw);
     }
 
+    // No agentType provided - return raw config as-is
+    // Caller is responsible for using the right adapter if needed
     return raw as unknown as McpConfig;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
@@ -187,12 +188,10 @@ export async function configureAgentMcp(
   // Get config path for this agent
   const configPath = getAgentConfigPath(agentType, cwd, scope);
 
-  // Read existing config
-  let config = await readAgentConfig(configPath);
+  // Read existing config (use adapter to convert from agent-specific format if needed)
+  let config = await readAgentConfig(configPath, agentType);
 
-  // Ensure mcpServers exists (or use agent-specific format)
-  const mappedType = AGENT_TO_MCP_CLIENT[agentType] || agentType;
-
+  // Ensure mcpServers exists
   if (!config.mcpServers) {
     config.mcpServers = {};
   }
@@ -206,26 +205,24 @@ export async function configureAgentMcp(
   // Update or add agentskills server
   config.mcpServers.agentskills = mcpServerConfig;
 
-  // Write in agent-specific format
-  if (mappedType === 'opencode') {
-    // OpenCode uses 'mcp' field instead of 'mcpServers'
-    const openCodeConfig = {
-      ...config,
-      mcp: config.mcpServers,
-    };
-    delete (openCodeConfig as any).mcpServers;
-    await writeAgentConfig(configPath, openCodeConfig as any);
-  } else if (mappedType === 'github-copilot') {
-    // VS Code reads .vscode/mcp.json with a top-level "servers" key, not "mcpServers"
-    const vsCodeConfig = {
-      ...config,
-      servers: config.mcpServers,
-    };
-    delete (vsCodeConfig as any).mcpServers;
-    await writeAgentConfig(configPath, vsCodeConfig as any);
-  } else {
-    await writeAgentConfig(configPath, config);
+  // Use the appropriate adapter for the agent type to convert to agent-specific format
+  const mappedType = AGENT_TO_MCP_CLIENT[agentType] || agentType;
+  const adapter = McpConfigAdapterRegistry.getAdapter(mappedType as any);
+
+  // Read existing config for this agent (to preserve other settings)
+  let existingAgentConfig: unknown;
+  try {
+    const existingContent = await fs.readFile(configPath, 'utf-8');
+    existingAgentConfig = JSON.parse(existingContent);
+  } catch {
+    // File doesn't exist or isn't valid JSON, that's okay
+    existingAgentConfig = undefined;
   }
+
+  // Convert to agent-specific format using the adapter
+  const agentSpecificConfig = adapter.toClient(config, existingAgentConfig);
+
+  await writeAgentConfig(configPath, agentSpecificConfig as McpConfig);
 }
 
 /**
@@ -258,7 +255,7 @@ export function buildConfigGeneratorRegistry(): ConfigGeneratorRegistry {
   const registry = new ConfigGeneratorRegistry();
   registry.register(new VsCodeGenerator());
   registry.register(new KiroGenerator());
-  registry.register(new OpenCodeGenerator());
+  registry.register(new OpenCodeMcpGenerator());
   return registry;
 }
 
@@ -361,13 +358,20 @@ export async function generateSkillsMcpAgent(
     );
   }
 
-  // 1. Always write the baseline config (e.g. .vscode/mcp.json for github-copilot)
+  // 1. Always write the baseline config (e.g. .vscode/mcp.json for github-copilot or opencode.json for opencode)
   await writeGeneratedConfig(await generator.generate(baseConfig, generatorOptions));
 
   // 2. For GitHub Copilot: additionally write the agent file when requested
   //    (the VsCodeGenerator owns the baseline; GitHubCopilotGenerator owns the agent file)
   if (includeAgentConfig && generator instanceof VsCodeGenerator) {
     const agentFileGenerator = new GitHubCopilotGenerator();
+    await writeGeneratedConfig(await agentFileGenerator.generate(baseConfig, generatorOptions));
+  }
+
+  // 3. For OpenCode: additionally write the agent file when requested
+  //    (the OpenCodeMcpGenerator owns the baseline opencode.json; OpenCodeAgentGenerator owns the agent file)
+  if (includeAgentConfig && generator instanceof OpenCodeMcpGenerator) {
+    const agentFileGenerator = new OpenCodeAgentGenerator();
     await writeGeneratedConfig(await agentFileGenerator.generate(baseConfig, generatorOptions));
   }
 }

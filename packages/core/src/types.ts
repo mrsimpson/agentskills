@@ -250,7 +250,8 @@ export type McpClientType =
   | "junie"
   | "kiro"
   | "opencode"
-  | "zed";
+  | "zed"
+  | "github-copilot";
 
 /**
  * Parameter specification for MCP server configuration
