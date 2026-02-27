@@ -2,7 +2,12 @@ import { promises as fs } from 'fs';
 import { join, dirname } from 'path';
 import { homedir } from 'os';
 import type { AgentType } from './types.ts';
-import type { McpConfig, McpServerConfig, SkillsMcpAgentConfig } from '@codemcp/agentskills-core';
+import type {
+  McpConfig,
+  McpServerConfig,
+  SkillsMcpAgentConfig,
+  SkillsMcpServerConfig,
+} from '@codemcp/agentskills-core';
 import {
   McpConfigAdapterRegistry,
   ConfigGeneratorRegistry,
@@ -219,26 +224,39 @@ function isValidMcpClientType(type: string): boolean {
 }
 
 /**
- * Generate skills-mcp agent configuration using the ConfigGeneratorRegistry
- * @param agentType The agent type
- * @param cwd Current working directory (or home directory for global)
- * @param scope 'local' for project, 'global' for home directory
+ * A shared registry instance so callers can check which agents are
+ * generator-backed without re-instantiating.
  */
-export async function generateSkillsMcpAgent(
-  agentType: AgentType | string,
-  cwd: string,
-  scope: 'local' | 'global' = 'local'
-): Promise<void> {
-  // Initialize registry with generators
+export function buildConfigGeneratorRegistry(): ConfigGeneratorRegistry {
   const registry = new ConfigGeneratorRegistry();
   registry.register(new GitHubCopilotGenerator());
   registry.register(new KiroGenerator());
   registry.register(new OpenCodeGenerator());
+  return registry;
+}
+
+/**
+ * Generate skills-mcp agent configuration using the ConfigGeneratorRegistry.
+ *
+ * @param agentType The agent type
+ * @param cwd Current working directory (or home directory for global)
+ * @param scope 'local' for project, 'global' for home directory
+ * @param extraServers Additional MCP servers to include alongside agentskills
+ *   (e.g. servers required by installed skills). They are merged into
+ *   mcp_servers before generation so they appear in the same agent file.
+ */
+export async function generateSkillsMcpAgent(
+  agentType: AgentType | string,
+  cwd: string,
+  scope: 'local' | 'global' = 'local',
+  extraServers?: Record<string, SkillsMcpServerConfig>
+): Promise<void> {
+  const registry = buildConfigGeneratorRegistry();
 
   // Get the skills directory path
   const skillsDir = scope === 'global' ? homedir() : cwd;
 
-  // Create base skills-mcp agent config
+  // Create base skills-mcp agent config, merging in any extra servers
   const baseConfig: SkillsMcpAgentConfig = {
     id: 'skills-mcp',
     description: 'Agent-skills MCP server with use_skill tool access',
@@ -249,6 +267,7 @@ export async function generateSkillsMcpAgent(
         args: ['-y', '@codemcp/agentskills-mcp'],
         tools: ['*'],
       },
+      ...extraServers,
     },
     tools: {
       use_skill: true,
