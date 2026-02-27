@@ -12,7 +12,7 @@ mcp-servers:
     command: npx
     args:
       - -y
-      - @codemcp/agentskills-mcp
+      - @codemcp/skills-mcp
     tools:
       - *
   agentic-knowledge:

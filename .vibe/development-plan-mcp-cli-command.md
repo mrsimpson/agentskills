@@ -201,7 +201,7 @@ For each agent, write this to their config file:
   "mcpServers": {
     "agentskills": {
       "command": "npx",
-      "args": ["-y", "@codemcp/agentskills-mcp"]
+      "args": ["-y", "@codemcp/skills-mcp"]
     }
   }
 }

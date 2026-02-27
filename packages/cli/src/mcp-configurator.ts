@@ -7,7 +7,7 @@ import type {
   McpServerConfig,
   SkillsMcpAgentConfig,
   SkillsMcpServerConfig,
-} from '@codemcp/agentskills-core';
+} from '@codemcp/skills-core';
 import {
   McpConfigAdapterRegistry,
   ConfigGeneratorRegistry,
@@ -16,7 +16,7 @@ import {
   OpenCodeMcpGenerator,
   OpenCodeAgentGenerator,
   VsCodeGenerator,
-} from '@codemcp/agentskills-core';
+} from '@codemcp/skills-core';
 
 /**
  * Type mapping from simplified agent names to MCP client types
@@ -199,7 +199,7 @@ export async function configureAgentMcp(
   // Define the MCP server config
   const mcpServerConfig: McpServerConfig = {
     command: 'npx',
-    args: ['-y', '@codemcp/agentskills-mcp'],
+    args: ['-y', '@codemcp/skills-mcp'],
   };
 
   // Update or add agentskills server
@@ -332,7 +332,7 @@ export async function generateSkillsMcpAgent(
       'agent-skills': {
         type: 'stdio',
         command: 'npx',
-        args: ['-y', '@codemcp/agentskills-mcp'],
+        args: ['-y', '@codemcp/skills-mcp'],
         tools: ['*'],
       },
       ...extraServers,

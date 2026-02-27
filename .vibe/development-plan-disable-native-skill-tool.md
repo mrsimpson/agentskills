@@ -207,7 +207,7 @@ _Tasks managed via `bd` CLI_
   "mcp": {
     "agentskills": {
       "type": "local",
-      "command": ["npx", "-y", "@codemcp/agentskills-mcp"],
+      "command": ["npx", "-y", "@codemcp/skills-mcp"],
       "enabled": true,
       "environment": {}
     }

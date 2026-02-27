@@ -569,7 +569,7 @@ We need both a CLI tool for developers and an MCP server for agents. Both requir
 
 ## Decision
 
-We will use a pnpm workspaces monorepo with three packages: @codemcp/agentskills-core (shared), @codemcp/agentskills-cli, and @codemcp/agentskills-mcp.
+We will use a pnpm workspaces monorepo with three packages: @codemcp/skills-core (shared), @codemcp/skills, and @codemcp/skills-mcp.
 
 ## Consequences
 

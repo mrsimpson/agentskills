@@ -8,9 +8,9 @@
 ## 1. Install
 
 ```bash
-npm install -g @codemcp/agentskills-cli
+npm install -g @codemcp/skills
 # or
-pnpm add -g @codemcp/agentskills-cli
+pnpm add -g @codemcp/skills
 ```
 
 This installs the `agentskills` executable.
@@ -20,7 +20,7 @@ This installs the `agentskills` executable.
 If you prefer always typing npx over a global install (I do)
 
 ```bash
-npx @codemcp/agentskills-cli
+npx @codemcp/skills
 ```
 
 ## 2. Add Skills to Your Project
@@ -65,7 +65,7 @@ If you prefer to configure manually, see [Connecting Agents](/guide/mcp-clients)
 {
   "mcpServers": {
     "agentskills": {
-      "command": "npx @codemcp/agentskills-mcp"
+      "command": "npx @codemcp/skills-mcp"
     }
   }
 }

@@ -16,7 +16,7 @@
 import {
   SkillRegistry,
   getAllowedSkillsFromAgentskills
-} from "@codemcp/agentskills-core";
+} from "@codemcp/skills-core";
 import { MCPServer } from "./server.js";
 import * as path from "node:path";
 import * as fs from "node:fs";

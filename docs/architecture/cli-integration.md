@@ -58,7 +58,7 @@ skills add owner/repo
 ```
 skills add owner/repo --mcp-server
 → install to ~/.agentskills/skills/
-→ @codemcp/agentskills-mcp server exposes skills
+→ @codemcp/skills-mcp server exposes skills
 → All MCP clients read from single server
 ```
 
@@ -145,7 +145,7 @@ We maintain **two** skills directories:
 
 ### `.agentskills/skills/` (MCP Server)
 
-- Used by: @codemcp/agentskills-mcp server
+- Used by: @codemcp/skills-mcp server
 - Installation: mcp-server mode
 - Access: MCP protocol → JSON tools
 - Example: `~/.agentskills/skills/commit/SKILL.md`

@@ -201,7 +201,7 @@ Moving from native skills to MCP skills:
 3. **Run installation**:
 
    ```bash
-   npx @codemcp/agentskills-cli install
+   npx @codemcp/skills install
    ```
 
 4. **Configure MCP server** (see [MCP Clients](/guide/mcp-clients))

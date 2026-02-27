@@ -23,7 +23,7 @@ If `agentskills-mcp` is not on your PATH, use the full path:
   "mcpServers": {
     "agentskills": {
       "command": "npx",
-      "args": ["@codemcp/agentskills-mcp"]
+      "args": ["@codemcp/skills-mcp"]
     }
   }
 }

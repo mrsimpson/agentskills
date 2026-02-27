@@ -8,13 +8,13 @@ importers:
 
   .:
     dependencies:
-      '@codemcp/agentskills-cli':
+      '@codemcp/skills':
         specifier: workspace:*
         version: link:packages/cli
-      '@codemcp/agentskills-core':
+      '@codemcp/skills-core':
         specifier: workspace:*
         version: link:packages/core
-      '@codemcp/agentskills-mcp':
+      '@codemcp/skills-mcp':
         specifier: workspace:*
         version: link:packages/mcp-server
     devDependencies:
@@ -102,7 +102,7 @@ importers:
 
   packages/cli:
     dependencies:
-      '@codemcp/agentskills-core':
+      '@codemcp/skills-core':
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -199,7 +199,7 @@ importers:
 
   packages/mcp-server:
     dependencies:
-      '@codemcp/agentskills-core':
+      '@codemcp/skills-core':
         specifier: workspace:*
         version: link:../core
       '@modelcontextprotocol/sdk':

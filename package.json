@@ -1,6 +1,6 @@
 {
-  "name": "@codemcp/agentskills",
-  "version": "1.6.1",
+  "name": "skills-mcp",
+  "version": "0.1.0",
   "private": true,
   "description": "MCP server that exposes Claude Code Agent Skills to any MCP-compatible agent",
   "authors": [
@@ -76,9 +76,9 @@
   },
   "packageManager": "pnpm@9.14.2",
   "dependencies": {
-    "@codemcp/agentskills-cli": "workspace:*",
-    "@codemcp/agentskills-core": "workspace:*",
-    "@codemcp/agentskills-mcp": "workspace:*"
+    "@codemcp/skills-core": "workspace:*",
+    "@codemcp/skills": "workspace:*",
+    "@codemcp/skills-mcp": "workspace:*"
   },
   "agentskills": {
     "commit": "github:mrsimpson/skills-coding/commit",

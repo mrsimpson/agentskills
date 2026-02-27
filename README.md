@@ -48,7 +48,7 @@ This project provides:
 If you prefer always typing npx over a global install (I do)
 
 ```bash
-npx @codemcp/agentskills-cli
+npx @codemcp/skills
 ```
 
 ### 2. Configure Skills
@@ -302,9 +302,9 @@ See the [Agent Skills standard](https://agentskills.io) for full specification.
 
 This is a monorepo containing three packages:
 
-- **[@codemcp/agentskills-core](./packages/core)** - Core parsing, validation, and installation logic
-- **[@codemcp/agentskills-cli](./packages/cli)** - Command-line interface for skill management (based on Vercel's skills CLI)
-- **[@codemcp/agentskills-mcp](./packages/mcp-server)** - MCP protocol server implementation
+- **[@codemcp/skills-core](./packages/core)** - Core parsing, validation, and installation logic
+- **[@codemcp/skills](./packages/cli)** - Command-line interface for skill management (based on Vercel's skills CLI)
+- **[@codemcp/skills-mcp](./packages/mcp-server)** - MCP protocol server implementation
 
 ### Architecture & Integration
 

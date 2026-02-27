@@ -10,7 +10,7 @@ import { promises as fs } from 'fs';
 import * as p from '@clack/prompts';
 import pc from 'picocolors';
 import type { AgentType, McpServerDependency } from './types.ts';
-import type { SkillsMcpServerConfig } from '@codemcp/agentskills-core';
+import type { SkillsMcpServerConfig } from '@codemcp/skills-core';
 import { agents } from './agents.ts';
 import {
   getAgentConfigPath,
@@ -210,7 +210,7 @@ export async function configureSkillMcpDepsForAgents(
     } else {
       // ── Raw mcp.json agents (Claude, Cursor, Cline, …) ───────────────────
       // Import here to avoid circular dependency
-      const { McpConfigAdapterRegistry } = await import('@codemcp/agentskills-core');
+      const { McpConfigAdapterRegistry } = await import('@codemcp/skills-core');
       const configPath = getAgentConfigPath(agentType, configCwd, scope);
       const config = await readAgentConfig(configPath, agentType);
       if (!config.mcpServers) config.mcpServers = {};
@@ -234,7 +234,7 @@ export async function configureSkillMcpDepsForAgents(
       if (anyServerAdded) {
         try {
           // Use the adapter to convert to agent-specific format if needed
-          const { McpConfigAdapterRegistry } = await import('@codemcp/agentskills-core');
+          const { McpConfigAdapterRegistry } = await import('@codemcp/skills-core');
           const adapter = McpConfigAdapterRegistry.getAdapter(agentType as any);
 
           // Read existing config to preserve other settings
