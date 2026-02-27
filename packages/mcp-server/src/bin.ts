@@ -6,12 +6,11 @@
  * Usage: agentskills-mcp [project-directory]
  *
  * If no directory provided, uses current working directory.
- * Reads package.json from project directory to load skill configuration.
  * Skills are loaded from:
- * 1. ./.agentskills/skills (local directory)
+ * 1. ./.agentskills/skills (local directory, required)
  * 2. ~/.agentskills/skills (global directory, optional)
  *
- * Skills can be filtered using skills-lock.json in either location.
+ * Skills can be filtered using skills-lock.json in the .agentskills directory.
  */
 
 import {
