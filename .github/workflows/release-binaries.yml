@@ -1,0 +1,83 @@
+name: Release CLI Binaries
+
+# Triggered after a GitHub Release is published (by the release.yml workflow).
+# Generates platform-specific binaries via clihub and attaches them to the release.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-binaries:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Install clihub
+        run: go install github.com/thellimist/clihub@latest
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build project
+        run: pnpm run build
+
+      # Pack workspace packages locally so we can install agentskills-mcp globally
+      # without waiting for npm registry propagation.
+      # pnpm pack replaces workspace:* with the real version number.
+      - name: Pack workspace packages
+        run: |
+          mkdir -p /tmp/agentskills-packs
+          pnpm -C packages/core pack --pack-destination /tmp/agentskills-packs
+          pnpm -C packages/mcp-server pack --pack-destination /tmp/agentskills-packs
+
+      - name: Install agentskills-mcp globally
+        run: |
+          # Install in dependency order
+          npm install -g /tmp/agentskills-packs/codemcp-skills-core-*.tgz
+          npm install -g /tmp/agentskills-packs/codemcp-skills-mcp-*.tgz
+
+      # clihub starts the stdio server from its working directory to discover tools.
+      # Provide a demo project with at least one skill so the server starts successfully.
+      - name: Set up demo project for tool discovery
+        run: |
+          mkdir -p /tmp/agentskills-demo/.agentskills/skills/example-skill
+          cp packages/demo/local-skills/example-skill/SKILL.md \
+            /tmp/agentskills-demo/.agentskills/skills/example-skill/
+
+      # Run clihub from the demo project directory.
+      # The embedded stdio command ("npx @codemcp/skills-mcp") will be run from
+      # the end-user's current directory when they invoke the binary, so they
+      # need a .agentskills/skills/ tree in their project (same requirement as
+      # running the MCP server directly).
+      - name: Generate CLI binaries
+        working-directory: /tmp/agentskills-demo
+        run: |
+          clihub generate \
+            --stdio "npx @codemcp/skills-mcp" \
+            --output agentskills \
+            --platform linux/amd64,linux/arm64,darwin/amd64,darwin/arm64,windows/amd64
+
+      - name: Upload binaries to release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: /tmp/agentskills-demo/agentskills*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
